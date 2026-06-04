@@ -8,3 +8,7 @@ cursor-bridge/package-lock.json
 speech-bridge/node_modules/
 cursor.local.env
 .aibook/
+book/
+ai-note/
+readme.txt
+run-script.txt
