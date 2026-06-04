@@ -61,26 +61,44 @@ struct CursorComposerView: View {
     }
 
     private var compactControls: some View {
-        DisclosureGroup(isExpanded: $showingAdvancedControls) {
-            VStack(alignment: .leading, spacing: 8) {
-                modelControlsRow
-                contextUsageControls
-            }
-            .padding(.top, 8)
-        } label: {
-            HStack(spacing: 8) {
-                Label(cursorSummary, systemImage: "cpu")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.leather)
-                    .lineLimit(1)
+        Group {
+            if mode == .aiEvolution {
+                evolutionComposerSummary
+            } else {
+                DisclosureGroup(isExpanded: $showingAdvancedControls) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        modelControlsRow
+                        contextUsageControls
+                    }
+                    .padding(.top, 8)
+                } label: {
+                    HStack(spacing: 8) {
+                        Label(cursorSummary, systemImage: "cpu")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                            .lineLimit(1)
 
-                Spacer(minLength: 8)
+                        Spacer(minLength: 8)
 
-                compactUsageMeter
+                        compactUsageMeter
+                    }
+                }
+                .font(BookTheme.captionFont)
+                .tint(BookTheme.leather)
             }
         }
+    }
+
+    private var evolutionComposerSummary: some View {
+        HStack(spacing: 8) {
+            Label("模型见上方「进化」Tab", systemImage: "slider.horizontal.3")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            compactUsageMeter
+        }
         .font(BookTheme.captionFont)
-        .tint(BookTheme.leather)
     }
 
     private var modelControlsRow: some View {
@@ -344,13 +362,8 @@ struct CursorComposerView: View {
     }
 
     private var runningStatusText: String {
-        if !viewModel.streamingToolStatus.isEmpty {
-            return viewModel.streamingToolStatus
-        }
-        if mode == .aiEvolution {
-            return "AI 进化执行中…"
-        }
-        return "Cursor 执行中…"
+        let text = viewModel.runningStatusText(for: mode)
+        return text.isEmpty ? "大模型生成中…" : text
     }
 
     private var cursorSummary: String {

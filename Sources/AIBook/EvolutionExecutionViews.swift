@@ -1,12 +1,374 @@
 import AppKit
 import SwiftUI
 
+/// AI 进化页顶栏两块区域：进化（含模型）、队列。
+enum EvolutionUtilityTab: String, CaseIterable, Identifiable {
+    case evolution = "进化"
+    case queue = "队列"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .evolution: return "arrow.triangle.2.circlepath"
+        case .queue: return "list.number"
+        }
+    }
+}
+
+/// 顶栏 Tab 容器：合并进化操作与进化队列，节省主对话区纵向空间。
+struct EvolutionUtilityTabsPanel: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var ollamaCatalog = OllamaModelCatalog.shared
+    @AppStorage("evolutionUtilityTab") private var selectedTabRaw = EvolutionUtilityTab.evolution.rawValue
+
+    let commands: [EvolutionPlanner.Command]
+    let projectPath: String
+    let isRunning: Bool
+    let executingCommandNumber: Int?
+    let budget: ModelTokenBudget
+    let showsAgentTrace: Bool
+    let liveToolLabel: String?
+    let canRunEvolution: Bool
+    let isEvolutionRebuilding: Bool
+    let clearChatDisabled: Bool
+    let onEvolve: () -> Void
+    let onStop: () -> Void
+    let onClear: () -> Void
+
+    private var selectedTab: EvolutionUtilityTab {
+        EvolutionUtilityTab(rawValue: selectedTabRaw) ?? .evolution
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            tabBar
+
+            Divider()
+                .overlay(BookTheme.pageEdge.opacity(0.65))
+
+            Group {
+                switch selectedTab {
+                case .evolution:
+                    evolutionTabContent
+                case .queue:
+                    EvolutionCommandQueuePanel(
+                        commands: commands,
+                        projectPath: projectPath,
+                        isRunning: isRunning,
+                        executingCommandNumber: executingCommandNumber,
+                        embeddedInTabs: true
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .animation(.easeInOut(duration: 0.18), value: selectedTabRaw)
+        }
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.white.opacity(0.42))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+                }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
+        .task(id: settings.provider) {
+            guard settings.provider == .ollama else { return }
+            await ollamaCatalog.refresh(baseURL: settings.baseURL, apiKey: settings.apiKey)
+        }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 6) {
+            ForEach(EvolutionUtilityTab.allCases) { tab in
+                tabButton(tab)
+            }
+            Spacer(minLength: 0)
+            tabStatusBadge
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+    }
+
+    private func tabButton(_ tab: EvolutionUtilityTab) -> some View {
+        let isSelected = selectedTab == tab
+        return Button {
+            selectedTabRaw = tab.rawValue
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(tab.rawValue)
+                    .font(BookTheme.captionFont)
+            }
+            .foregroundStyle(isSelected ? BookTheme.leatherShadow : BookTheme.inkMuted)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(BookTheme.gold.opacity(0.38))
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(BookTheme.goldSoft.opacity(0.55), lineWidth: 1)
+                        }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .help(tabHelp(tab))
+    }
+
+    @ViewBuilder
+    private var tabStatusBadge: some View {
+        if isRunning, let executingCommandNumber {
+            Label("#\(executingCommandNumber)", systemImage: "play.circle.fill")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.leather)
+        } else if budget.isOverLimit {
+            Label("超限", systemImage: "exclamationmark.triangle.fill")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.vermilion)
+        } else if !commands.isEmpty {
+            let completed = commands.filter(\.isCompleted).count
+            Text("\(completed)/\(commands.count)")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+        }
+    }
+
+    private func tabHelp(_ tab: EvolutionUtilityTab) -> String {
+        switch tab {
+        case .evolution: return "进化操作、后端与模型、自动升级"
+        case .queue: return "左页编号命令队列与源码路径"
+        }
+    }
+
+    private var evolutionTabContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            evolutionActionRow
+            EvolutionModelSettingsSection()
+            EvolutionControlStrip(
+                isRunning: isRunning,
+                showsAgentTrace: showsAgentTrace,
+                explanationSource: settings.explanationSource,
+                providerLabel: settings.provider.rawValue,
+                modelLabel: settings.explanationSource == .llm ? settings.model : nil,
+                liveToolLabel: liveToolLabel,
+                embeddedInTabs: true
+            )
+        }
+        .padding(12)
+    }
+
+    private var evolutionActionRow: some View {
+        HStack(spacing: 8) {
+            BookPageActionButton(
+                title: "进化",
+                icon: "arrow.triangle.2.circlepath",
+                isProminent: !isRunning && !isEvolutionRebuilding && canRunEvolution,
+                isDisabled: isRunning || isEvolutionRebuilding || !canRunEvolution
+            ) {
+                onEvolve()
+            }
+
+            if isRunning {
+                BookPageActionButton(
+                    title: "停止",
+                    icon: "stop.fill",
+                    isProminent: true
+                ) {
+                    onStop()
+                }
+            }
+
+            BookPageActionButton(
+                title: "清空",
+                icon: "trash",
+                isDisabled: isRunning || isEvolutionRebuilding || clearChatDisabled
+            ) {
+                onClear()
+            }
+
+            Spacer()
+
+            if let number = executingCommandNumber, isRunning {
+                Label("第 \(number) 条", systemImage: "number")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
+            }
+        }
+    }
+}
+
+/// 进化 Tab：后端切换与模型选择（原分散在顶栏与输入区）。
+struct EvolutionModelSettingsSection: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var ollamaCatalog = OllamaModelCatalog.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("进化后端")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+                Picker("进化后端", selection: $settings.explanationSource) {
+                    ForEach(ExplanationSource.allCases) { source in
+                        Text(source.rawValue).tag(source)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+
+            if settings.explanationSource == .cursor {
+                cursorModelRow
+            } else {
+                llmModelRow
+            }
+        }
+    }
+
+    private var cursorModelRow: some View {
+        HStack(spacing: 8) {
+            Label("Cursor 模型", systemImage: "cursorarrow.rays")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+            Picker("模型", selection: $settings.selectedCursorModel) {
+                ForEach(CursorModelOption.allCases) { model in
+                    Text(model.label).tag(model)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: 200)
+            Spacer()
+            if settings.isCursorRunnable {
+                Label("已就绪", systemImage: "checkmark.circle.fill")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.jade)
+            } else {
+                Label("需配置 Key 或桥接", systemImage: "exclamationmark.circle")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var llmModelRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("提供商")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+                Picker("提供商", selection: $settings.provider) {
+                    if !settings.configuredLLMProviders.isEmpty {
+                        Section("已配置") {
+                            ForEach(settings.configuredLLMProviders) { provider in
+                                Text(provider.rawValue).tag(provider)
+                            }
+                        }
+                    } else {
+                        ForEach(LLMProvider.allCases) { provider in
+                            Text(provider.rawValue).tag(provider)
+                        }
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 150)
+                .onChange(of: settings.provider) { _ in
+                    settings.applyProviderDefaults()
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text("模型")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+                llmModelPicker
+                Spacer()
+                if settings.isLLMConfigured {
+                    Label("已连接", systemImage: "checkmark.circle.fill")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.jade)
+                } else {
+                    Label("未配置 Key", systemImage: "exclamationmark.circle")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var llmModelPicker: some View {
+        if settings.provider == .qwen {
+            Picker("模型", selection: $settings.model) {
+                ForEach(QwenBailianConfig.suggestedModels, id: \.self) { name in
+                    Text(name).tag(name)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: 180)
+        } else if settings.provider == .ollama {
+            HStack(spacing: 6) {
+                if ollamaCatalog.models.isEmpty && !ollamaCatalog.isLoading {
+                    TextField("model", text: $settings.model)
+                        .textFieldStyle(.plain)
+                        .font(BookTheme.captionFont)
+                        .frame(maxWidth: 140)
+                } else {
+                    Picker("模型", selection: $settings.model) {
+                        ForEach(ollamaCatalog.modelNamesIncluding(settings.model), id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 160)
+                }
+                Button {
+                    Task {
+                        await ollamaCatalog.refresh(
+                            baseURL: settings.baseURL,
+                            apiKey: settings.apiKey,
+                            force: true
+                        )
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(BookTheme.leather)
+            }
+        } else {
+            TextField("model", text: $settings.model)
+                .textFieldStyle(.plain)
+                .font(BookTheme.captionFont)
+                .frame(maxWidth: 160)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.white.opacity(0.72))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                        }
+                }
+        }
+    }
+}
+
 /// AI 进化页顶栏：左页命令队列与源码路径摘要。
 struct EvolutionCommandQueuePanel: View {
     let commands: [EvolutionPlanner.Command]
     let projectPath: String
     let isRunning: Bool
     var executingCommandNumber: Int?
+    var embeddedInTabs: Bool = false
 
     private var pending: [EvolutionPlanner.Command] {
         commands.filter { !$0.isCompleted }
@@ -18,33 +380,47 @@ struct EvolutionCommandQueuePanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Label("进化队列", systemImage: "list.number")
-                    .font(BookTheme.labelFont)
-                    .foregroundStyle(BookTheme.leather)
+            if !embeddedInTabs {
+                HStack(spacing: 8) {
+                    Label("进化队列", systemImage: "list.number")
+                        .font(BookTheme.labelFont)
+                        .foregroundStyle(BookTheme.leather)
 
-                Spacer()
+                    Spacer()
 
-                if isRunning, let executingCommandNumber {
-                    HStack(spacing: 6) {
-                        ProgressView().controlSize(.mini)
-                        Text("执行 #\(executingCommandNumber)")
-                            .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leather)
+                    if isRunning, let executingCommandNumber {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini)
+                            Text("执行 #\(executingCommandNumber)")
+                                .font(BookTheme.captionFont)
+                                .foregroundStyle(BookTheme.leather)
+                        }
+                    } else if isRunning {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini)
+                            Text("执行中")
+                                .font(BookTheme.captionFont)
+                                .foregroundStyle(BookTheme.leather)
+                        }
                     }
-                } else if isRunning {
-                    HStack(spacing: 6) {
-                        ProgressView().controlSize(.mini)
-                        Text("执行中")
+
+                    if !commands.isEmpty {
+                        Text("\(completed.count)/\(commands.count) 已完成")
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leather)
+                            .foregroundStyle(BookTheme.inkMuted)
                     }
                 }
-
-                if !commands.isEmpty {
+            } else if !commands.isEmpty {
+                HStack {
                     Text("\(completed.count)/\(commands.count) 已完成")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
+                    Spacer()
+                    if isRunning, let executingCommandNumber {
+                        Label("执行 #\(executingCommandNumber)", systemImage: "play.circle.fill")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                    }
                 }
             }
 
@@ -89,17 +465,7 @@ struct EvolutionCommandQueuePanel: View {
             }
         }
         .padding(12)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.42))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
-                }
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 6)
-        .padding(.bottom, 4)
+        .modifier(EvolutionPanelChromeModifier(embeddedInTabs: embeddedInTabs))
     }
 
     private func commandTitle(_ command: EvolutionPlanner.Command) -> String {
@@ -272,114 +638,6 @@ struct AssistantExecutionTraceCard: View {
     }
 }
 
-/// AI 进化页：当前模型 token 用量 / 剩余 / 额度进度（随对话与 Agent 轮次实时更新）。
-struct EvolutionTokenMeterPanel: View {
-    let budget: ModelTokenBudget
-    var isRunning: Bool = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Label("Token 额度", systemImage: "gauge.with.dots.needle.67percent")
-                    .font(BookTheme.labelFont)
-                    .foregroundStyle(BookTheme.leather)
-
-                Spacer()
-
-                if isRunning {
-                    ProgressView().controlSize(.mini)
-                }
-
-                Text(budget.modelLabel)
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                    .lineLimit(1)
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("已用 \(budget.formattedUsed)")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(meterColor)
-                Text("/ \(budget.formattedLimit)")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
-                Text("· 剩余 \(budget.formattedRemaining)")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(budget.isOverLimit ? BookTheme.vermilion : BookTheme.inkMuted)
-                Spacer()
-                Text(budget.formattedPercentage)
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(meterColor)
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(BookTheme.pageEdge.opacity(0.55))
-                    Capsule()
-                        .fill(meterGradient)
-                        .frame(width: geometry.size.width * budget.progressPercentage / 100.0)
-                }
-            }
-            .frame(height: 8)
-
-            HStack(spacing: 12) {
-                tokenChip(title: "上下文", value: budget.contextTokens)
-                tokenChip(title: "回复预留", value: budget.completionReserveTokens)
-                tokenChip(title: "累计消耗", value: budget.sessionConsumedTokens)
-            }
-
-            if budget.isOverLimit {
-                Label("已超出当前模型 token 额度，进化与追问已暂停", systemImage: "exclamationmark.triangle.fill")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.vermilion)
-            } else if budget.isNearLimit {
-                Label("接近 token 上限，建议清空对话或换更大上下文模型", systemImage: "exclamationmark.circle")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(.orange)
-            }
-        }
-        .padding(12)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.42))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(meterColor.opacity(0.35), lineWidth: 1)
-                }
-        }
-    }
-
-    private var meterColor: Color {
-        if budget.isOverLimit { return BookTheme.vermilion }
-        if budget.isNearLimit { return .orange }
-        return BookTheme.leather
-    }
-
-    private var meterGradient: LinearGradient {
-        let colors: [Color]
-        if budget.isOverLimit {
-            colors = [BookTheme.vermilion.opacity(0.9), .orange.opacity(0.85)]
-        } else if budget.isNearLimit {
-            colors = [.orange.opacity(0.85), BookTheme.gold]
-        } else {
-            colors = [BookTheme.gold, BookTheme.goldSoft]
-        }
-        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
-    }
-
-    private func tokenChip(title: String, value: Int) -> some View {
-        HStack(spacing: 4) {
-            Text(title)
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
-            Text(TokenDisplay.format(value))
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkSecondary)
-        }
-    }
-}
-
 /// 进化页：自动升级开关与 Agent 后端状态摘要。
 struct EvolutionControlStrip: View {
     @ObservedObject var settings = AppSettings.shared
@@ -389,6 +647,7 @@ struct EvolutionControlStrip: View {
     let providerLabel: String
     let modelLabel: String?
     let liveToolLabel: String?
+    var embeddedInTabs: Bool = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -442,6 +701,30 @@ struct EvolutionControlStrip: View {
         let provider = providerLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let modelLabel, !modelLabel.isEmpty else { return provider }
         return "\(provider) · \(modelLabel)"
+    }
+}
+
+private struct EvolutionPanelChromeModifier: ViewModifier {
+    var embeddedInTabs: Bool
+    var accentBorder: Color?
+
+    func body(content: Content) -> some View {
+        if embeddedInTabs {
+            content
+        } else {
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white.opacity(0.42))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder((accentBorder ?? BookTheme.pageEdge.opacity(0.75)), lineWidth: 1)
+                        }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
+        }
     }
 }
 

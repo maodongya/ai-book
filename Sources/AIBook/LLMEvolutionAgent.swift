@@ -170,7 +170,15 @@ final class LLMEvolutionAgent {
             } else {
                 var message: [String: Any] = ["role": "assistant"]
                 let trimmedContent = completion.content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                message["content"] = trimmedContent.isEmpty ? "" : trimmedContent
+                if trimmedContent.isEmpty, !serializedToolCalls.isEmpty {
+                    message["content"] = NSNull()
+                } else {
+                    message["content"] = trimmedContent
+                }
+                if let reasoning = completion.reasoning?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !reasoning.isEmpty {
+                    message["reasoning_content"] = reasoning
+                }
                 message["tool_calls"] = serializedToolCalls
                 assistantMessage = message
             }

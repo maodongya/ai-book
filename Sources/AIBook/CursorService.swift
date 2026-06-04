@@ -155,6 +155,7 @@ struct CursorService {
         message: String,
         history: [ChatMessage],
         configuration: CursorConfiguration,
+        systemInstruction: String? = nil,
         autoAuthorize: Bool = false,
         onEvent: (@Sendable (CursorStreamEvent) -> Void)? = nil
     ) async throws -> (text: String, thinking: String?) {
@@ -171,7 +172,7 @@ struct CursorService {
             throw CursorServiceError.needsAuthentication
         }
 
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "message": message,
             "apiKey": configuration.apiKey,
             "model": configuration.model,
@@ -179,6 +180,9 @@ struct CursorService {
             "autoAuthorize": autoAuthorize,
             "history": history.map { ["role": $0.role.rawValue, "content": $0.content] },
         ]
+        if let systemInstruction, !systemInstruction.isEmpty {
+            payload["systemInstruction"] = systemInstruction
+        }
 
         let inputData = try JSONSerialization.data(withJSONObject: payload)
 

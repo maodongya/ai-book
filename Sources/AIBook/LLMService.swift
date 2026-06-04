@@ -108,12 +108,17 @@ final class LLMService {
     private var activeCompletionTask: Task<LLMCompletionResult, Error>?
 
     func cancel() {
+        cancelInFlightNetwork()
+        activeCompletionTask?.cancel()
+        activeCompletionTask = nil
+    }
+
+    /// Cancels URLSession work only — safe to call from inside an active completion task.
+    private func cancelInFlightNetwork() {
         activeTask?.cancel()
         activeTask = nil
         activeBytesTask?.cancel()
         activeBytesTask = nil
-        activeCompletionTask?.cancel()
-        activeCompletionTask = nil
     }
 
     private func normalizedConfiguration(_ configuration: LLMConfiguration) -> LLMConfiguration {
@@ -252,6 +257,7 @@ final class LLMService {
                     request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
                     if useStreaming {
+                        self.cancel()
                         let task = Task {
                             try await self.streamCompleteWithTools(
                                 request: request,
@@ -356,7 +362,7 @@ final class LLMService {
         streamPartial: LLMToolStreamPartial
     ) async throws -> LLMCompletionResult {
         try Task.checkCancellation()
-        cancel()
+        cancelInFlightNetwork()
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
 
@@ -512,7 +518,7 @@ final class LLMService {
         prompt: String,
         history: [ChatMessage],
         configuration: LLMConfiguration,
-        systemPrompt: String? = nil,
+        systemPrompt: String,
         maxTokens: Int? = nil,
         onEvent: ((LLMStreamEvent) -> Void)? = nil
     ) async throws -> String {
@@ -529,7 +535,7 @@ final class LLMService {
         var messages: [[String: String]] = [
             [
                 "role": "system",
-                "content": systemPrompt ?? ReadingAssistant.systemPrompt,
+                "content": systemPrompt,
             ],
         ]
 
@@ -609,7 +615,7 @@ final class LLMService {
         baseURL: String,
         onEvent: @escaping (LLMStreamEvent) -> Void
     ) async throws -> String {
-        cancel()
+        cancelInFlightNetwork()
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
 

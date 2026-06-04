@@ -1,0 +1,8 @@
+{
+  "name": "aibook-cursor-bridge",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cursor/sdk": "latest"
+  }
+}

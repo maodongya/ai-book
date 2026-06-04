@@ -37,34 +37,21 @@ struct ExplanationChatView: View {
         VStack(spacing: 0) {
             configurationNotice
 
-            EvolutionCommandQueuePanel(
+            EvolutionUtilityTabsPanel(
                 commands: viewModel.evolutionCommands,
                 projectPath: SelfEvolution.sourceProjectPath(),
                 isRunning: viewModel.isRunning,
-                executingCommandNumber: viewModel.executingEvolutionCommandNumber
-            )
-
-            evolutionActionBar
-                .padding(.horizontal, 14)
-                .padding(.bottom, 4)
-
-            EvolutionTokenMeterPanel(
+                executingCommandNumber: viewModel.executingEvolutionCommandNumber,
                 budget: viewModel.evolutionTokenBudget,
-                isRunning: viewModel.isRunning
-            )
-            .padding(.horizontal, 14)
-            .padding(.bottom, 4)
-
-            EvolutionControlStrip(
-                isRunning: viewModel.isRunning,
                 showsAgentTrace: viewModel.showsEvolutionExecutionTrace,
-                explanationSource: settings.explanationSource,
-                providerLabel: settings.provider.rawValue,
-                modelLabel: settings.explanationSource == .llm ? settings.model : nil,
-                liveToolLabel: viewModel.evolutionLiveToolLabel
+                liveToolLabel: viewModel.evolutionLiveToolLabel,
+                canRunEvolution: viewModel.canRunEvolution,
+                isEvolutionRebuilding: viewModel.isEvolutionRebuilding,
+                clearChatDisabled: viewModel.chatMessages.count <= 1,
+                onEvolve: { viewModel.startEvolution() },
+                onStop: { viewModel.stopCurrentRun() },
+                onClear: { viewModel.clearChat() }
             )
-            .padding(.horizontal, 14)
-            .padding(.bottom, 4)
 
             if viewModel.isEvolutionRebuilding {
                 EvolutionRebuildBanner(status: viewModel.evolutionRebuildStatus)
@@ -76,49 +63,6 @@ struct ExplanationChatView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             composer(for: .aiEvolution)
-        }
-    }
-
-    private var evolutionActionBar: some View {
-        HStack(spacing: 8) {
-            BookPageActionButton(
-                title: "进化",
-                icon: "arrow.triangle.2.circlepath",
-                isProminent: !viewModel.isRunning && !viewModel.isEvolutionRebuilding && viewModel.canRunEvolution,
-                isDisabled: viewModel.isRunning
-                    || viewModel.isEvolutionRebuilding
-                    || !viewModel.canRunEvolution
-            ) {
-                viewModel.startEvolution()
-            }
-
-            if viewModel.isRunning {
-                BookPageActionButton(
-                    title: "停止",
-                    icon: "stop.fill",
-                    isProminent: true
-                ) {
-                    viewModel.stopCurrentRun()
-                }
-            }
-
-            BookPageActionButton(
-                title: "清空",
-                icon: "trash",
-                isDisabled: viewModel.isRunning
-                    || viewModel.isEvolutionRebuilding
-                    || viewModel.chatMessages.count <= 1
-            ) {
-                viewModel.clearChat()
-            }
-
-            Spacer()
-
-            if let number = viewModel.executingEvolutionCommandNumber, viewModel.isRunning {
-                Label("第 \(number) 条", systemImage: "number")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.leather)
-            }
         }
     }
 
@@ -196,15 +140,24 @@ struct ExplanationChatView: View {
                 lessonPlanPlaceholder
             }
 
-            TextEditor(text: $viewModel.lessonPlanContent)
-                .font(BookTheme.bodyFont)
-                .foregroundStyle(BookTheme.ink)
-                .lineSpacing(7)
-                .scrollContentBackground(.hidden)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .disabled(viewModel.isRunning)
+            SelectableTextView(
+                text: $viewModel.lessonPlanContent,
+                onSelectionChange: { _, _ in },
+                appearance: .editor,
+                isEditable: !viewModel.isRunning,
+                selectAllSignal: viewModel.rightSelectAllSignal
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VStack {
+                HStack(spacing: 8) {
+                    Spacer()
+                    lessonPlanSelectAllButton
+                    lessonPlanReadAloudButton
+                }
+                Spacer()
+            }
+            .padding(10)
 
             if viewModel.isLoading {
                 HStack(spacing: 8) {
@@ -240,12 +193,63 @@ struct ExplanationChatView: View {
         .padding(.vertical, 8)
     }
 
+    private var lessonPlanSelectAllButton: some View {
+        let isEmpty = viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return Button {
+            viewModel.selectAllRightPage()
+        } label: {
+            Label("全选", systemImage: "selection.pin.in.out")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.leather)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background {
+                    Capsule()
+                        .fill(Color.white.opacity(0.88))
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+                        }
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(isEmpty || viewModel.isRunning)
+        .help("全选翻译内容")
+    }
+
+    private var lessonPlanReadAloudButton: some View {
+        let isEmpty = viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return Button {
+            viewModel.readLessonPlanAloud()
+        } label: {
+            Label(
+                viewModel.isSpeakingExplanation ? "停止" : "朗读",
+                systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
+            )
+            .font(BookTheme.captionFont)
+            .foregroundStyle(BookTheme.leather)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background {
+                Capsule()
+                    .fill(Color.white.opacity(0.88))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isRunning || (isEmpty && !viewModel.isSpeakingExplanation))
+        .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（⌘⌥T）")
+    }
+
     private var lessonPlanPlaceholder: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("点击「逐字翻译」开始", systemImage: "sparkles")
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("在顶栏中栏「更多」选择逐字/整段翻译；生成后可在此直接编辑。")
+            Text("在顶栏中栏「更多」选择逐字/整段翻译；生成后可编辑，并点击右上角朗读或 ⌘⌥T。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)
@@ -279,13 +283,18 @@ struct ExplanationChatView: View {
             .onChange(of: viewModel.chatMessages.count) { _ in
                 scrollToBottom(proxy: proxy)
             }
+            .onChange(of: viewModel.showsExecutionTrace) { _ in
+                scrollToBottom(proxy: proxy)
+            }
             .onChange(of: viewModel.streamingThinking) { _ in
+                guard viewModel.showsExecutionTrace else { return }
                 scrollToBottom(proxy: proxy)
             }
             .onChange(of: viewModel.streamingResponse) { _ in
                 scrollToBottom(proxy: proxy)
             }
             .onChange(of: viewModel.streamingToolSteps.count) { _ in
+                guard viewModel.showsExecutionTrace else { return }
                 scrollToBottom(proxy: proxy)
             }
             .onChange(of: viewModel.isLoading) { _ in
@@ -299,7 +308,7 @@ struct ExplanationChatView: View {
             if message.role == .assistant {
                 VStack(alignment: .leading, spacing: 6) {
                     assistantMessageHeader(message)
-                    if message.hasExecutionTrace {
+                    if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
                         AssistantExecutionTraceCard(
                             thinking: message.thinking,
                             toolSteps: message.toolSteps,
@@ -372,7 +381,7 @@ struct ExplanationChatView: View {
         }
         .disabled(message.content.isEmpty)
 
-        if message.hasExecutionTrace {
+        if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
             Button {
                 copyToPasteboard(message.executionTraceText)
             } label: {
@@ -470,9 +479,7 @@ struct ExplanationChatView: View {
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.leather)
 
-                if viewModel.showsEvolutionExecutionTrace && viewModel.rightPageTab == .aiEvolution {
-                    cursorStreamingContent
-                } else if viewModel.showsCursorExecutionOutput {
+                if viewModel.showsExecutionTrace {
                     cursorStreamingContent
                 } else {
                     llmStreamingContent

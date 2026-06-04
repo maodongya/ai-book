@@ -62,30 +62,48 @@ struct LLMComposerView: View {
     }
 
     private var compactControls: some View {
-        DisclosureGroup(isExpanded: $showingAdvancedControls) {
-            VStack(alignment: .leading, spacing: 8) {
-                modelControlsRow
-                contextUsageControls
-            }
-            .padding(.top, 8)
-        } label: {
-            HStack(spacing: 8) {
-                Label(llmSummary, systemImage: "cpu")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.leather)
-                    .lineLimit(1)
+        Group {
+            if mode == .aiEvolution {
+                evolutionComposerSummary
+            } else {
+                DisclosureGroup(isExpanded: $showingAdvancedControls) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        modelControlsRow
+                        contextUsageControls
+                    }
+                    .padding(.top, 8)
+                } label: {
+                    HStack(spacing: 8) {
+                        Label(llmSummary, systemImage: "cpu")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                            .lineLimit(1)
 
-                Spacer(minLength: 8)
+                        Spacer(minLength: 8)
 
-                compactUsageMeter
+                        compactUsageMeter
+                    }
+                }
+                .font(BookTheme.captionFont)
+                .tint(BookTheme.leather)
             }
         }
-        .font(BookTheme.captionFont)
-        .tint(BookTheme.leather)
         .task(id: settings.provider) {
             guard settings.provider == .ollama else { return }
             await ollamaCatalog.refresh(baseURL: settings.baseURL, apiKey: settings.apiKey)
         }
+    }
+
+    private var evolutionComposerSummary: some View {
+        HStack(spacing: 8) {
+            Label("模型见上方「进化」Tab", systemImage: "slider.horizontal.3")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            compactUsageMeter
+        }
+        .font(BookTheme.captionFont)
     }
 
     private var ollamaModelControls: some View {
@@ -397,7 +415,7 @@ struct LLMComposerView: View {
             if viewModel.isRunning {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text(viewModel.streamingToolStatus.isEmpty ? "大模型生成中…" : viewModel.streamingToolStatus)
+                    Text(runningStatusText)
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.leather)
                 }
@@ -412,6 +430,11 @@ struct LLMComposerView: View {
                 }
             }
         }
+    }
+
+    private var runningStatusText: String {
+        let text = viewModel.runningStatusText(for: mode)
+        return text.isEmpty ? "大模型生成中…" : text
     }
 
     private var composerPlaceholder: String {

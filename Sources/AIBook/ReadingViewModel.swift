@@ -16,6 +16,8 @@ final class ReadingViewModel: ObservableObject {
     }
     @Published var fileName = "未命名"
     @Published var selectedText = ""
+    @Published private(set) var leftSelectAllSignal = UUID()
+    @Published private(set) var rightSelectAllSignal = UUID()
     @Published private(set) var isDirty = false
     @Published var chatMessages: [ChatMessage] = [] {
         didSet { persistChatSession() }
@@ -42,6 +44,8 @@ final class ReadingViewModel: ObservableObject {
     @Published var streamingResponse = ""
     @Published var streamingToolStatus = ""
     @Published var streamingToolSteps: [ExecutionStep] = []
+    /// 仅 AI 进化任务为 true；读书助手与名著补充不展示思考/工具等中间过程。
+    @Published private(set) var showsExecutionTrace = false
     @Published var executingEvolutionCommandNumber: Int?
     @Published var isEvolutionRebuilding = false
     @Published var evolutionRebuildStatus = ""
@@ -129,7 +133,7 @@ final class ReadingViewModel: ObservableObject {
     }
 
     var evolutionLiveToolLabel: String? {
-        guard isRunning else { return nil }
+        guard isRunning, showsExecutionTrace else { return nil }
         if let last = streamingToolSteps.last {
             let name = EvolutionToolLabels.localizedToolName(last.name)
             if last.status == .running {
@@ -245,6 +249,14 @@ final class ReadingViewModel: ObservableObject {
         streamingToolStatus = ""
         streamingToolSteps = []
         evolutionAgentContextTokens = 0
+        showsExecutionTrace = false
+    }
+
+    private func beginRun(showsExecutionTrace: Bool) {
+        isLoading = true
+        isRunning = true
+        resetStreamingState()
+        self.showsExecutionTrace = showsExecutionTrace
     }
 
     private func clearEvolutionExecutionState() {
@@ -263,10 +275,12 @@ final class ReadingViewModel: ObservableObject {
     private func handleCursorStreamEvent(_ event: CursorStreamEvent) {
         switch event {
         case .thinkingDelta(let delta):
+            guard showsExecutionTrace else { return }
             streamingThinking += delta
         case .textDelta(let delta):
             streamingResponse += delta
         case .toolUpdate(let name, let status, let callId, let detail, let result, let error):
+            guard showsExecutionTrace else { return }
             applyToolStepUpdate(
                 name: name,
                 status: status,
@@ -276,11 +290,18 @@ final class ReadingViewModel: ObservableObject {
                 error: error
             )
         case .statusUpdate(let status):
+            guard showsExecutionTrace else { return }
             streamingToolStatus = status
         case .error(let message):
             errorMessage = message
-        case .done:
-            break
+        case .done(let text, let thinking):
+            if streamingResponse.isEmpty, !text.isEmpty {
+                streamingResponse = text
+            }
+            guard showsExecutionTrace else { return }
+            if streamingThinking.isEmpty, let thinking, !thinking.isEmpty {
+                streamingThinking = thinking
+            }
         }
     }
 
@@ -390,6 +411,7 @@ final class ReadingViewModel: ObservableObject {
         streamingToolStatus = ""
         streamingToolSteps = []
         executingEvolutionCommandNumber = nil
+        showsExecutionTrace = false
         if wasRunning {
             appendDisplayedMessage(
                 ChatMessage(role: .assistant, content: "已停止执行。"),
@@ -714,6 +736,23 @@ final class ReadingViewModel: ObservableObject {
         selectedTextRange = selectedText.isEmpty ? nil : range
     }
 
+    func selectAllLeftPage() {
+        guard !fileContent.isEmpty else {
+            errorMessage = "当前没有可选中的文本。"
+            return
+        }
+        leftSelectAllSignal = UUID()
+    }
+
+    func selectAllRightPage() {
+        selectRightPageTab(.readingAssistant)
+        guard !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "当前翻译为空，无法全选。"
+            return
+        }
+        rightSelectAllSignal = UUID()
+    }
+
     var evolutionStatusLabel: String? {
         SelfEvolution.statusLabel(from: fileContent)
     }
@@ -722,9 +761,15 @@ final class ReadingViewModel: ObservableObject {
         EvolutionPlanner.parseCommands(from: fileContent)
     }
 
-    /// 选中「Cursor 本地」且桥接可用时展示 Agent 执行过程时间线（读书助手页）。
-    var showsCursorExecutionOutput: Bool {
-        AppSettings.shared.explanationSource == .cursor && AppSettings.shared.isCursorRunnable
+    /// 输入栏旁的运行状态：进化展示工具步骤，读书/名著补充仅展示简单进度。
+    func runningStatusText(for mode: RightPageTab) -> String {
+        guard isRunning else { return "" }
+        if mode == .aiEvolution, showsExecutionTrace {
+            if !streamingToolStatus.isEmpty { return streamingToolStatus }
+            if let label = evolutionLiveToolLabel { return label }
+            return "AI 进化执行中…"
+        }
+        return "处理中…"
     }
 
     /// AI 进化页是否展示 Agent 执行轨迹（Cursor 或 LLM 本地工具模式）。
@@ -773,7 +818,6 @@ final class ReadingViewModel: ObservableObject {
         sendMessage(
             prompt,
             displayText: "自我进化 · 第 \(pending.number) 条",
-            asReadingAssistant: false,
             isEvolution: true,
             evolutionCommandNumber: pending.number,
             triggerEvolutionRebuild: true
@@ -827,7 +871,6 @@ final class ReadingViewModel: ObservableObject {
         sendMessage(
             prompt,
             displayText: "请讲解选中的这段文字（\(selectedText.count) 字）",
-            asReadingAssistant: true,
             speakReplyWhenDone: true
         )
     }
@@ -845,6 +888,23 @@ final class ReadingViewModel: ObservableObject {
         let text = selected.isEmpty ? fullText : selected
         guard !text.isEmpty else {
             errorMessage = "当前没有可朗读内容，请先输入或打开文本。"
+            return
+        }
+
+        speakExplanation(text, preferLowLatency: true)
+    }
+
+    func readLessonPlanAloud() {
+        if isSpeakingExplanation {
+            stopExplanationSpeech()
+            return
+        }
+
+        selectRightPageTab(.readingAssistant)
+
+        let text = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            errorMessage = "当前翻译为空，请先生成或打开翻译内容。"
             return
         }
 
@@ -870,14 +930,12 @@ final class ReadingViewModel: ObservableObject {
             : "名著补充 · 全文 \(fileContent.count) 字"
 
         let userMessage = ChatMessage(role: .user, content: displayText)
-        appendDisplayedMessage(userMessage, to: .reading)
-        isLoading = true
-        isRunning = true
-        resetStreamingState()
-        streamingToolStatus = "正在识别并补全名著…"
+        appendDisplayOnlyMessage(userMessage)
+        beginRun(showsExecutionTrace: false)
         errorMessage = nil
 
         let prompt = ClassicLiteratureSupplement.buildPrompt(source: source, isSelection: replacingSelection)
+        let llmMode = AIBookLLMPrompt.Mode.classicLiteratureSupplement
         let settings = AppSettings.shared
         let selectionRange = replacingSelection ? currentSelectionRange(matching: source) : nil
 
@@ -887,9 +945,9 @@ final class ReadingViewModel: ObservableObject {
                 var streamed = ""
                 let reply = try await llmService.chat(
                     prompt: prompt,
-                    history: [],
+                    history: llmMode.apiHistory,
                     configuration: settings.llmConfiguration,
-                    systemPrompt: ClassicLiteratureSupplement.systemPrompt,
+                    systemPrompt: llmMode.systemPrompt,
                     maxTokens: 8192,
                     onEvent: { [weak self] event in
                         Task { @MainActor in
@@ -915,21 +973,19 @@ final class ReadingViewModel: ObservableObject {
                 applySupplementToLeftPage(finalText, selectionRange: selectionRange)
                 persistLeftPage()
 
-                appendDisplayedMessage(
+                appendDisplayOnlyMessage(
                     ChatMessage(
                         role: .assistant,
                         content: "名著补充完成，已写入左页（\(finalText.count) 字）并保存。"
-                    ),
-                    to: .reading
+                    )
                 )
             } catch {
                 guard !Task.isCancelled else { return }
                 if !(error is CancellationError) {
                     let message = LLMServiceErrorPresenter.message(for: error, provider: settings.provider)
                     errorMessage = message
-                    appendDisplayedMessage(
-                        ChatMessage(role: .assistant, content: "名著补充失败：\(message)"),
-                        to: .reading
+                    appendDisplayOnlyMessage(
+                        ChatMessage(role: .assistant, content: "名著补充失败：\(message)")
                     )
                 }
             }
@@ -1017,7 +1073,6 @@ final class ReadingViewModel: ObservableObject {
         sendMessage(
             prompt,
             displayText: text,
-            asReadingAssistant: false,
             isEvolution: true,
             triggerEvolutionRebuild: false
         )
@@ -1135,7 +1190,6 @@ final class ReadingViewModel: ObservableObject {
     private func sendMessage(
         _ prompt: String,
         displayText: String,
-        asReadingAssistant: Bool = true,
         isEvolution: Bool = false,
         evolutionCommandNumber: Int? = nil,
         speakReplyWhenDone: Bool = false,
@@ -1145,9 +1199,7 @@ final class ReadingViewModel: ObservableObject {
         let promptContext: PromptContext = isEvolution ? .evolution : .reading
         let userMessage = ChatMessage(role: .user, content: displayText)
         appendDisplayedMessage(userMessage, to: promptContext)
-        isLoading = true
-        isRunning = true
-        resetStreamingState()
+        beginRun(showsExecutionTrace: isEvolution)
         if isEvolution {
             executingEvolutionCommandNumber = evolutionCommandNumber
         } else {
@@ -1155,21 +1207,31 @@ final class ReadingViewModel: ObservableObject {
         }
         errorMessage = nil
 
-        let resolvedPrompt = asReadingAssistant ? ReadingAssistant.wrapPrompt(prompt) : prompt
-        let history = contextHistory(for: promptContext).dropLast()
+        let history: [ChatMessage]
+        let readingLLMMode: AIBookLLMPrompt.Mode?
+        if isEvolution {
+            history = Array(apiHistory(for: promptContext).dropLast())
+            readingLLMMode = nil
+        } else {
+            history = AIBookLLMPrompt.Mode.readingAssistant.apiHistory
+            readingLLMMode = .readingAssistant
+        }
 
         activeTask?.cancel()
         activeTask = Task {
             do {
                 let outcome = try await fetchAssistantReply(
-                    prompt: resolvedPrompt,
-                    history: Array(history),
+                    prompt: prompt,
+                    history: history,
                     settings: settings,
-                    isEvolution: isEvolution
+                    isEvolution: isEvolution,
+                    llmMode: readingLLMMode
                 )
 
                 guard !Task.isCancelled else { return }
-                let resolvedThinking = outcome.thinking ?? (streamingThinking.isEmpty ? nil : streamingThinking)
+                let resolvedThinking = isEvolution
+                    ? (outcome.thinking ?? (streamingThinking.isEmpty ? nil : streamingThinking))
+                    : nil
                 let resolvedReply = outcome.text.isEmpty ? streamingResponse : outcome.text
 
                 if let notice = outcome.fallbackNotice {
@@ -1181,7 +1243,7 @@ final class ReadingViewModel: ObservableObject {
                     role: .assistant,
                     content: resolvedReply,
                     thinking: resolvedThinking,
-                    toolSteps: resolvedToolStepsForMessage()
+                    toolSteps: isEvolution ? resolvedToolStepsForMessage() : nil
                 )
                 appendDisplayedMessage(assistantMessage, to: promptContext)
 
@@ -1191,7 +1253,7 @@ final class ReadingViewModel: ObservableObject {
 
                 if isEvolution, shouldUseCursorBridge(settings: settings) {
                     recordEvolutionCursorEstimate(
-                        prompt: resolvedPrompt,
+                        prompt: prompt,
                         history: Array(history),
                         reply: resolvedReply,
                         thinking: resolvedThinking
@@ -1250,22 +1312,19 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        let userMessage = ChatMessage(role: .user, content: displayText)
-        appendPromptMessage(userMessage, to: .reading)
-        isLoading = true
-        isRunning = true
-        resetStreamingState()
+        beginRun(showsExecutionTrace: false)
         errorMessage = nil
 
-        let history = contextHistory(for: .reading)
+        let llmMode = AIBookLLMPrompt.Mode.translation
         activeTask?.cancel()
         activeTask = Task {
             do {
                 let outcome = try await fetchAssistantReply(
                     prompt: prompt,
-                    history: history,
+                    history: llmMode.apiHistory,
                     settings: settings,
-                    isEvolution: false
+                    isEvolution: false,
+                    llmMode: llmMode
                 )
 
                 guard !Task.isCancelled else { return }
@@ -1276,13 +1335,6 @@ final class ReadingViewModel: ObservableObject {
                     to: lessonPlanContent
                 )
                 lessonPlanContent = appendedPlan
-
-                let assistantMessage = ChatMessage(
-                    role: .assistant,
-                    content: resolvedPlan.trimmingCharacters(in: .whitespacesAndNewlines),
-                    thinking: outcome.thinking
-                )
-                appendPromptMessage(assistantMessage, to: .reading)
             } catch {
                 guard !Task.isCancelled else { return }
                 if !(error is CancellationError) {
@@ -1415,8 +1467,17 @@ final class ReadingViewModel: ObservableObject {
         prompt: String,
         history: [ChatMessage],
         settings: AppSettings,
-        isEvolution: Bool
+        isEvolution: Bool,
+        llmMode: AIBookLLMPrompt.Mode? = nil
     ) async throws -> AssistantReplyOutcome {
+        let resolvedSystemPrompt: String
+        if isEvolution {
+            resolvedSystemPrompt = EvolutionAssistant.systemPrompt
+        } else if let llmMode {
+            resolvedSystemPrompt = llmMode.systemPrompt
+        } else {
+            resolvedSystemPrompt = ReadingAssistant.systemPrompt
+        }
         let wantsCursor = shouldUseCursorBridge(settings: settings)
 
         if wantsCursor {
@@ -1425,6 +1486,7 @@ final class ReadingViewModel: ObservableObject {
                     prompt: prompt,
                     history: history,
                     settings: settings,
+                    systemInstruction: resolvedSystemPrompt,
                     autoAuthorize: isEvolution
                 )
             } catch {
@@ -1439,7 +1501,12 @@ final class ReadingViewModel: ObservableObject {
                         settings: settings
                     )
                 }
-                let llmText = try await fetchLLMReply(prompt: prompt, history: history, settings: settings)
+                let llmText = try await fetchLLMReply(
+                    prompt: prompt,
+                    history: history,
+                    settings: settings,
+                    systemPrompt: resolvedSystemPrompt
+                )
                 return AssistantReplyOutcome(
                     text: llmText,
                     thinking: nil,
@@ -1463,7 +1530,12 @@ final class ReadingViewModel: ObservableObject {
             throw LLMServiceError.missingAPIKey(provider: settings.provider)
         }
 
-        let llmText = try await fetchLLMReply(prompt: prompt, history: history, settings: settings)
+        let llmText = try await fetchLLMReply(
+            prompt: prompt,
+            history: history,
+            settings: settings,
+            systemPrompt: resolvedSystemPrompt
+        )
         return AssistantReplyOutcome(text: llmText, thinking: nil, fallbackNotice: nil)
     }
 
@@ -1507,6 +1579,7 @@ final class ReadingViewModel: ObservableObject {
         prompt: String,
         history: [ChatMessage],
         settings: AppSettings,
+        systemInstruction: String,
         autoAuthorize: Bool
     ) async throws -> AssistantReplyOutcome {
         guard let cursorConfig = settings.cursorConfiguration else {
@@ -1516,6 +1589,7 @@ final class ReadingViewModel: ObservableObject {
             message: prompt,
             history: history,
             configuration: cursorConfig,
+            systemInstruction: systemInstruction,
             autoAuthorize: autoAuthorize,
             onEvent: { [weak self] event in
                 Task { @MainActor in
@@ -1529,7 +1603,8 @@ final class ReadingViewModel: ObservableObject {
     private func fetchLLMReply(
         prompt: String,
         history: [ChatMessage],
-        settings: AppSettings
+        settings: AppSettings,
+        systemPrompt: String
     ) async throws -> String {
         let configuration = settings.llmConfiguration
         if configuration.provider.requiresAPIKey && configuration.apiKey.isEmpty {
@@ -1540,6 +1615,7 @@ final class ReadingViewModel: ObservableObject {
             prompt: prompt,
             history: history,
             configuration: configuration,
+            systemPrompt: systemPrompt,
             onEvent: { [weak self] event in
                 Task { @MainActor in
                     self?.handleLLMStreamEvent(event)
@@ -1631,7 +1707,30 @@ final class ReadingViewModel: ObservableObject {
         \(question)
         """
 
-        return EvolutionAssistant.wrapPrompt(body)
+        return body
+    }
+
+    private func apiHistory(for context: PromptContext) -> [ChatMessage] {
+        contextHistory(for: context).filter { message in
+            switch context {
+            case .reading:
+                if message.content.hasPrefix("名著补充") { return false }
+                if message.content.hasPrefix("右页是你的读书助手") { return false }
+                if isTranslationHistoryMessage(message) { return false }
+                return true
+            case .evolution:
+                guard message.role == .assistant else { return true }
+                return !message.content.hasPrefix("这是 AI 进化选项卡")
+            }
+        }
+    }
+
+    private func isTranslationHistoryMessage(_ message: ChatMessage) -> Bool {
+        let content = message.content
+        return content.hasPrefix("生成逐字翻译")
+            || content.hasPrefix("生成整段翻译")
+            || content.contains("【生成逐字翻译】")
+            || content.contains("【生成整段翻译】")
     }
 
     private func contextHistory(for context: PromptContext) -> [ChatMessage] {
@@ -1686,6 +1785,13 @@ final class ReadingViewModel: ObservableObject {
     private func appendDisplayedMessage(_ message: ChatMessage, to context: PromptContext) {
         appendPromptMessage(message, to: context)
         if isDisplaying(context) {
+            chatMessages.append(message)
+        }
+    }
+
+    /// 仅更新当前界面，不写入对话历史（避免跨模式污染 API 上下文）。
+    private func appendDisplayOnlyMessage(_ message: ChatMessage) {
+        if isDisplaying(.reading) {
             chatMessages.append(message)
         }
     }
