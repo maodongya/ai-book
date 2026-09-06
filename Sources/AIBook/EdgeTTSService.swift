@@ -33,9 +33,9 @@ enum EdgeTTSService {
             case .balanced:
                 return NeuralProsody(rate: "+0%", pitch: "+0Hz", volume: "+0%")
             case .studio:
-                return NeuralProsody(rate: "-8%", pitch: "+10Hz", volume: "+6%")
+                return NeuralProsody(rate: "-4%", pitch: "+6Hz", volume: "+4%")
             case .beauty:
-                return NeuralProsody(rate: "-18%", pitch: "+16Hz", volume: "+8%")
+                return NeuralProsody(rate: "-6%", pitch: "+8Hz", volume: "+5%")
             }
         }
     }

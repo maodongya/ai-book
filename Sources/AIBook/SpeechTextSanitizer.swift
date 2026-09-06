@@ -39,7 +39,7 @@ enum SpeechTextSanitizer {
         case .balanced:
             return Configuration(
                 maxSpeechLength: 6_000,
-                maxChunkLength: 120,
+                maxChunkLength: 96,
                 codePlaceholder: "这里有一段代码示例。",
                 normalizeAcronyms: true
             )
@@ -124,6 +124,8 @@ enum SpeechTextSanitizer {
         result = result.replacingOccurrences(of: ".", with: "。")
         if mode == .deep {
             result = enrichProsodyHints(result)
+        } else if mode == .balanced {
+            result = enrichBalancedProsodyHints(result)
         }
 
         let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -148,34 +150,34 @@ enum SpeechTextSanitizer {
 
         let config = configuration(for: mode)
         let normalized = plainTextForSpeech(text, mode: mode)
-        let units = splitIntoSpeechUnits(normalized, maxChunkLength: config.maxChunkLength)
+        let units = splitIntoSpeechUnits(normalized, maxChunkLength: config.maxChunkLength, languageMode: mode)
         cacheUnits(units, for: cacheKey)
         return units
     }
 
-    /// 在线 / 本地 TTS 句间停顿时长（纳秒）。
+    /// 在线 / 本地 TTS 句间停顿时长（纳秒）。停顿过长会让朗读显得拖沓。
     static func pauseNanoseconds(after kind: SpeechPauseKind, engineMode: SpeechEngineMode) -> UInt64 {
         let base: UInt64
         switch engineMode {
         case .fastLocal:
             base = 12_000_000
         case .balancedNeural:
-            base = 40_000_000
+            base = 22_000_000
         case .neuralQuality:
-            base = 70_000_000
+            base = 32_000_000
         case .studioBeauty:
-            base = 110_000_000
+            base = 42_000_000
         }
 
         switch kind {
         case .brief:
-            return base + 35_000_000
+            return base + 18_000_000
         case .comma:
-            return base + 75_000_000
+            return base + 38_000_000
         case .clause:
-            return base + 120_000_000
+            return base + 58_000_000
         case .sentence:
-            return base + 200_000_000
+            return base + 88_000_000
         }
     }
 
@@ -184,7 +186,11 @@ enum SpeechTextSanitizer {
         speechUnits(for: text, mode: mode).map(\.spoken)
     }
 
-    private static func splitIntoSpeechUnits(_ normalized: String, maxChunkLength: Int) -> [SpeechUnit] {
+    private static func splitIntoSpeechUnits(
+        _ normalized: String,
+        maxChunkLength: Int,
+        languageMode: SpeechLanguageMode
+    ) -> [SpeechUnit] {
         guard !normalized.isEmpty else { return [] }
 
         let delimiters: Set<Character> = [
@@ -193,16 +199,23 @@ enum SpeechTextSanitizer {
         var units: [SpeechUnit] = []
         var buffer = ""
 
-        func flush(with pause: SpeechPauseKind) {
+        func flush(with pause: SpeechPauseKind, delimiter: Character? = nil) {
             let text = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
             buffer = ""
             guard !text.isEmpty else { return }
-            appendSpeechUnits(from: text, pauseAfter: pause, maxChunkLength: maxChunkLength, to: &units)
+            appendSpeechUnits(
+                from: text,
+                pauseAfter: pause,
+                trailingDelimiter: delimiter,
+                maxChunkLength: maxChunkLength,
+                languageMode: languageMode,
+                to: &units
+            )
         }
 
         for character in normalized {
             if delimiters.contains(character) {
-                flush(with: pauseKind(for: character))
+                flush(with: pauseKind(for: character), delimiter: character)
             } else {
                 buffer.append(character)
             }
@@ -214,11 +227,17 @@ enum SpeechTextSanitizer {
     private static func appendSpeechUnits(
         from text: String,
         pauseAfter: SpeechPauseKind,
+        trailingDelimiter: Character? = nil,
         maxChunkLength: Int,
+        languageMode: SpeechLanguageMode,
         to units: inout [SpeechUnit]
     ) {
         if text.count <= maxChunkLength {
-            appendUnit(spokenForm(from: text), pauseAfter: pauseAfter, to: &units)
+            appendUnit(
+                spokenForm(from: text, trailingDelimiter: trailingDelimiter, languageMode: languageMode),
+                pauseAfter: pauseAfter,
+                to: &units
+            )
             return
         }
 
@@ -226,10 +245,18 @@ enum SpeechTextSanitizer {
         while remainder.count > maxChunkLength {
             let splitAt = splitIndex(in: remainder, maxChunkLength: maxChunkLength)
             let piece = String(remainder[..<splitAt]).trimmingCharacters(in: .whitespacesAndNewlines)
-            appendUnit(spokenForm(from: piece), pauseAfter: .comma, to: &units)
+            appendUnit(
+                spokenForm(from: piece, trailingDelimiter: "，", languageMode: languageMode),
+                pauseAfter: .comma,
+                to: &units
+            )
             remainder = String(remainder[splitAt...]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        appendUnit(spokenForm(from: remainder), pauseAfter: pauseAfter, to: &units)
+        appendUnit(
+            spokenForm(from: remainder, trailingDelimiter: trailingDelimiter, languageMode: languageMode),
+            pauseAfter: pauseAfter,
+            to: &units
+        )
     }
 
     private static func appendUnit(_ spoken: String, pauseAfter: SpeechPauseKind, to units: inout [SpeechUnit]) {
@@ -253,8 +280,12 @@ enum SpeechTextSanitizer {
         }
     }
 
-    /// 送入 TTS 的最终文本：去掉会被读出来的标点与表达符号，保留可读正文。
-    static func spokenForm(from chunk: String) -> String {
+    /// 送入 TTS 的最终文本：保留中文韵律标点，去掉会被误读的装饰符号。
+    static func spokenForm(
+        from chunk: String,
+        trailingDelimiter: Character? = nil,
+        languageMode: SpeechLanguageMode = .balanced
+    ) -> String {
         var text = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return "" }
 
@@ -272,22 +303,128 @@ enum SpeechTextSanitizer {
         }
 
         text = stripExpressionSymbols(text)
+        text = softenLongHanRuns(text, maxRun: maxHanRun(for: languageMode))
+        text = disambiguateCommonReadings(text)
         text = text.replacingOccurrences(
             of: "[\\t ]+",
             with: " ",
             options: .regularExpression
         )
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trailingDelimiter {
+            text += normalizedDelimiter(trailingDelimiter)
+        }
+        return text
     }
 
+    /// 去掉装饰符号，但保留中文韵律标点，供 Edge / 系统 TTS 把握停顿与咬字。
     private static func stripExpressionSymbols(_ text: String) -> String {
         text.replacingOccurrences(
             of: """
-            [。！？!?；;，,：:、.…—–\\-~·•●○◆◇★☆※#@$%^&*_+=|\\\\/<>\\[\\]{}「」『』【】《》〈〉"'‘’“”`]+
+            [.…—–\\-~·•●○◆◇★☆※#@$%^&*_+=|\\\\/<>\\[\\]{}「」『』【】《》〈〉"'‘’“”`]+
             """,
             with: "",
             options: .regularExpression
         )
+        .replacingOccurrences(of: ",", with: "，")
+        .replacingOccurrences(of: ";", with: "；")
+        .replacingOccurrences(of: ":", with: "：")
+        .replacingOccurrences(of: "!", with: "！")
+        .replacingOccurrences(of: "?", with: "？")
+    }
+
+    private static func normalizedDelimiter(_ character: Character) -> String {
+        switch character {
+        case ",", ";":
+            return "，"
+        case ":", ".":
+            return "："
+        case "!", "?":
+            return "！"
+        case "\n", "…":
+            return "。"
+        default:
+            return String(character)
+        }
+    }
+
+    /// 连续汉字过长时插入轻停顿，避免 TTS 连读吞字。
+    private static func softenLongHanRuns(_ text: String, maxRun: Int = 10) -> String {
+        guard text.count > maxRun else { return text }
+
+        let particles: Set<Character> = [
+            "的", "了", "着", "过", "地", "与", "及", "而", "且", "并", "将", "把", "被",
+            "向", "从", "以", "于", "在", "是", "也", "就", "都", "还", "又", "或", "如",
+            "若", "则", "其", "所", "为", "之", "乎", "哉", "矣", "焉",
+        ]
+        let prosodyMarks: Set<Character> = ["，", "。", "！", "？", "；", "：", "、"]
+
+        var result = ""
+        var run = 0
+
+        for character in text {
+            if prosodyMarks.contains(character) {
+                run = 0
+                result.append(character)
+                continue
+            }
+
+            if !isCJK(character) {
+                run = 0
+                result.append(character)
+                continue
+            }
+
+            run += 1
+            result.append(character)
+
+            if run > maxRun {
+                if particles.contains(character) || run >= maxRun + 4 {
+                    result.append("，")
+                    run = 0
+                }
+            }
+        }
+        return result
+    }
+
+    /// 常见多音字歧义：在易读错的词组中插入轻分隔，帮助 TTS 选对读音。
+    private static func disambiguateCommonReadings(_ text: String) -> String {
+        var result = text
+        let replacements: [(String, String)] = [
+            ("一行", "一 行"),
+            ("两行", "两 行"),
+            ("银行", "银 行"),
+            ("行业", "行 业"),
+            ("行走", "行 走"),
+            ("行为", "行 为"),
+            ("重要", "重 要"),
+            ("重复", "重 复"),
+            ("重新", "重 新"),
+            ("长期", "长 期"),
+            ("成长", "成 长"),
+        ]
+        for (pattern, replacement) in replacements {
+            result = result.replacingOccurrences(of: pattern, with: replacement)
+        }
+        return result
+    }
+
+    private static func maxHanRun(for mode: SpeechLanguageMode) -> Int {
+        switch mode {
+        case .efficient:
+            return 16
+        case .balanced:
+            return 14
+        case .deep:
+            return 12
+        }
+    }
+
+    private static func isCJK(_ character: Character) -> Bool {
+        guard let scalar = character.unicodeScalars.first else { return false }
+        let value = scalar.value
+        return (0x4E00...0x9FFF).contains(value) || (0x3400...0x4DBF).contains(value)
     }
 
     private static func appendChunk(_ raw: String, to chunks: inout [String], maxChunkLength: Int) {
@@ -311,6 +448,33 @@ enum SpeechTextSanitizer {
         if !remainder.isEmpty {
             chunks.append(remainder)
         }
+    }
+
+    private static func enrichBalancedProsodyHints(_ text: String) -> String {
+        var enriched = text
+        enriched = enriched.replacingOccurrences(of: "…", with: "。")
+        enriched = enriched.replacingOccurrences(of: "、", with: "，")
+        enriched = enriched.replacingOccurrences(
+            of: "([0-9]{4})年",
+            with: "$1 年",
+            options: .regularExpression
+        )
+        enriched = enriched.replacingOccurrences(
+            of: "([0-9]+)([年月日])",
+            with: "$1 $2",
+            options: .regularExpression
+        )
+        enriched = enriched.replacingOccurrences(
+            of: "([\\u4e00-\\u9fff])([A-Za-z])",
+            with: "$1 $2",
+            options: .regularExpression
+        )
+        enriched = enriched.replacingOccurrences(
+            of: "([A-Za-z])([\\u4e00-\\u9fff])",
+            with: "$1 $2",
+            options: .regularExpression
+        )
+        return enriched
     }
 
     private static func enrichProsodyHints(_ text: String) -> String {

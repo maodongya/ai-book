@@ -98,7 +98,6 @@ enum SpeechVoiceStore {
     }
 
     static func resolvedVoiceForSpeaking() -> SpeechVoiceOption? {
-        // Always prefer female voice model for explanation/read-aloud.
         if let selected = SpeechVoiceCatalog.option(for: selectedVoiceID),
            selected.genderLabel == "女",
            isReadyForUse(selected) {
@@ -122,5 +121,24 @@ enum SpeechVoiceStore {
             return neural
         }
         return SpeechVoiceCatalog.systemChineseVoices().first { isReadyForUse($0) }
+    }
+
+    /// 用户当前所选在线女声是否已下载且可用于朗读。
+    static func isSelectedNeuralReady() -> Bool {
+        guard let selected = SpeechVoiceCatalog.option(for: selectedVoiceID), selected.isNeural else {
+            return false
+        }
+        return isReadyForUse(selected)
+    }
+
+    static func neuralVoiceSetupHint() -> String? {
+        guard let selected = SpeechVoiceCatalog.option(for: selectedVoiceID), selected.isNeural else {
+            return nil
+        }
+        if isReadyForUse(selected) { return nil }
+        if !isDownloaded(selected.id) {
+            return "请先下载「\(selected.displayName)」在线声音（设置 → 语音设置 → 下载女声模型）。"
+        }
+        return "「\(selected.displayName)」样本无效，请在语音设置中重新下载。"
     }
 }

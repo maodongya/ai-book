@@ -39,6 +39,8 @@ final class ExplanationSpeechReader: NSObject {
     private let maxCachedItems = 100
     private var warmedNeuralVoiceIDs: Set<String> = []
     private var selectedSystemVoiceCache: [SpeechEngineMode: String] = [:]
+    /// 在线合成失败时回调（已自动回退系统语音前触发）。
+    var onSpeakIssue: ((String) -> Void)?
 
     private override init() {
         super.init()
@@ -92,26 +94,18 @@ final class ExplanationSpeechReader: NSObject {
 
         let speechMode = AppSettings.shared.speechEngineMode
         let isFastMode = speechMode == .fastLocal
-        let preferredVoice = SpeechVoiceStore.resolvedVoiceForSpeaking()
-        let voice: SpeechVoiceOption?
-        if (preferLowLatency || isFastMode), let preferredVoice, preferredVoice.isNeural {
+
+        // 极速 / 显式低延时：仅用系统语音；在线模式走用户所选讲解声音。
+        if isFastMode || preferLowLatency {
             if let systemVoiceID = bestSystemChineseVoiceID() {
-                voice = SpeechVoiceOption(
-                    id: systemVoiceID,
-                    displayName: "系统中文语音",
-                    subtitle: "低延时",
-                    source: .system,
-                    genderLabel: "—",
-                    requiresDownload: false
-                )
+                speakWithSystemVoice(units, voiceID: systemVoiceID)
             } else {
-                voice = preferredVoice
+                speakWithSystemFallback(units)
             }
-        } else {
-            voice = preferredVoice
+            return
         }
 
-        guard let voice else {
+        guard let voice = SpeechVoiceStore.resolvedVoiceForSpeaking() else {
             speakWithSystemFallback(units)
             return
         }
@@ -128,7 +122,7 @@ final class ExplanationSpeechReader: NSObject {
                 do {
                     for (index, unit) in speakable.enumerated() {
                         guard !Task.isCancelled else { return }
-                        let sentenceProsody = prosodyForSentence(unit.spoken, mode: speechMode)
+                        let sentenceProsody = prosodyForSentence(unit.spoken, voiceID: voice.id, mode: speechMode)
                         let audio: Data
                         if let nextAudioTask {
                             audio = try await nextAudioTask.value
@@ -142,7 +136,7 @@ final class ExplanationSpeechReader: NSObject {
                         }
                         if index + 1 < speakable.count {
                             let upcoming = speakable[index + 1]
-                            let upcomingProsody = prosodyForSentence(upcoming.spoken, mode: speechMode)
+                            let upcomingProsody = prosodyForSentence(upcoming.spoken, voiceID: voice.id, mode: speechMode)
                             nextAudioTask = Task { [weak self] in
                                 guard let self else { throw CancellationError() }
                                 return try await self.cachedNeuralAudio(
@@ -168,6 +162,8 @@ final class ExplanationSpeechReader: NSObject {
                     }
                 } catch {
                     guard !Task.isCancelled else { return }
+                    let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                    onSpeakIssue?(message)
                     speakWithSystemFallback(units)
                 }
             }
@@ -188,7 +184,7 @@ final class ExplanationSpeechReader: NSObject {
                 for: "好的。",
                 voiceID: voice.id,
                 profile: neuralProfile(for: mode),
-                prosody: prosodyForSentence("好的。", mode: mode)
+                prosody: prosodyForSentence("好的。", voiceID: voice.id, mode: mode)
             )
             warmedNeuralVoiceIDs.insert(voice.id)
         } catch {
@@ -262,47 +258,68 @@ final class ExplanationSpeechReader: NSObject {
         return audio
     }
 
-    private func prosodyForSentence(_ sentence: String, mode: SpeechEngineMode) -> EdgeTTSService.NeuralProsody {
-        let base: EdgeTTSService.NeuralProsody
-        switch mode {
-        case .fastLocal:
-            base = EdgeTTSService.NeuralProsody(rate: "+8%", pitch: "+0Hz", volume: "+0%")
-        case .balancedNeural:
-            base = EdgeTTSService.NeuralProsody(rate: "-2%", pitch: "+2Hz", volume: "+2%")
-        case .neuralQuality:
-            base = EdgeTTSService.NeuralProsody(rate: "-8%", pitch: "+10Hz", volume: "+6%")
-        case .studioBeauty:
-            base = EdgeTTSService.NeuralProsody(rate: "-18%", pitch: "+16Hz", volume: "+8%")
-        }
-
-        if mode != .studioBeauty {
-            return base
-        }
-
+    private func prosodyForSentence(
+        _ sentence: String,
+        voiceID: String,
+        mode: SpeechEngineMode
+    ) -> EdgeTTSService.NeuralProsody {
+        let cjkDensity = cjkCharacterDensity(in: sentence)
         let length = sentence.count
         let hasQuestion = sentence.contains("？") || sentence.contains("?")
         let hasExclaim = sentence.contains("！") || sentence.contains("!")
 
-        var rate = -18
-        var pitch = 16
-        var volume = 8
+        var rate: Int
+        var pitch: Int
+        var volume: Int
 
-        if length <= 12 {
-            rate = -10
-            pitch = 20
-        } else if length >= 45 {
-            rate = -22
-            pitch = 14
-        } else if length >= 28 {
-            rate = -20
+        switch mode {
+        case .fastLocal:
+            return EdgeTTSService.NeuralProsody(rate: "+8%", pitch: "+0Hz", volume: "+0%")
+        case .balancedNeural:
+            rate = 2
+            pitch = 2
+            volume = 2
+        case .neuralQuality:
+            rate = -2
+            pitch = 6
+            volume = 4
+        case .studioBeauty:
+            rate = -4
+            pitch = 8
+            volume = 5
         }
 
-        if hasQuestion {
-            pitch += 6
+        let isXiaoyi = voiceID == SpeechVoiceCatalog.defaultNeuralVoiceID
+        if mode == .studioBeauty, isXiaoyi {
+            if length <= 12 {
+                rate = 0
+                pitch = 10
+            } else if length >= 45 {
+                rate = -10
+                pitch = 7
+            } else if length >= 28 {
+                rate = -8
+                pitch = 8
+            } else {
+                rate = -6
+                pitch = 9
+            }
+
+            if hasQuestion {
+                pitch += 4
+                volume += 1
+            }
+            if hasExclaim {
+                volume += 2
+                pitch += 2
+            }
+        } else if mode == .studioBeauty, length >= 40 {
+            rate -= 2
         }
-        if hasExclaim {
-            volume += 3
-            pitch += 3
+
+        if cjkDensity >= 0.85 {
+            rate -= 1
+            volume += 1
         }
 
         return EdgeTTSService.NeuralProsody(
@@ -310,6 +327,16 @@ final class ExplanationSpeechReader: NSObject {
             pitch: "\(pitch >= 0 ? "+" : "")\(pitch)Hz",
             volume: "\(volume >= 0 ? "+" : "")\(volume)%"
         )
+    }
+
+    /// 汉字密度越高，越适合放慢语速、略增音量，利于古文/讲解咬字。
+    private func cjkCharacterDensity(in sentence: String) -> Double {
+        guard !sentence.isEmpty else { return 0 }
+        let cjkCount = sentence.unicodeScalars.filter { scalar in
+            let value = scalar.value
+            return (0x4E00...0x9FFF).contains(value) || (0x3400...0x4DBF).contains(value)
+        }.count
+        return Double(cjkCount) / Double(sentence.count)
     }
 
     private func neuralProfile(for mode: SpeechEngineMode) -> EdgeTTSService.NeuralAudioProfile {
@@ -328,13 +355,13 @@ final class ExplanationSpeechReader: NSObject {
     private func systemRate(for mode: SpeechEngineMode) -> Float {
         switch mode {
         case .fastLocal:
-            return 0.52
+            return 0.50
         case .balancedNeural:
-            return 0.46
+            return 0.44
         case .neuralQuality:
-            return 0.42
+            return 0.40
         case .studioBeauty:
-            return 0.38
+            return 0.36
         }
     }
 

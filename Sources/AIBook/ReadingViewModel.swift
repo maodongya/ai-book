@@ -16,6 +16,9 @@ final class ReadingViewModel: ObservableObject {
     }
     @Published var fileName = "未命名"
     @Published var selectedText = ""
+    /// 最近一次非空选区；点击顶栏时系统常会清空高亮，朗读/讲解仍用此缓存。
+    private var lastCommittedSelectionText = ""
+    private var lastCommittedSelectionRange: NSRange?
     @Published private(set) var leftSelectAllSignal = UUID()
     @Published private(set) var rightSelectAllSignal = UUID()
     @Published private(set) var isDirty = false
@@ -475,6 +478,9 @@ final class ReadingViewModel: ObservableObject {
             fileName = url.lastPathComponent
             currentFileURL = url
             selectedText = ""
+            lastCommittedSelectionText = ""
+            lastCommittedSelectionRange = nil
+            selectedTextRange = nil
             if resetChat {
                 readingPromptMessages = [
                     ChatMessage(
@@ -600,7 +606,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(content, preferLowLatency: true)
+        speakExplanation(content)
     }
 
     func openAssistantMessageFile() {
@@ -732,8 +738,29 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func updateSelection(_ text: String, range: NSRange? = nil) {
-        selectedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        selectedTextRange = selectedText.isEmpty ? nil : range
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            selectedText = trimmed
+            selectedTextRange = range
+            lastCommittedSelectionText = trimmed
+            lastCommittedSelectionRange = range
+        } else {
+            selectedText = ""
+            selectedTextRange = nil
+        }
+    }
+
+    /// 当前可用于朗读/讲解的选区：实时选区优先，否则用最近一次有效选区。
+    var effectiveSelectedText: String {
+        let live = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !live.isEmpty { return live }
+        return lastCommittedSelectionText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var canReadAloud: Bool {
+        !effectiveSelectedText.isEmpty
+            || !fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || isSpeakingExplanation
     }
 
     func selectAllLeftPage() {
@@ -847,7 +874,8 @@ final class ReadingViewModel: ObservableObject {
     func explainSelection() {
         selectRightPageTab(.readingAssistant)
 
-        guard !selectedText.isEmpty else {
+        let selection = effectiveSelectedText
+        guard !selection.isEmpty else {
             errorMessage = "请先在左页选中一段文字。"
             return
         }
@@ -857,12 +885,12 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        let context = surroundingContext(for: selectedText, in: fileContent)
+        let context = surroundingContext(for: selection, in: fileContent)
         let prompt = """
         请讲解下面这段文字：
 
         【选中内容】
-        \(selectedText)
+        \(selection)
 
         【上下文】
         \(context)
@@ -870,7 +898,7 @@ final class ReadingViewModel: ObservableObject {
 
         sendMessage(
             prompt,
-            displayText: "请讲解选中的这段文字（\(selectedText.count) 字）",
+            displayText: "请讲解选中的这段文字（\(selection.count) 字）",
             speakReplyWhenDone: true
         )
     }
@@ -883,7 +911,7 @@ final class ReadingViewModel: ObservableObject {
 
         selectRightPageTab(.readingAssistant)
 
-        let selected = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selected = effectiveSelectedText
         let fullText = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = selected.isEmpty ? fullText : selected
         guard !text.isEmpty else {
@@ -891,7 +919,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text, preferLowLatency: true)
+        speakExplanation(text)
     }
 
     func readLessonPlanAloud() {
@@ -908,7 +936,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text, preferLowLatency: true)
+        speakExplanation(text)
     }
 
     func supplementClassicLiterature() {
@@ -1903,7 +1931,31 @@ final class ReadingViewModel: ObservableObject {
     private var speakingRefreshTask: Task<Void, Never>?
 
     private func speakExplanation(_ text: String, preferLowLatency: Bool = false) {
-        ExplanationSpeechReader.shared.speak(text, preferLowLatency: preferLowLatency)
+        let settings = AppSettings.shared
+
+        if settings.speechEngineMode != .fastLocal,
+           let selected = SpeechVoiceCatalog.option(for: settings.explanationVoiceID),
+           selected.isNeural,
+           let hint = SpeechVoiceStore.neuralVoiceSetupHint() {
+            errorMessage = hint
+            return
+        }
+
+        let units = SpeechTextSanitizer.speechUnits(
+            for: text,
+            mode: settings.speechLanguageMode
+        )
+        guard !units.isEmpty else {
+            errorMessage = "无法朗读：当前文本处理后没有可合成的内容。"
+            return
+        }
+
+        let reader = ExplanationSpeechReader.shared
+        reader.onSpeakIssue = { [weak self] message in
+            self?.errorMessage = "在线语音合成失败，已改用系统语音：\(message)"
+        }
+        let useLowLatency = preferLowLatency && settings.speechEngineMode == .fastLocal
+        reader.speak(text, preferLowLatency: useLowLatency)
         isSpeakingExplanation = true
         scheduleSpeakingStatusRefresh()
     }

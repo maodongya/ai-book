@@ -202,7 +202,7 @@ struct ContentView: View {
                 } label: {
                     Label("讲解", systemImage: "sparkles.text.clipboard")
                 }
-                .disabled(viewModel.selectedText.isEmpty || viewModel.isRunning)
+                .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
 
                 Button {
                     viewModel.selectAllLeftPage()
@@ -219,7 +219,7 @@ struct ContentView: View {
                         systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
                     )
                 }
-                .disabled(viewModel.isRunning || (viewModel.selectedText.isEmpty && !viewModel.isSpeakingExplanation))
+                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
 
                 Divider()
 
@@ -406,8 +406,8 @@ struct ContentView: View {
         HStack(spacing: 16) {
             BookInterface.PageMark(label: BookInterface.leftPageMark)
             Label("\(viewModel.fileContent.count) 字", systemImage: "character.cursor.ibeam")
-            if !viewModel.selectedText.isEmpty {
-                Label("已选 \(viewModel.selectedText.count) 字", systemImage: "highlighter")
+            if !viewModel.effectiveSelectedText.isEmpty {
+                Label("已选 \(viewModel.effectiveSelectedText.count) 字", systemImage: "highlighter")
             }
             Spacer()
             Button("全选") {

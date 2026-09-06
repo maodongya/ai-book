@@ -12,7 +12,7 @@ struct ExplanationVoiceSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("默认推荐美声在线 + 深度语言处理，让朗读更清晰、舒展、耐听。", systemImage: "sparkles")
+            Label("默认推荐美声在线 + 深度语言处理，朗读清晰自然、节奏流畅。", systemImage: "sparkles")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.leather)
 
@@ -65,11 +65,16 @@ struct ExplanationVoiceSettingsView: View {
                         Text(selected.genderLabel)
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.inkMuted)
-                        if selected.isNeural {
-                            Text(SpeechVoiceStore.isDownloaded(selected.id) ? "已下载" : "未下载")
-                                .font(BookTheme.captionFont)
-                                .foregroundStyle(SpeechVoiceStore.isDownloaded(selected.id) ? .green : .orange)
-                        }
+                if selected.isNeural {
+                    Text(SpeechVoiceStore.isDownloaded(selected.id) ? "已下载" : "未下载")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(SpeechVoiceStore.isDownloaded(selected.id) ? .green : .orange)
+                    if settings.speechEngineMode == .fastLocal {
+                        Text("极速模式不启用在线女声")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(.orange)
+                    }
+                }
                     }
                 }
 
@@ -173,13 +178,13 @@ struct ExplanationVoiceSettingsView: View {
     private var engineModeDescription: String {
         switch settings.speechEngineMode {
         case .fastLocal:
-            return "当前为极速本地模式：首句延迟最低，适合实时朗读与跟读。"
+            return "当前为极速本地模式：首句延迟最低，将使用系统语音朗读（不使用在线女声）。"
         case .balancedNeural:
             return "当前为平衡在线模式：在线神经语音，速度与音质均衡。"
         case .neuralQuality:
             return "当前为高音质在线模式：采用更高码率神经语音，音色更细腻。"
         case .studioBeauty:
-            return "当前为美声在线模式：高码率 + 慢速咬字 + 动态韵律停顿，尽量做到字正腔圆、婉转动听。"
+            return "当前为美声在线模式：高码率在线女声，语速自然、咬字清晰，兼顾耐听与效率。"
         }
     }
 

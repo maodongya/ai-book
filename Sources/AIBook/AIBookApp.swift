@@ -64,7 +64,7 @@ struct AIBookApp: App {
                     viewModel.readSelectionAloud()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .option])
-                .disabled(viewModel.isRunning || (viewModel.selectedText.isEmpty && !viewModel.isSpeakingExplanation))
+                .disabled(viewModel.isRunning || !viewModel.canReadAloud)
 
                 Button(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译") {
                     viewModel.readLessonPlanAloud()

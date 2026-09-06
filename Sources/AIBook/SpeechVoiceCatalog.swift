@@ -18,12 +18,12 @@ struct SpeechVoiceOption: Identifiable, Codable, Equatable, Hashable {
 }
 
 enum SpeechVoiceCatalog {
-    static let defaultNeuralVoiceID = "zh-CN-XiaoxiaoNeural"
+    static let defaultNeuralVoiceID = "zh-CN-XiaoyiNeural"
 
     /// 在线神经网络女声（Microsoft Edge TTS）。仅保留当前 Edge 仍可用、合成非空的音色。
     static let neuralFemaleVoices: [SpeechVoiceOption] = [
-        option("zh-CN-XiaoxiaoNeural", "晓晓", "温柔女声 · 推荐", "女"),
-        option("zh-CN-XiaoyiNeural", "晓伊", "活泼少女音", "女"),
+        option("zh-CN-XiaoyiNeural", "晓伊", "字正腔圆 · 美声推荐", "女"),
+        option("zh-CN-XiaoxiaoNeural", "晓晓", "温柔女声", "女"),
         option("zh-CN-liaoning-XiaobeiNeural", "晓北", "东北方言女声", "女"),
         option("zh-CN-shaanxi-XiaoniNeural", "晓妮", "陕西方言女声", "女"),
         option("zh-HK-HiuGaaiNeural", "晓佳", "粤语女声", "女"),
