@@ -133,22 +133,31 @@ struct ContentView: View {
     }
 
     private var toolbarActionRow: some View {
-        HStack(spacing: 0) {
-            documentActionBar
-                .frame(maxWidth: .infinity, alignment: .leading)
+        GeometryReader { geometry in
+            let dividerSpan = Self.toolbarDividerSpan
+            let leftWidth = geometry.size.width * 2 / 5
+            let remaining = max(0, geometry.size.width - leftWidth - dividerSpan * 2)
+            let sideWidth = remaining / 2
 
-            toolbarSectionDivider
+            HStack(spacing: 0) {
+                documentActionBar
+                    .frame(width: leftWidth, alignment: .leading)
 
-            readingActionBar
-                .frame(maxWidth: .infinity, alignment: .center)
+                toolbarSectionDivider
 
-            toolbarSectionDivider
+                readingActionBar
+                    .frame(width: sideWidth, alignment: .center)
 
-            utilityActionBar
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                toolbarSectionDivider
+
+                utilityActionBar
+                    .frame(width: sideWidth, alignment: .trailing)
+            }
         }
         .frame(height: 24)
     }
+
+    private static let toolbarDividerSpan: CGFloat = 21
 
     private var toolbarSectionDivider: some View {
         Rectangle()
@@ -159,7 +168,17 @@ struct ContentView: View {
 
     private var documentActionBar: some View {
         HStack(spacing: 8) {
-            BookToolbarMenuButton(title: "文件操作", icon: "folder.badge.plus") {
+            BookActionButton(
+                title: RightPageTab.readingAssistant.rawValue,
+                icon: RightPageTab.readingAssistant.icon,
+                isProminent: viewModel.rightPageTab == .readingAssistant,
+                isCompact: true
+            ) {
+                viewModel.selectRightPageTab(.readingAssistant)
+            }
+            .help("切换到读书助手：讲解、朗读与文章翻译")
+
+            BookToolbarMenuButton(title: "原文操作", icon: "folder.badge.plus") {
                 Button {
                     viewModel.newDocument()
                 } label: {
@@ -190,6 +209,13 @@ struct ContentView: View {
                 }
                 .disabled(viewModel.fileContent.isEmpty)
 
+                Button {
+                    viewModel.selectAllLeftPage()
+                } label: {
+                    Label("原文全选", systemImage: "selection.pin.in.out")
+                }
+                .disabled(viewModel.fileContent.isEmpty)
+
                 Divider()
 
                 Button {
@@ -199,7 +225,7 @@ struct ContentView: View {
                 }
                 .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
             }
-            .help("新建、打开、保存、另存为与名著补充")
+            .help("新建、打开、保存、另存为、全选与名著补充")
 
             BookToolbarMenuButton(title: "讲解操作", icon: "sparkles.text.clipboard") {
                 Button {
@@ -463,93 +489,9 @@ struct ContentView: View {
     }
 
     private var readingActionBar: some View {
-        HStack(spacing: 8) {
-            BookActionButton(
-                title: RightPageTab.readingAssistant.rawValue,
-                icon: RightPageTab.readingAssistant.icon,
-                isProminent: viewModel.rightPageTab == .readingAssistant,
-                isCompact: true
-            ) {
-                viewModel.selectRightPageTab(.readingAssistant)
-            }
-            .help("切换到读书助手：讲解、朗读与文章翻译")
-
-            if viewModel.isRunning {
-                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
-                    viewModel.stopCurrentRun()
-                }
-                .help("停止讲解生成")
-            } else if viewModel.isSpeakingExplanation {
-                BookActionButton(
-                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
-                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
-                    isCompact: true
-                ) {
-                    viewModel.toggleExplanationSpeechPause()
-                }
-                .help(viewModel.isExplanationSpeechPaused ? "继续朗读讲解" : "暂停朗读讲解")
-
-                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
-                    viewModel.stopExplanationSpeech()
-                }
-                .help("停止朗读讲解")
-            }
-
-            BookToolbarMenuButton(title: "读书操作", icon: "ellipsis.circle") {
-                Button {
-                    viewModel.explainSelection()
-                } label: {
-                    Label("选择讲解", systemImage: "text.cursor")
-                }
-                .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
-
-                Button {
-                    viewModel.explainFullText()
-                } label: {
-                    Label("全文讲解", systemImage: "doc.text.magnifyingglass")
-                }
-                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
-
-                Divider()
-
-                Button {
-                    viewModel.selectAllLeftPage()
-                } label: {
-                    Label("全选左页", systemImage: "selection.pin.in.out")
-                }
-                .disabled(viewModel.fileContent.isEmpty)
-
-                if viewModel.isRunning || viewModel.isSpeakingExplanation {
-                    Divider()
-
-                    if viewModel.isSpeakingExplanation {
-                        Button {
-                            viewModel.toggleExplanationSpeechPause()
-                        } label: {
-                            Label(
-                                viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
-                                systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
-                            )
-                        }
-
-                        Button {
-                            viewModel.stopExplanationSpeech()
-                        } label: {
-                            Label("停止朗读", systemImage: "stop.fill")
-                        }
-                    }
-
-                    if viewModel.isRunning {
-                        Button {
-                            viewModel.stopCurrentRun()
-                        } label: {
-                            Label("停止生成", systemImage: "stop.fill")
-                        }
-                    }
-                }
-            }
-            .help("选择/全文讲解与全选")
-        }
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
     }
 
     private var utilityActionBar: some View {

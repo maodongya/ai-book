@@ -31,10 +31,8 @@ struct EvolutionUtilityTabsPanel: View {
     let liveToolLabel: String?
     let canRunEvolution: Bool
     let isEvolutionRebuilding: Bool
-    let clearChatDisabled: Bool
     let onEvolve: () -> Void
     let onStop: () -> Void
-    let onClear: () -> Void
 
     private var selectedTab: EvolutionUtilityTab {
         EvolutionUtilityTab(rawValue: selectedTabRaw) ?? .evolution
@@ -183,14 +181,6 @@ struct EvolutionUtilityTabsPanel: View {
                 ) {
                     onStop()
                 }
-            }
-
-            BookPageActionButton(
-                title: "清空",
-                icon: "trash",
-                isDisabled: isRunning || isEvolutionRebuilding || clearChatDisabled
-            ) {
-                onClear()
             }
 
             Spacer()

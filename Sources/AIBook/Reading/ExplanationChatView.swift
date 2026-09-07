@@ -159,7 +159,7 @@ struct ExplanationChatView: View {
             Label("选中左页文字后点击「选择讲解」", systemImage: "sparkles.text.clipboard")
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("也可在顶栏「讲解操作」或「读书操作」中使用「全文讲解」；支持新建、保存、打开、全选、清空与朗读。")
+            Text("也可在顶栏「讲解操作」中使用「全文讲解」；支持新建、保存、打开、全选、清空与朗读。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)
@@ -182,10 +182,8 @@ struct ExplanationChatView: View {
                 liveToolLabel: viewModel.evolutionLiveToolLabel,
                 canRunEvolution: viewModel.canRunEvolution,
                 isEvolutionRebuilding: viewModel.isEvolutionRebuilding,
-                clearChatDisabled: viewModel.chatMessages.count <= 1,
                 onEvolve: { viewModel.startEvolution() },
-                onStop: { viewModel.stopCurrentRun() },
-                onClear: { viewModel.clearChat() }
+                onStop: { viewModel.stopCurrentRun() }
             )
 
             if viewModel.isEvolutionRebuilding {

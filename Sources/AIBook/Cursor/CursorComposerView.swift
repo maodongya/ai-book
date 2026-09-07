@@ -335,6 +335,22 @@ struct CursorComposerView: View {
                 }
             }
 
+            BookPageActionButton(
+                title: "清空读书上下文",
+                icon: "text.book.closed",
+                isDisabled: viewModel.isRunning || !viewModel.canClearReadingContext
+            ) {
+                viewModel.clearReadingContext()
+            }
+
+            BookPageActionButton(
+                title: "清空 AI 上下文",
+                icon: "cpu",
+                isDisabled: viewModel.isRunning || !viewModel.canClearAIContext
+            ) {
+                viewModel.clearAIContext()
+            }
+
             Spacer()
 
             Text("⌘↩ 发送")

@@ -445,22 +445,48 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
-    func clearChat() {
+    func clearReadingContext() {
         guard !isRunning else { return }
         stopExplanationSpeech()
-        switch rightPageTab {
-        case .readingAssistant:
-            readingPromptMessages = [Self.defaultWelcomeMessage]
-            chatMessages = readingPromptMessages
-            readingChatInput = ""
-        case .aiEvolution:
-            evolutionPromptMessages = [Self.defaultEvolutionWelcomeMessage]
-            chatMessages = evolutionPromptMessages
-            evolutionChatInput = ""
-            evolutionSessionTokensConsumed = 0
-            evolutionAgentContextTokens = 0
-        }
+        readingPromptMessages = [Self.defaultWelcomeMessage]
+        readingChatInput = ""
+        explanationSelectionText = ""
+        explanationPanelSelectedText = ""
+        lastCommittedExplanationPanelSelectedText = ""
         errorMessage = nil
+        if isDisplaying(.reading) {
+            chatMessages = readingPromptMessages
+        }
+        persistChatSession()
+    }
+
+    func clearAIContext() {
+        guard !isRunning else { return }
+        evolutionPromptMessages = [Self.defaultEvolutionWelcomeMessage]
+        evolutionChatInput = ""
+        evolutionSessionTokensConsumed = 0
+        evolutionAgentContextTokens = 0
+        errorMessage = nil
+        if isDisplaying(.evolution) {
+            chatMessages = evolutionPromptMessages
+        }
+        persistChatSession()
+    }
+
+    var canClearReadingContext: Bool {
+        hasExplanationContent
+            || !readingChatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var canClearAIContext: Bool {
+        hasEvolutionConversation
+            || !evolutionChatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || evolutionSessionTokensConsumed > 0
+            || evolutionAgentContextTokens > 0
+    }
+
+    private var hasEvolutionConversation: Bool {
+        evolutionPromptMessages.contains { !isEvolutionWelcomeMessage($0) }
     }
 
     func newDocument() {
@@ -1071,6 +1097,10 @@ final class ReadingViewModel: ObservableObject {
 
     private func isReadingWelcomeMessage(_ message: ChatMessage) -> Bool {
         message.role == .assistant && message.content == ReadingAssistant.welcomeMessage
+    }
+
+    private func isEvolutionWelcomeMessage(_ message: ChatMessage) -> Bool {
+        message.role == .assistant && message.content == EvolutionAssistant.welcomeMessage
     }
 
     private func explanationFileName() -> String {
