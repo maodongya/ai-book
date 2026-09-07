@@ -48,10 +48,16 @@ struct AIBookApp: App {
                 .keyboardShortcut("s", modifiers: [.command, .option])
                 .disabled(viewModel.selectedText.isEmpty)
 
-                Button("讲解选中") {
+                Button("选择讲解") {
                     viewModel.explainSelection()
                 }
                 .keyboardShortcut("r")
+
+                Button("全文讲解") {
+                    viewModel.explainFullText()
+                }
+                .keyboardShortcut("R", modifiers: [.command, .shift])
+                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button("全选左页") {
                     viewModel.selectAllLeftPage()

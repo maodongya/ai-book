@@ -10,6 +10,7 @@ struct PersistedChatSession: Codable {
     var readingChatInput: String?
     var evolutionChatInput: String?
     var rightPageTab: String?
+    var readingAssistantPanel: String?
 }
 
 final class ChatSessionStore {
@@ -36,6 +37,7 @@ final class ChatSessionStore {
         readingChatInput: String,
         evolutionChatInput: String,
         rightPageTab: RightPageTab,
+        readingAssistantPanel: ReadingAssistantPanel,
         lastOpenedFilePath: String?,
         lessonPlanContent: String
     ) throws {
@@ -48,7 +50,8 @@ final class ChatSessionStore {
             evolutionMessages: evolutionMessages,
             readingChatInput: readingChatInput,
             evolutionChatInput: evolutionChatInput,
-            rightPageTab: rightPageTab.rawValue
+            rightPageTab: rightPageTab.rawValue,
+            readingAssistantPanel: readingAssistantPanel.rawValue
         )
         let data = try JSONEncoder().encode(session)
         try data.write(to: sessionURL, options: .atomic)

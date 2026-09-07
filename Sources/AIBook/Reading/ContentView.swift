@@ -201,6 +201,84 @@ struct ContentView: View {
             }
             .help("新建、打开、保存、另存为与名著补充")
 
+            BookToolbarMenuButton(title: "讲解操作", icon: "sparkles.text.clipboard") {
+                Button {
+                    viewModel.explainSelection()
+                } label: {
+                    Label("选择讲解", systemImage: "text.cursor")
+                }
+                .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
+
+                Button {
+                    viewModel.explainFullText()
+                } label: {
+                    Label("全文讲解", systemImage: "doc.text.magnifyingglass")
+                }
+                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
+
+                Divider()
+
+                Button {
+                    viewModel.newExplanationDocument()
+                } label: {
+                    Label("新建", systemImage: "doc.badge.plus")
+                }
+                .disabled(viewModel.isRunning)
+
+                Button {
+                    viewModel.openExplanationDocument()
+                } label: {
+                    Label("打开", systemImage: "folder")
+                }
+                .disabled(viewModel.isRunning)
+
+                Button {
+                    viewModel.saveExplanationDocument()
+                } label: {
+                    Label("保存", systemImage: "square.and.arrow.down")
+                }
+                .disabled(!viewModel.hasExplanationContent)
+
+                Button {
+                    viewModel.selectAllExplanation()
+                } label: {
+                    Label("全选", systemImage: "selection.pin.in.out")
+                }
+                .disabled(!viewModel.hasExplanationContent)
+
+                Divider()
+
+                Button {
+                    viewModel.readExplanationAloud()
+                } label: {
+                    Label(
+                        viewModel.isSpeakingExplanation ? "停止朗读" : "朗读讲解",
+                        systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
+                    )
+                }
+                .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
+
+                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                    Divider()
+
+                    Button {
+                        viewModel.toggleExplanationSpeechPause()
+                    } label: {
+                        Label(
+                            viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
+                            systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                        )
+                    }
+
+                    Button {
+                        viewModel.stopExplanationSpeech()
+                    } label: {
+                        Label("停止朗读", systemImage: "stop.fill")
+                    }
+                }
+            }
+            .help("选择/全文讲解、文稿管理与朗读")
+
             BookToolbarMenuButton(title: "翻译操作", icon: "character.book.closed") {
                 Button {
                     viewModel.selectRightPageTab(.readingAssistant)
@@ -326,9 +404,18 @@ struct ContentView: View {
                 Button {
                     viewModel.explainSelection()
                 } label: {
-                    Label("讲解", systemImage: "sparkles.text.clipboard")
+                    Label("选择讲解", systemImage: "text.cursor")
                 }
                 .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
+
+                Button {
+                    viewModel.explainFullText()
+                } label: {
+                    Label("全文讲解", systemImage: "doc.text.magnifyingglass")
+                }
+                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
+
+                Divider()
 
                 Button {
                     viewModel.selectAllLeftPage()
@@ -357,7 +444,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .help("讲解、朗读与停止")
+            .help("选择/全文讲解、朗读与停止")
         }
     }
 
@@ -428,8 +515,8 @@ struct ContentView: View {
                 subtitle: viewModel.fileContent.isEmpty
                     ? "可直接输入，或 ⌘N 新建 / ⌘O 打开 .txt · ⌘S 保存"
                     : viewModel.isEditingNotes
-                        ? "可编辑 · 命令笔记自动保存 · ⌘⇧C 名著补充 · ⌘R 讲解 · ⌘⌥R 朗读"
-                        : "可编辑 · ⌘S 保存 · ⌘⇧C 名著补充 · ⌘R 讲解 · ⌘⌥R 朗读"
+                        ? "可编辑 · 命令笔记自动保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读"
+                        : "可编辑 · ⌘S 保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读"
             )
 
             ZStack {
@@ -513,10 +600,7 @@ struct ContentView: View {
     private var rightPageSubtitle: String {
         switch viewModel.rightPageTab {
         case .readingAssistant:
-            if viewModel.selectedText.isEmpty {
-                return "\(viewModel.rightPageTab.pageSubtitle) · \(settings.explanationSource.rawValue)"
-            }
-            return "已选中 \(viewModel.selectedText.count) 字 · \(settings.explanationSource.rawValue)"
+            return "\(viewModel.readingAssistantPanel.rawValue) · \(settings.explanationSource.rawValue)"
         case .aiEvolution:
             if let label = viewModel.evolutionStatusLabel {
                 return "\(label) · \(settings.explanationSource.rawValue)"

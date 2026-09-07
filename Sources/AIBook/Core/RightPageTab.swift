@@ -16,7 +16,7 @@ enum RightPageTab: String, CaseIterable, Identifiable {
     var pageSubtitle: String {
         switch self {
         case .readingAssistant:
-            return "\(ReadingAssistant.tagline) · 讲解与翻译"
+            return "讲解对话与翻译内容分栏展示"
         case .aiEvolution:
             return "Cursor Agent 风格 · 思考过程与工具步骤追踪"
         }

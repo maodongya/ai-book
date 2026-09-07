@@ -26,11 +26,139 @@ struct ExplanationChatView: View {
         VStack(spacing: 0) {
             configurationNotice
 
-            lessonPlanEditor
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            readingAssistantPanelSwitcher
+
+            Group {
+                switch viewModel.readingAssistantPanel {
+                case .explanation:
+                    explanationPanel
+                case .translation:
+                    translationPanel
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             composer(for: .readingAssistant)
         }
+    }
+
+    private var readingAssistantPanelSwitcher: some View {
+        Picker("右页分栏", selection: $viewModel.readingAssistantPanel) {
+            ForEach(ReadingAssistantPanel.allCases) { panel in
+                Text(panel.rawValue).tag(panel)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
+    }
+
+    private var explanationPanel: some View {
+        ZStack(alignment: .topLeading) {
+            if viewModel.chatMessages.count <= 1 && !viewModel.isLoading {
+                explanationPlaceholder
+            }
+
+            chatList
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            SelectableTextView(
+                text: $viewModel.explanationSelectionText,
+                onSelectionChange: { _, _ in },
+                appearance: .editor,
+                isEditable: false,
+                selectAllSignal: viewModel.explanationSelectAllSignal
+            )
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+
+            VStack {
+                HStack(spacing: 8) {
+                    Spacer()
+                    explanationToolbar
+                }
+                Spacer()
+            }
+            .padding(10)
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+    }
+
+    private var explanationToolbar: some View {
+        HStack(spacing: 8) {
+            explanationToolbarButton(title: "新建", icon: "doc.badge.plus") {
+                viewModel.newExplanationDocument()
+            }
+            .disabled(viewModel.isRunning)
+
+            explanationToolbarButton(title: "保存", icon: "square.and.arrow.down") {
+                viewModel.saveExplanationDocument()
+            }
+            .disabled(!viewModel.hasExplanationContent)
+
+            explanationToolbarButton(title: "打开", icon: "folder") {
+                viewModel.openExplanationDocument()
+            }
+            .disabled(viewModel.isRunning)
+
+            explanationToolbarButton(title: "全选", icon: "selection.pin.in.out") {
+                viewModel.selectAllExplanation()
+            }
+            .disabled(!viewModel.hasExplanationContent || viewModel.isRunning)
+
+            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                explanationToolbarButton(
+                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                ) {
+                    viewModel.toggleExplanationSpeechPause()
+                }
+            }
+
+            explanationToolbarButton(
+                title: viewModel.isSpeakingExplanation ? "停止" : "朗读",
+                icon: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
+            ) {
+                viewModel.readExplanationAloud()
+            }
+            .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
+        }
+    }
+
+    private func explanationToolbarButton(
+        title: String,
+        icon: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.leather)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background { lessonPlanToolbarCapsule }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var translationPanel: some View {
+        lessonPlanEditor
+    }
+
+    private var explanationPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("选中左页文字后点击「选择讲解」", systemImage: "sparkles.text.clipboard")
+                .font(BookTheme.labelFont)
+                .foregroundStyle(BookTheme.ink.opacity(0.72))
+            Text("也可在顶栏「讲解操作」或「读书操作」中使用「全文讲解」；支持新建、保存、打开、全选与朗读。")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+                .lineSpacing(4)
+        }
+        .padding(24)
+        .allowsHitTesting(false)
     }
 
     private var aiEvolutionPage: some View {
@@ -159,7 +287,7 @@ struct ExplanationChatView: View {
             }
             .padding(10)
 
-            if viewModel.isLoading {
+            if viewModel.isLoading && viewModel.readingAssistantActiveTask == .translation {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
                     Text("正在生成翻译…")
@@ -289,7 +417,7 @@ struct ExplanationChatView: View {
                             .id(message.id)
                     }
 
-                    if viewModel.isLoading {
+                    if showsActiveStreamingBubble {
                         streamingBubble
                             .id("loading")
                     }
@@ -584,8 +712,15 @@ struct ExplanationChatView: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
+    private var showsActiveStreamingBubble: Bool {
+        if viewModel.rightPageTab == .aiEvolution {
+            return viewModel.isLoading
+        }
+        return viewModel.isLoading && viewModel.readingAssistantActiveTask == .explanation
+    }
+
     private func scrollToBottom(proxy: ScrollViewProxy) {
-        if viewModel.isLoading {
+        if showsActiveStreamingBubble {
             withAnimation(.easeOut(duration: 0.2)) {
                 proxy.scrollTo("loading", anchor: .bottom)
             }

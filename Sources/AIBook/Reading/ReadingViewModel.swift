@@ -22,6 +22,8 @@ final class ReadingViewModel: ObservableObject {
     private var lastCommittedSelectionRange: NSRange?
     @Published private(set) var leftSelectAllSignal = UUID()
     @Published private(set) var rightSelectAllSignal = UUID()
+    @Published private(set) var explanationSelectAllSignal = UUID()
+    @Published var explanationSelectionText = ""
     @Published private(set) var isDirty = false
     @Published var chatMessages: [ChatMessage] = [] {
         didSet { persistChatSession() }
@@ -39,6 +41,13 @@ final class ReadingViewModel: ObservableObject {
             persistChatSession()
         }
     }
+    @Published var readingAssistantPanel: ReadingAssistantPanel = .explanation {
+        didSet {
+            guard !isRestoringSession else { return }
+            persistChatSession()
+        }
+    }
+    @Published private(set) var readingAssistantActiveTask: ReadingAssistantPanel?
     @Published var lessonPlanContent = "" {
         didSet { persistChatSession() }
     }
@@ -239,6 +248,11 @@ final class ReadingViewModel: ObservableObject {
         rightPageTab = tab
     }
 
+    func selectReadingAssistantPanel(_ panel: ReadingAssistantPanel) {
+        guard readingAssistantPanel != panel else { return }
+        readingAssistantPanel = panel
+    }
+
     func openSettings() {
         selectRightPageTab(.aiEvolution)
         showSettings = true
@@ -251,6 +265,7 @@ final class ReadingViewModel: ObservableObject {
         streamingToolSteps = []
         evolutionAgentContextTokens = 0
         showsExecutionTrace = false
+        readingAssistantActiveTask = nil
     }
 
     private func beginRun(showsExecutionTrace: Bool) {
@@ -508,7 +523,7 @@ final class ReadingViewModel: ObservableObject {
                 readingPromptMessages = [
                     ChatMessage(
                         role: .assistant,
-                        content: "已打开「\(fileName)」。请在左页选中一段文字并点击「讲解」，或在下方输入问题让 \(AppSettings.shared.explanationSource.rawValue) 帮你解析。"
+                        content: "已打开「\(fileName)」。请在左页选中文字后使用「选择讲解」或「全文讲解」，或在下方输入问题让 \(AppSettings.shared.explanationSource.rawValue) 帮你解析。"
                     ),
                 ]
                 evolutionPromptMessages = []
@@ -797,11 +812,182 @@ final class ReadingViewModel: ObservableObject {
 
     func selectAllRightPage() {
         selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.translation)
         guard !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "当前翻译为空，无法全选。"
             return
         }
         rightSelectAllSignal = UUID()
+    }
+
+    var hasExplanationContent: Bool {
+        !explanationTranscriptText().isEmpty
+    }
+
+    func explanationTranscriptText() -> String {
+        readingPromptMessages
+            .filter { !isReadingWelcomeMessage($0) }
+            .map { message in
+                let role = message.role == .user ? "用户" : "助手"
+                return "【\(role)】\n\(message.content)"
+            }
+            .joined(separator: "\n\n")
+    }
+
+    func explanationSpeakableText() -> String {
+        readingPromptMessages
+            .filter { $0.role == .assistant && !isReadingWelcomeMessage($0) }
+            .map(\.content)
+            .joined(separator: "\n\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func newExplanationDocument() {
+        guard !isRunning else { return }
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+        stopExplanationSpeech()
+        readingPromptMessages = [Self.defaultWelcomeMessage]
+        chatMessages = readingPromptMessages
+        readingChatInput = ""
+        explanationSelectionText = ""
+        errorMessage = nil
+        persistChatSession()
+    }
+
+    func saveExplanationDocument() {
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+        let content = explanationTranscriptText()
+        guard !content.isEmpty else {
+            errorMessage = "当前没有可保存的讲解内容。"
+            return
+        }
+        exportContent(
+            content,
+            panelTitle: "保存讲解",
+            panelMessage: "将讲解对话保存为 UTF-8 文本",
+            suggestedName: explanationFileName(),
+            successPrefix: "已保存讲解"
+        )
+    }
+
+    func openExplanationDocument() {
+        guard !isRunning else { return }
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+
+        let panel = NSOpenPanel()
+        panel.title = "打开讲解内容"
+        panel.allowedContentTypes = [.plainText]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.directoryURL = DocumentExporter.lastDirectoryURL
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else {
+                errorMessage = "打开的讲解文本为空。"
+                return
+            }
+            DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
+            applyImportedExplanationText(text)
+            errorMessage = nil
+            showTransientSaveMessage("已打开讲解 \(url.lastPathComponent)")
+        } catch {
+            errorMessage = "无法打开讲解内容：\(error.localizedDescription)"
+        }
+    }
+
+    func selectAllExplanation() {
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+        let text = explanationTranscriptText()
+        guard !text.isEmpty else {
+            errorMessage = "当前没有可选中的讲解内容。"
+            return
+        }
+        explanationSelectionText = text
+        explanationSelectAllSignal = UUID()
+    }
+
+    func readExplanationAloud() {
+        if isSpeakingExplanation {
+            stopExplanationSpeech()
+            return
+        }
+
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+
+        let text = explanationSpeakableText()
+        guard !text.isEmpty else {
+            errorMessage = "当前没有可朗读的讲解内容。"
+            return
+        }
+
+        speakExplanation(text)
+    }
+
+    private func isReadingWelcomeMessage(_ message: ChatMessage) -> Bool {
+        message.role == .assistant && message.content == ReadingAssistant.welcomeMessage
+    }
+
+    private func explanationFileName() -> String {
+        let stem = (fileName as NSString).deletingPathExtension
+        let base = stem.isEmpty || stem == "未命名" ? "文章" : stem
+        return "\(base)-讲解.txt"
+    }
+
+    private func applyImportedExplanationText(_ text: String) {
+        let parsed = parseImportedExplanationMessages(text)
+        readingPromptMessages = [Self.defaultWelcomeMessage] + parsed
+        chatMessages = readingPromptMessages
+        explanationSelectionText = explanationTranscriptText()
+        persistChatSession()
+    }
+
+    private func parseImportedExplanationMessages(_ text: String) -> [ChatMessage] {
+        let marker = #"【(用户|助手)】"#
+        guard let regex = try? NSRegularExpression(pattern: marker) else {
+            return defaultImportedExplanationMessages(for: text)
+        }
+
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        guard !matches.isEmpty else {
+            return defaultImportedExplanationMessages(for: text)
+        }
+
+        var messages: [ChatMessage] = []
+        for index in matches.indices {
+            let match = matches[index]
+            guard match.numberOfRanges > 1,
+                  let roleRange = Range(match.range(at: 1), in: text) else { continue }
+
+            let roleLabel = String(text[roleRange])
+            let role: ChatMessage.Role = roleLabel == "用户" ? .user : .assistant
+            let contentStart = match.range.upperBound
+            let contentEnd = index + 1 < matches.count ? matches[index + 1].range.lowerBound : nsText.length
+            guard contentEnd > contentStart else { continue }
+
+            let raw = nsText.substring(with: NSRange(location: contentStart, length: contentEnd - contentStart))
+            let content = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !content.isEmpty else { continue }
+            messages.append(ChatMessage(role: role, content: content))
+        }
+
+        return messages.isEmpty ? defaultImportedExplanationMessages(for: text) : messages
+    }
+
+    private func defaultImportedExplanationMessages(for text: String) -> [ChatMessage] {
+        [
+            ChatMessage(role: .user, content: "已导入讲解文稿"),
+            ChatMessage(role: .assistant, content: text),
+        ]
     }
 
     var evolutionStatusLabel: String? {
@@ -897,6 +1083,7 @@ final class ReadingViewModel: ObservableObject {
 
     func explainSelection() {
         selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
 
         let selection = effectiveSelectedText
         guard !selection.isEmpty else {
@@ -922,7 +1109,36 @@ final class ReadingViewModel: ObservableObject {
 
         sendMessage(
             prompt,
-            displayText: "请讲解选中的这段文字（\(selection.count) 字）",
+            displayText: "选择讲解（\(selection.count) 字）",
+            speakReplyWhenDone: true
+        )
+    }
+
+    func explainFullText() {
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+
+        let fullText = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !fullText.isEmpty else {
+            errorMessage = "请先在左页输入或打开文章内容。"
+            return
+        }
+
+        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+            errorMessage = configError
+            return
+        }
+
+        let prompt = """
+        请讲解下面这篇全文：
+
+        【全文】
+        \(fullText)
+        """
+
+        sendMessage(
+            prompt,
+            displayText: "全文讲解（\(fullText.count) 字）",
             speakReplyWhenDone: true
         )
     }
@@ -1136,6 +1352,8 @@ final class ReadingViewModel: ObservableObject {
             errorMessage = "请先在左页输入、打开或选中要翻译的文章内容。"
             return
         }
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.translation)
         runLessonPlanTask(
             displayText: "生成逐字翻译",
             prompt: buildLessonPlanPrompt(source: source, existingPlan: nil, instruction: nil, mode: .wordByWord)
@@ -1148,6 +1366,8 @@ final class ReadingViewModel: ObservableObject {
             errorMessage = "请先在左页输入、打开或选中要翻译的文章内容。"
             return
         }
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.translation)
         let existing = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedInstruction = instruction?.trimmingCharacters(in: .whitespacesAndNewlines)
         runLessonPlanTask(
@@ -1251,6 +1471,11 @@ final class ReadingViewModel: ObservableObject {
         let promptContext: PromptContext = isEvolution ? .evolution : .reading
         let userMessage = ChatMessage(role: .user, content: displayText)
         appendDisplayedMessage(userMessage, to: promptContext)
+        if !isEvolution {
+            selectRightPageTab(.readingAssistant)
+            selectReadingAssistantPanel(.explanation)
+            readingAssistantActiveTask = .explanation
+        }
         beginRun(showsExecutionTrace: isEvolution)
         if isEvolution {
             executingEvolutionCommandNumber = evolutionCommandNumber
@@ -1367,6 +1592,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
+        readingAssistantActiveTask = .translation
         beginRun(showsExecutionTrace: false)
         errorMessage = nil
 
@@ -1892,6 +2118,10 @@ final class ReadingViewModel: ObservableObject {
             rightPageTab = tab
         }
         lessonPlanContent = session.lessonPlanContent ?? ""
+        if let panelName = session.readingAssistantPanel,
+           let panel = ReadingAssistantPanel(rawValue: panelName) {
+            readingAssistantPanel = panel
+        }
         syncDisplayedChatMessages()
 
         if let path = session.lastOpenedFilePath {
@@ -1911,6 +2141,7 @@ final class ReadingViewModel: ObservableObject {
                 readingChatInput: readingChatInput,
                 evolutionChatInput: evolutionChatInput,
                 rightPageTab: rightPageTab,
+                readingAssistantPanel: readingAssistantPanel,
                 lastOpenedFilePath: currentFileURL?.path,
                 lessonPlanContent: lessonPlanContent
             )

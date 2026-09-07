@@ -205,7 +205,7 @@ enum BookInterface {
                     Text("在此输入命令笔记，或从顶栏「文件操作」新建 / 打开")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted.opacity(0.7))
-                    Text("选中文字后点击顶部「讲解」")
+                    Text("选中文字后点击「选择讲解」，或使用「全文讲解」")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted.opacity(0.55))
                 }
