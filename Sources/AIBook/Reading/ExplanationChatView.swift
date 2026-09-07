@@ -219,29 +219,51 @@ struct ExplanationChatView: View {
 
     private var lessonPlanReadAloudButton: some View {
         let isEmpty = viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return Button {
-            viewModel.readLessonPlanAloud()
-        } label: {
-            Label(
-                viewModel.isSpeakingExplanation ? "停止" : "朗读",
-                systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
-            )
-            .font(BookTheme.captionFont)
-            .foregroundStyle(BookTheme.leather)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background {
-                Capsule()
-                    .fill(Color.white.opacity(0.88))
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
-                    }
+        return HStack(spacing: 8) {
+            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                Button {
+                    viewModel.toggleExplanationSpeechPause()
+                } label: {
+                    Label(
+                        viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                        systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                    )
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background { lessonPlanToolbarCapsule }
+                }
+                .buttonStyle(.plain)
+                .help(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
             }
+
+            Button {
+                viewModel.readLessonPlanAloud()
+            } label: {
+                Label(
+                    viewModel.isSpeakingExplanation ? "停止" : "朗读",
+                    systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
+                )
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.leather)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background { lessonPlanToolbarCapsule }
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isRunning || (isEmpty && !viewModel.isSpeakingExplanation))
+            .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（⌘⌥T）")
         }
-        .buttonStyle(.plain)
-        .disabled(viewModel.isRunning || (isEmpty && !viewModel.isSpeakingExplanation))
-        .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（⌘⌥T）")
+    }
+
+    private var lessonPlanToolbarCapsule: some View {
+        Capsule()
+            .fill(Color.white.opacity(0.88))
+            .overlay {
+                Capsule()
+                    .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+            }
     }
 
     private var lessonPlanPlaceholder: some View {

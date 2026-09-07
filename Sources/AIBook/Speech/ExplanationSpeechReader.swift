@@ -32,8 +32,22 @@ final class ExplanationSpeechReader: NSObject {
         synthesizer.isSpeaking
     }
 
+    var isPaused: Bool {
+        synthesizer.isPaused
+    }
+
     var isBusy: Bool {
-        isSpeaking
+        synthesizer.isSpeaking || synthesizer.isPaused
+    }
+
+    func pause() {
+        guard synthesizer.isSpeaking, !synthesizer.isPaused else { return }
+        synthesizer.pauseSpeaking(at: .word)
+    }
+
+    func resume() {
+        guard synthesizer.isPaused else { return }
+        synthesizer.continueSpeaking()
     }
 
     func previewSelectedVoice() throws {
@@ -66,7 +80,7 @@ final class ExplanationSpeechReader: NSObject {
     }
 
     func stop() {
-        if synthesizer.isSpeaking {
+        if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
         }
     }

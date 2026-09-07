@@ -1,10 +1,11 @@
 import SwiftUI
 
-struct CursorComposerView: View {
+struct LLMComposerView: View {
     var mode: RightPageTab = .readingAssistant
 
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var ollamaCatalog = OllamaModelCatalog.shared
     @State private var showingAdvancedControls = false
 
     private var canSend: Bool {
@@ -73,7 +74,7 @@ struct CursorComposerView: View {
                     .padding(.top, 8)
                 } label: {
                     HStack(spacing: 8) {
-                        Label(cursorSummary, systemImage: "cpu")
+                        Label(llmSummary, systemImage: "cpu")
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.leather)
                             .lineLimit(1)
@@ -86,6 +87,10 @@ struct CursorComposerView: View {
                 .font(BookTheme.captionFont)
                 .tint(BookTheme.leather)
             }
+        }
+        .task(id: settings.provider) {
+            guard settings.provider == .ollama else { return }
+            await ollamaCatalog.refresh(baseURL: settings.baseURL, apiKey: settings.apiKey)
         }
     }
 
@@ -101,39 +106,123 @@ struct CursorComposerView: View {
         .font(BookTheme.captionFont)
     }
 
+    private var ollamaModelControls: some View {
+        HStack(spacing: 6) {
+            if ollamaCatalog.models.isEmpty && !ollamaCatalog.isLoading {
+                TextField("model", text: $settings.model)
+                    .textFieldStyle(.plain)
+                    .font(BookTheme.captionFont)
+                    .frame(maxWidth: 120)
+            } else {
+                Picker("模型", selection: $settings.model) {
+                    ForEach(ollamaCatalog.modelNamesIncluding(settings.model), id: \.self) { name in
+                        Text(name).tag(name)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 150)
+            }
+
+            Button {
+                Task {
+                    await ollamaCatalog.refresh(
+                        baseURL: settings.baseURL,
+                        apiKey: settings.apiKey,
+                        force: true
+                    )
+                }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(BookTheme.leather)
+            .disabled(ollamaCatalog.isLoading)
+            .help("重新扫描本机 Ollama 已安装模型")
+        }
+    }
+
     private var modelControlsRow: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "cpu")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(BookTheme.leather)
-                Text("模型")
+                Text("提供商")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Picker("模型", selection: Binding(
-                    get: { settings.selectedCursorModel },
-                    set: { settings.selectedCursorModel = $0 }
-                )) {
-                    ForEach(CursorModelOption.allCases) { model in
-                        Text(model.label).tag(model)
+                Picker("提供商", selection: $settings.provider) {
+                    if !settings.configuredLLMProviders.isEmpty {
+                        Section("已配置") {
+                            ForEach(settings.configuredLLMProviders) { provider in
+                                Text(providerLabel(provider)).tag(provider)
+                            }
+                        }
+                        let unconfigured = LLMProvider.allCases.filter { !settings.configuredLLMProviders.contains($0) }
+                        if !unconfigured.isEmpty {
+                            Section("未配置") {
+                                ForEach(unconfigured) { provider in
+                                    Text(provider.rawValue).tag(provider)
+                                }
+                            }
+                        }
+                    } else {
+                        ForEach(LLMProvider.allCases) { provider in
+                            Text(provider.rawValue).tag(provider)
+                        }
                     }
                 }
                 .labelsHidden()
-                .frame(maxWidth: 170)
+                .frame(maxWidth: 140)
+                .onChange(of: settings.provider) { _ in
+                    settings.applyProviderDefaults()
+                }
+            }
+
+            HStack(spacing: 6) {
+                Text("模型")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+                if settings.provider == .qwen {
+                    Picker("模型", selection: $settings.model) {
+                        ForEach(QwenBailianConfig.suggestedModels, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 160)
+                } else if settings.provider == .ollama {
+                    ollamaModelControls
+                } else {
+                    TextField("model", text: $settings.model)
+                        .textFieldStyle(.plain)
+                        .font(BookTheme.captionFont)
+                        .frame(maxWidth: 140)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.white.opacity(0.72))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                                }
+                        }
+                }
             }
 
             Spacer()
 
-            if settings.isCursorRunnable {
-                Label("Cursor 已就绪", systemImage: "checkmark.circle.fill")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(.green)
-            } else if settings.isCursorBridgeReady {
-                Label("需 API Key", systemImage: "key.fill")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(.orange)
+            if settings.isLLMConfigured {
+                let count = settings.configuredLLMProviders.count
+                Label(
+                    count > 1 ? "已连接 · \(count) 家" : "已连接",
+                    systemImage: "checkmark.circle.fill"
+                )
+                .font(BookTheme.captionFont)
+                .foregroundStyle(.green)
             } else {
-                Label("桥接未就绪", systemImage: "exclamationmark.circle")
+                Label("未配置 Key", systemImage: "exclamationmark.circle")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(.orange)
             }
@@ -141,7 +230,7 @@ struct CursorComposerView: View {
     }
 
     private var contextUsage: CursorContextUsage {
-        mode == .readingAssistant ? viewModel.cursorContextUsage : viewModel.evolutionContextUsage
+        mode == .readingAssistant ? viewModel.llmContextUsage : viewModel.evolutionContextUsage
     }
 
     private var contextUsageControls: some View {
@@ -151,7 +240,7 @@ struct CursorComposerView: View {
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                 Spacer()
-                Text("\(Int(settings.cursorContextPercent))%")
+                Text("\(Int(settings.llmContextPercent))%")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.leather)
                 if contextUsage.fileTotalCharacters > 0 {
@@ -161,7 +250,7 @@ struct CursorComposerView: View {
                 }
             }
 
-            Slider(value: $settings.cursorContextPercent, in: 10 ... 100, step: 5)
+            Slider(value: $settings.llmContextPercent, in: 10 ... 100, step: 5)
                 .tint(BookTheme.gold)
 
             if contextUsage.usesSelectionAnchor {
@@ -260,7 +349,7 @@ struct CursorComposerView: View {
     private var evolutionTokenMeterGradient: LinearGradient {
         let value = evolutionTokenBudget.percentage
         let colors: [Color]
-        if evolutionTokenBudget.isOverLimit {
+        if value >= 100 || evolutionTokenBudget.isOverLimit {
             colors = [BookTheme.vermilion.opacity(0.85), .orange.opacity(0.85)]
         } else if value >= 90 {
             colors = [.orange.opacity(0.85), BookTheme.gold]
@@ -309,12 +398,30 @@ struct CursorComposerView: View {
                 sendActiveChatInput()
             }
 
-            BookPageActionButton(
-                title: "停止",
-                icon: "stop.fill",
-                isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
-            ) {
-                viewModel.stopCurrentRun()
+            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                BookPageActionButton(
+                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                    isDisabled: false
+                ) {
+                    viewModel.toggleExplanationSpeechPause()
+                }
+
+                BookPageActionButton(
+                    title: "停止",
+                    icon: "stop.fill",
+                    isDisabled: false
+                ) {
+                    viewModel.stopExplanationSpeech()
+                }
+            } else {
+                BookPageActionButton(
+                    title: "停止",
+                    icon: "stop.fill",
+                    isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
+                ) {
+                    viewModel.stopCurrentRun()
+                }
             }
 
             Spacer()
@@ -332,10 +439,10 @@ struct CursorComposerView: View {
                 }
             } else if viewModel.isSpeakingExplanation {
                 HStack(spacing: 8) {
-                    Image(systemName: "speaker.wave.2.fill")
+                    Image(systemName: viewModel.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(BookTheme.leather)
-                    Text("正在朗读讲解…")
+                    Text(viewModel.isExplanationSpeechPaused ? "朗读已暂停" : "正在朗读讲解…")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.leather)
                 }
@@ -343,12 +450,17 @@ struct CursorComposerView: View {
         }
     }
 
+    private var runningStatusText: String {
+        let text = viewModel.runningStatusText(for: mode)
+        return text.isEmpty ? "大模型生成中…" : text
+    }
+
     private var composerPlaceholder: String {
         switch mode {
         case .readingAssistant:
-            return "输入翻译要求，例如：整段白话翻译、保留关键词、减少注释"
+            return "输入翻译要求，例如：翻成白话文、保留古文词义、第二段整段翻译"
         case .aiEvolution:
-            return "输入进化相关问题，例如：下一条命令是什么、如何改 Sources/AIBook"
+            return "输入进化相关问题，例如：解释待办命令、Review 改动范围"
         }
     }
 
@@ -359,21 +471,6 @@ struct CursorComposerView: View {
         case .aiEvolution:
             viewModel.sendEvolutionChatInput()
         }
-    }
-
-    private var runningStatusText: String {
-        let text = viewModel.runningStatusText(for: mode)
-        return text.isEmpty ? "大模型生成中…" : text
-    }
-
-    private var cursorSummary: String {
-        "\(settings.selectedCursorModel.label) · \(cursorStatusText)"
-    }
-
-    private var cursorStatusText: String {
-        if settings.isCursorRunnable { return "已就绪" }
-        if settings.isCursorBridgeReady { return "需 API Key" }
-        return "桥接未就绪"
     }
 
     private var contextColor: Color {
@@ -394,6 +491,22 @@ struct CursorComposerView: View {
             colors = [BookTheme.gold, BookTheme.goldSoft]
         }
         return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+    }
+
+    private func providerLabel(_ provider: LLMProvider) -> String {
+        let profile = LLMProfileStore.profile(for: provider)
+        let model = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if model.isEmpty {
+            return provider.rawValue
+        }
+        return "\(provider.rawValue) · \(model)"
+    }
+
+    private var llmSummary: String {
+        if settings.isLLMConfigured {
+            return settings.llmDisplayLabel
+        }
+        return "\(settings.provider.rawValue) · 未配置 Key"
     }
 
     private func usageChip(title: String, value: Int) -> some View {

@@ -58,6 +58,7 @@ final class ReadingViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showSettings = false
     @Published private(set) var isSpeakingExplanation = false
+    @Published private(set) var isExplanationSpeechPaused = false
     @Published private(set) var lastSaveMessage: String?
 
     private let llmService = LLMService()
@@ -255,6 +256,7 @@ final class ReadingViewModel: ObservableObject {
     private func beginRun(showsExecutionTrace: Bool) {
         isLoading = true
         isRunning = true
+        suppressReplySpeech = false
         resetStreamingState()
         self.showsExecutionTrace = showsExecutionTrace
     }
@@ -398,6 +400,7 @@ final class ReadingViewModel: ObservableObject {
 
     func stopCurrentRun() {
         let wasRunning = isRunning || activeTask != nil
+        suppressReplySpeech = true
         activeTask?.cancel()
         activeTask = nil
         cursorService.cancel()
@@ -1296,7 +1299,10 @@ final class ReadingViewModel: ObservableObject {
                 )
                 appendDisplayedMessage(assistantMessage, to: promptContext)
 
-                if speakReplyWhenDone, !resolvedReply.isEmpty {
+                if speakReplyWhenDone,
+                   !suppressReplySpeech,
+                   !Task.isCancelled,
+                   !resolvedReply.isEmpty {
                     speakExplanation(resolvedReply)
                 }
 
@@ -1950,6 +1956,7 @@ final class ReadingViewModel: ObservableObject {
     }
 
     private var speakingRefreshTask: Task<Void, Never>?
+    private var suppressReplySpeech = false
 
     private func speakExplanation(_ text: String, preferLowLatency: Bool = false) {
         let settings = AppSettings.shared
@@ -1964,13 +1971,31 @@ final class ReadingViewModel: ObservableObject {
 
         ExplanationSpeechReader.shared.speak(text, preferLowLatency: preferLowLatency)
         isSpeakingExplanation = true
+        isExplanationSpeechPaused = false
         scheduleSpeakingStatusRefresh()
+    }
+
+    func toggleExplanationSpeechPause() {
+        let reader = ExplanationSpeechReader.shared
+        if reader.isPaused {
+            reader.resume()
+        } else if reader.isSpeaking {
+            reader.pause()
+        }
+        syncExplanationSpeechState()
     }
 
     func stopExplanationSpeech() {
         speakingRefreshTask?.cancel()
         ExplanationSpeechReader.shared.stop()
         isSpeakingExplanation = false
+        isExplanationSpeechPaused = false
+    }
+
+    private func syncExplanationSpeechState() {
+        let reader = ExplanationSpeechReader.shared
+        isExplanationSpeechPaused = reader.isPaused
+        isSpeakingExplanation = reader.isBusy
     }
 
     private func scheduleSpeakingStatusRefresh() {
@@ -1978,12 +2003,13 @@ final class ReadingViewModel: ObservableObject {
         speakingRefreshTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
+                self.syncExplanationSpeechState()
                 let reader = ExplanationSpeechReader.shared
-                self.isSpeakingExplanation = reader.isBusy
                 if !reader.isBusy { break }
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
             self?.isSpeakingExplanation = false
+            self?.isExplanationSpeechPaused = false
         }
     }
 

@@ -215,6 +215,27 @@ struct ContentView: View {
             }
             .help("切换到读书助手：讲解、朗读与文章翻译")
 
+            if viewModel.isRunning {
+                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
+                    viewModel.stopCurrentRun()
+                }
+                .help("停止讲解生成")
+            } else if viewModel.isSpeakingExplanation {
+                BookActionButton(
+                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                    isCompact: true
+                ) {
+                    viewModel.toggleExplanationSpeechPause()
+                }
+                .help(viewModel.isExplanationSpeechPaused ? "继续朗读讲解" : "暂停朗读讲解")
+
+                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
+                    viewModel.stopExplanationSpeech()
+                }
+                .help("停止朗读讲解")
+            }
+
             BookToolbarMenuButton {
                 Button {
                     viewModel.explainSelection()
