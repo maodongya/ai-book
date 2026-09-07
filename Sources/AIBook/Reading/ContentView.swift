@@ -159,7 +159,7 @@ struct ContentView: View {
 
     private var documentActionBar: some View {
         HStack(spacing: 8) {
-            BookToolbarMenuButton(title: "核心功能", icon: "folder.badge.plus") {
+            BookToolbarMenuButton(title: "文件操作", icon: "folder.badge.plus") {
                 Button {
                     viewModel.newDocument()
                 } label: {
@@ -200,69 +200,8 @@ struct ContentView: View {
                 .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
             }
             .help("新建、打开、保存、另存为与名著补充")
-        }
-    }
 
-    private var readingActionBar: some View {
-        HStack(spacing: 8) {
-            BookActionButton(
-                title: RightPageTab.readingAssistant.rawValue,
-                icon: RightPageTab.readingAssistant.icon,
-                isProminent: viewModel.rightPageTab == .readingAssistant,
-                isCompact: true
-            ) {
-                viewModel.selectRightPageTab(.readingAssistant)
-            }
-            .help("切换到读书助手：讲解、朗读与文章翻译")
-
-            if viewModel.isRunning {
-                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
-                    viewModel.stopCurrentRun()
-                }
-                .help("停止讲解生成")
-            } else if viewModel.isSpeakingExplanation {
-                BookActionButton(
-                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
-                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
-                    isCompact: true
-                ) {
-                    viewModel.toggleExplanationSpeechPause()
-                }
-                .help(viewModel.isExplanationSpeechPaused ? "继续朗读讲解" : "暂停朗读讲解")
-
-                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
-                    viewModel.stopExplanationSpeech()
-                }
-                .help("停止朗读讲解")
-            }
-
-            BookToolbarMenuButton {
-                Button {
-                    viewModel.explainSelection()
-                } label: {
-                    Label("讲解", systemImage: "sparkles.text.clipboard")
-                }
-                .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
-
-                Button {
-                    viewModel.selectAllLeftPage()
-                } label: {
-                    Label("全选左页", systemImage: "selection.pin.in.out")
-                }
-                .disabled(viewModel.fileContent.isEmpty)
-
-                Button {
-                    viewModel.readSelectionAloud()
-                } label: {
-                    Label(
-                        viewModel.isSpeakingExplanation ? "停止朗读" : "朗读",
-                        systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
-                    )
-                }
-                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
-
-                Divider()
-
+            BookToolbarMenuButton(title: "翻译操作", icon: "character.book.closed") {
                 Button {
                     viewModel.selectRightPageTab(.readingAssistant)
                     viewModel.generateLessonPlan()
@@ -327,6 +266,87 @@ struct ContentView: View {
                 }
                 .disabled(viewModel.isRunning || viewModel.lessonPlanContent.isEmpty)
 
+                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                    Divider()
+
+                    Button {
+                        viewModel.toggleExplanationSpeechPause()
+                    } label: {
+                        Label(
+                            viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
+                            systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                        )
+                    }
+
+                    Button {
+                        viewModel.stopExplanationSpeech()
+                    } label: {
+                        Label("停止朗读", systemImage: "stop.fill")
+                    }
+                }
+            }
+            .help("逐字/整段翻译、朗读与翻译文件管理")
+        }
+    }
+
+    private var readingActionBar: some View {
+        HStack(spacing: 8) {
+            BookActionButton(
+                title: RightPageTab.readingAssistant.rawValue,
+                icon: RightPageTab.readingAssistant.icon,
+                isProminent: viewModel.rightPageTab == .readingAssistant,
+                isCompact: true
+            ) {
+                viewModel.selectRightPageTab(.readingAssistant)
+            }
+            .help("切换到读书助手：讲解、朗读与文章翻译")
+
+            if viewModel.isRunning {
+                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
+                    viewModel.stopCurrentRun()
+                }
+                .help("停止讲解生成")
+            } else if viewModel.isSpeakingExplanation {
+                BookActionButton(
+                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                    isCompact: true
+                ) {
+                    viewModel.toggleExplanationSpeechPause()
+                }
+                .help(viewModel.isExplanationSpeechPaused ? "继续朗读讲解" : "暂停朗读讲解")
+
+                BookActionButton(title: "停止", icon: "stop.fill", isCompact: true) {
+                    viewModel.stopExplanationSpeech()
+                }
+                .help("停止朗读讲解")
+            }
+
+            BookToolbarMenuButton(title: "读书操作", icon: "ellipsis.circle") {
+                Button {
+                    viewModel.explainSelection()
+                } label: {
+                    Label("讲解", systemImage: "sparkles.text.clipboard")
+                }
+                .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
+
+                Button {
+                    viewModel.selectAllLeftPage()
+                } label: {
+                    Label("全选左页", systemImage: "selection.pin.in.out")
+                }
+                .disabled(viewModel.fileContent.isEmpty)
+
+                Button {
+                    viewModel.readSelectionAloud()
+                } label: {
+                    Label(
+                        viewModel.isSpeakingExplanation ? "停止朗读" : "朗读",
+                        systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
+                    )
+                }
+                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
+
                 if viewModel.isRunning || viewModel.isSpeakingExplanation {
                     Divider()
 
@@ -337,7 +357,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .help("讲解、朗读与翻译")
+            .help("讲解、朗读与停止")
         }
     }
 

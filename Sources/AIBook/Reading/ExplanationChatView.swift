@@ -271,7 +271,7 @@ struct ExplanationChatView: View {
             Label("点击「逐字翻译」开始", systemImage: "sparkles")
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("在顶栏中栏「更多」选择逐字/整段翻译；生成后可编辑，并点击右上角朗读或 ⌘⌥T。")
+            Text("在顶栏「翻译操作」选择逐字/整段翻译；生成后可编辑，并点击右上角朗读或 ⌘⌥T。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)
