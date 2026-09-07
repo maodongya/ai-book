@@ -71,14 +71,27 @@ struct AIBookApp: App {
                 .keyboardShortcut("a", modifiers: [.command, .control, .shift])
                 .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Button(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读（选中/全文）") {
+                Button(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读原文（选中/全文）") {
                     viewModel.readSelectionAloud()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .option])
-                .disabled(viewModel.isRunning || !viewModel.canReadAloud)
+                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
 
-                Button(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译") {
-                    viewModel.readLessonPlanAloud()
+                Button("朗读原文全文") {
+                    viewModel.readOriginalFullTextAloud()
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
+
+                Button("朗读原文选中") {
+                    viewModel.readOriginalSelectionAloud()
+                }
+                .disabled(viewModel.isRunning || viewModel.effectiveSelectedText.isEmpty)
+
+                Button("朗读翻译全文") {
+                    viewModel.readTranslationFullTextAloud()
                 }
                 .keyboardShortcut("t", modifiers: [.command, .option])
                 .disabled(
@@ -86,6 +99,21 @@ struct AIBookApp: App {
                         || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                             && !viewModel.isSpeakingExplanation)
                 )
+
+                Button("朗读翻译选择") {
+                    viewModel.readTranslationSelectionAloud()
+                }
+                .disabled(viewModel.isRunning || viewModel.effectiveLessonPlanSelectedText.isEmpty)
+
+                Button("朗读讲解全文") {
+                    viewModel.readExplanationFullTextAloud()
+                }
+                .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
+
+                Button("朗读讲解选中") {
+                    viewModel.readExplanationSelectionAloud()
+                }
+                .disabled(viewModel.isRunning || viewModel.effectiveExplanationPanelSelectedText.isEmpty)
 
                 Button(ClassicLiteratureSupplement.capabilityLabel) {
                     viewModel.supplementClassicLiterature()

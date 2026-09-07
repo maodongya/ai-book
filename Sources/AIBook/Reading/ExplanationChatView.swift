@@ -65,7 +65,9 @@ struct ExplanationChatView: View {
 
             SelectableTextView(
                 text: $viewModel.explanationSelectionText,
-                onSelectionChange: { _, _ in },
+                onSelectionChange: { selection, _ in
+                    viewModel.updateExplanationPanelSelection(selection)
+                },
                 appearance: .editor,
                 isEditable: false,
                 selectAllSignal: viewModel.explanationSelectAllSignal
@@ -107,6 +109,11 @@ struct ExplanationChatView: View {
                 viewModel.selectAllExplanation()
             }
             .disabled(!viewModel.hasExplanationContent || viewModel.isRunning)
+
+            explanationToolbarButton(title: "清空", icon: "trash") {
+                viewModel.clearExplanation()
+            }
+            .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
 
             if viewModel.isSpeakingExplanation && !viewModel.isRunning {
                 explanationToolbarButton(
@@ -152,7 +159,7 @@ struct ExplanationChatView: View {
             Label("选中左页文字后点击「选择讲解」", systemImage: "sparkles.text.clipboard")
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("也可在顶栏「讲解操作」或「读书操作」中使用「全文讲解」；支持新建、保存、打开、全选与朗读。")
+            Text("也可在顶栏「讲解操作」或「读书操作」中使用「全文讲解」；支持新建、保存、打开、全选、清空与朗读。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)
@@ -270,7 +277,9 @@ struct ExplanationChatView: View {
 
             SelectableTextView(
                 text: $viewModel.lessonPlanContent,
-                onSelectionChange: { _, _ in },
+                onSelectionChange: { selection, _ in
+                    viewModel.updateLessonPlanSelection(selection)
+                },
                 appearance: .editor,
                 isEditable: !viewModel.isRunning,
                 selectAllSignal: viewModel.rightSelectAllSignal

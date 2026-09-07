@@ -24,6 +24,10 @@ final class ReadingViewModel: ObservableObject {
     @Published private(set) var rightSelectAllSignal = UUID()
     @Published private(set) var explanationSelectAllSignal = UUID()
     @Published var explanationSelectionText = ""
+    @Published var lessonPlanSelectedText = ""
+    @Published var explanationPanelSelectedText = ""
+    private var lastCommittedLessonPlanSelectedText = ""
+    private var lastCommittedExplanationPanelSelectedText = ""
     @Published private(set) var isDirty = false
     @Published var chatMessages: [ChatMessage] = [] {
         didSet { persistChatSession() }
@@ -99,6 +103,9 @@ final class ReadingViewModel: ObservableObject {
     )
 
     init() {
+        ExplanationSpeechReader.shared.onSpeakingStateChange = { [weak self] in
+            self?.syncExplanationSpeechState()
+        }
         loadReadmeNotes()
         ensureEvolutionWelcome()
         restoreChatSession()
@@ -789,11 +796,43 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
+    func updateLessonPlanSelection(_ text: String, range: NSRange? = nil) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            lessonPlanSelectedText = trimmed
+            lastCommittedLessonPlanSelectedText = trimmed
+        } else {
+            lessonPlanSelectedText = ""
+        }
+    }
+
+    func updateExplanationPanelSelection(_ text: String, range: NSRange? = nil) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            explanationPanelSelectedText = trimmed
+            lastCommittedExplanationPanelSelectedText = trimmed
+        } else {
+            explanationPanelSelectedText = ""
+        }
+    }
+
     /// 当前可用于朗读/讲解的选区：实时选区优先，否则用最近一次有效选区。
     var effectiveSelectedText: String {
         let live = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !live.isEmpty { return live }
         return lastCommittedSelectionText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var effectiveLessonPlanSelectedText: String {
+        let live = lessonPlanSelectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !live.isEmpty { return live }
+        return lastCommittedLessonPlanSelectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var effectiveExplanationPanelSelectedText: String {
+        let live = explanationPanelSelectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !live.isEmpty { return live }
+        return lastCommittedExplanationPanelSelectedText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var canReadAloud: Bool {
@@ -851,6 +890,24 @@ final class ReadingViewModel: ObservableObject {
         chatMessages = readingPromptMessages
         readingChatInput = ""
         explanationSelectionText = ""
+        explanationPanelSelectedText = ""
+        lastCommittedExplanationPanelSelectedText = ""
+        errorMessage = nil
+        persistChatSession()
+    }
+
+    func clearExplanation() {
+        guard !isRunning else { return }
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+        guard hasExplanationContent else { return }
+        stopExplanationSpeech()
+        readingPromptMessages = [Self.defaultWelcomeMessage]
+        chatMessages = readingPromptMessages
+        readingChatInput = ""
+        explanationSelectionText = ""
+        explanationPanelSelectedText = ""
+        lastCommittedExplanationPanelSelectedText = ""
         errorMessage = nil
         persistChatSession()
     }
@@ -915,10 +972,65 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func readExplanationAloud() {
-        if isSpeakingExplanation {
-            stopExplanationSpeech()
+        readExplanationFullTextAloud()
+    }
+
+    func readOriginalFullTextAloud() {
+        guard !toggleReadAloudIfSpeaking() else { return }
+
+        let text = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            errorMessage = "当前没有可朗读的原文内容，请先输入或打开文本。"
             return
         }
+
+        speakExplanation(text)
+    }
+
+    func readOriginalSelectionAloud() {
+        guard !toggleReadAloudIfSpeaking() else { return }
+
+        let text = effectiveSelectedText
+        guard !text.isEmpty else {
+            errorMessage = "请先在左页选中要朗读的文字。"
+            return
+        }
+
+        speakExplanation(text)
+    }
+
+    func readTranslationFullTextAloud() {
+        guard !toggleReadAloudIfSpeaking() else { return }
+
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.translation)
+
+        let text = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            errorMessage = "当前翻译为空，请先生成或打开翻译内容。"
+            return
+        }
+
+        speakExplanation(text)
+    }
+
+    func readTranslationSelectionAloud() {
+        guard !toggleReadAloudIfSpeaking() else { return }
+
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.translation)
+
+        let text = effectiveLessonPlanSelectedText
+        guard !text.isEmpty else {
+            errorMessage = "请先在翻译区选中要朗读的文字。"
+            return
+        }
+
+        speakExplanation(text)
+    }
+
+    func readExplanationFullTextAloud() {
+        guard !toggleReadAloudIfSpeaking() else { return }
 
         selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.explanation)
@@ -932,6 +1044,31 @@ final class ReadingViewModel: ObservableObject {
         speakExplanation(text)
     }
 
+    func readExplanationSelectionAloud() {
+        guard !toggleReadAloudIfSpeaking() else { return }
+
+        selectRightPageTab(.readingAssistant)
+        selectReadingAssistantPanel(.explanation)
+        syncExplanationSelectionText()
+
+        let text = effectiveExplanationPanelSelectedText
+        guard !text.isEmpty else {
+            errorMessage = "请先在讲解区选中要朗读的文字（可先点全选）。"
+            return
+        }
+
+        speakExplanation(text)
+    }
+
+    @discardableResult
+    private func toggleReadAloudIfSpeaking() -> Bool {
+        if isSpeakingExplanation {
+            stopExplanationSpeech()
+            return true
+        }
+        return false
+    }
+
     private func isReadingWelcomeMessage(_ message: ChatMessage) -> Bool {
         message.role == .assistant && message.content == ReadingAssistant.welcomeMessage
     }
@@ -940,6 +1077,10 @@ final class ReadingViewModel: ObservableObject {
         let stem = (fileName as NSString).deletingPathExtension
         let base = stem.isEmpty || stem == "未命名" ? "文章" : stem
         return "\(base)-讲解.txt"
+    }
+
+    private func syncExplanationSelectionText() {
+        explanationSelectionText = explanationTranscriptText()
     }
 
     private func applyImportedExplanationText(_ text: String) {
@@ -1144,10 +1285,7 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func readSelectionAloud() {
-        if isSpeakingExplanation {
-            stopExplanationSpeech()
-            return
-        }
+        guard !toggleReadAloudIfSpeaking() else { return }
 
         selectRightPageTab(.readingAssistant)
 
@@ -1163,20 +1301,7 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func readLessonPlanAloud() {
-        if isSpeakingExplanation {
-            stopExplanationSpeech()
-            return
-        }
-
-        selectRightPageTab(.readingAssistant)
-
-        let text = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else {
-            errorMessage = "当前翻译为空，请先生成或打开翻译内容。"
-            return
-        }
-
-        speakExplanation(text)
+        readTranslationFullTextAloud()
     }
 
     func supplementClassicLiterature() {
@@ -2027,6 +2152,7 @@ final class ReadingViewModel: ObservableObject {
         switch context {
         case .reading:
             readingPromptMessages.append(message)
+            syncExplanationSelectionText()
         case .evolution:
             evolutionPromptMessages.append(message)
         }
@@ -2035,6 +2161,7 @@ final class ReadingViewModel: ObservableObject {
     private func updatePromptMessage(id: UUID, content: String) {
         if let index = readingPromptMessages.firstIndex(where: { $0.id == id }) {
             readingPromptMessages[index].content = content
+            syncExplanationSelectionText()
         }
         if let index = evolutionPromptMessages.firstIndex(where: { $0.id == id }) {
             evolutionPromptMessages[index].content = content
@@ -2045,6 +2172,7 @@ final class ReadingViewModel: ObservableObject {
         switch context {
         case .reading:
             readingPromptMessages.removeAll { $0.id == id }
+            syncExplanationSelectionText()
         case .evolution:
             evolutionPromptMessages.removeAll { $0.id == id }
         }
@@ -2123,6 +2251,7 @@ final class ReadingViewModel: ObservableObject {
             readingAssistantPanel = panel
         }
         syncDisplayedChatMessages()
+        syncExplanationSelectionText()
 
         if let path = session.lastOpenedFilePath {
             let url = URL(fileURLWithPath: path)
@@ -2210,7 +2339,7 @@ final class ReadingViewModel: ObservableObject {
         let reader = ExplanationSpeechReader.shared
         if reader.isPaused {
             reader.resume()
-        } else if reader.isSpeaking {
+        } else if reader.isBusy {
             reader.pause()
         }
         syncExplanationSpeechState()
@@ -2235,12 +2364,9 @@ final class ReadingViewModel: ObservableObject {
             while !Task.isCancelled {
                 guard let self else { return }
                 self.syncExplanationSpeechState()
-                let reader = ExplanationSpeechReader.shared
-                if !reader.isBusy { break }
-                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard ExplanationSpeechReader.shared.isBusy else { break }
+                try? await Task.sleep(nanoseconds: 200_000_000)
             }
-            self?.isSpeakingExplanation = false
-            self?.isExplanationSpeechPaused = false
         }
     }
 

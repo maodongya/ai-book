@@ -22,6 +22,9 @@ final class ExplanationSpeechReader: NSObject {
 
     private let synthesizer = AVSpeechSynthesizer()
     private var selectedVoiceCache: [SpeechEngineMode: String] = [:]
+    private var pendingUtteranceCount = 0
+    private(set) var isSessionActive = false
+    var onSpeakingStateChange: (() -> Void)?
 
     private override init() {
         super.init()
@@ -37,12 +40,13 @@ final class ExplanationSpeechReader: NSObject {
     }
 
     var isBusy: Bool {
-        synthesizer.isSpeaking || synthesizer.isPaused
+        isSessionActive || synthesizer.isSpeaking || synthesizer.isPaused
     }
 
     func pause() {
-        guard synthesizer.isSpeaking, !synthesizer.isPaused else { return }
-        synthesizer.pauseSpeaking(at: .word)
+        guard isSessionActive, !synthesizer.isPaused else { return }
+        guard synthesizer.isSpeaking else { return }
+        synthesizer.pauseSpeaking(at: .immediate)
     }
 
     func resume() {
@@ -80,8 +84,14 @@ final class ExplanationSpeechReader: NSObject {
     }
 
     func stop() {
+        pendingUtteranceCount = 0
+        let wasBusy = isSessionActive || synthesizer.isSpeaking || synthesizer.isPaused
+        isSessionActive = false
         if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
+        }
+        if wasBusy {
+            onSpeakingStateChange?()
         }
     }
 
@@ -90,11 +100,20 @@ final class ExplanationSpeechReader: NSObject {
         voiceID: String?,
         mode: SpeechEngineMode
     ) {
+        let spokenUnits = units.filter { !$0.spoken.isEmpty }
+        guard !spokenUnits.isEmpty else {
+            isSessionActive = false
+            return
+        }
+
+        pendingUtteranceCount = spokenUnits.count
+        isSessionActive = true
+        onSpeakingStateChange?()
+
         let voice = voiceID.flatMap { AVSpeechSynthesisVoice(identifier: $0) }
             ?? AVSpeechSynthesisVoice(language: "zh-CN")
 
-        for unit in units {
-            guard !unit.spoken.isEmpty else { continue }
+        for unit in spokenUnits {
             let utterance = AVSpeechUtterance(string: unit.spoken)
             utterance.voice = voice
             utterance.rate = systemRate(for: mode)
@@ -102,6 +121,14 @@ final class ExplanationSpeechReader: NSObject {
             utterance.postUtteranceDelay = systemDelay(after: unit.pauseAfter, mode: mode)
             synthesizer.speak(utterance)
         }
+    }
+
+    private func handleUtteranceEnded(on synthesizer: AVSpeechSynthesizer) {
+        guard pendingUtteranceCount > 0 else { return }
+        pendingUtteranceCount -= 1
+        guard pendingUtteranceCount == 0, !synthesizer.isSpeaking, !synthesizer.isPaused else { return }
+        isSessionActive = false
+        onSpeakingStateChange?()
     }
 
     private func systemRate(for mode: SpeechEngineMode) -> Float {
@@ -194,4 +221,19 @@ final class ExplanationSpeechReader: NSObject {
     }
 }
 
-extension ExplanationSpeechReader: AVSpeechSynthesizerDelegate {}
+extension ExplanationSpeechReader: @preconcurrency AVSpeechSynthesizerDelegate {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            handleUtteranceEnded(on: synthesizer)
+        }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            guard isSessionActive else { return }
+            pendingUtteranceCount = 0
+            isSessionActive = false
+            onSpeakingStateChange?()
+        }
+    }
+}

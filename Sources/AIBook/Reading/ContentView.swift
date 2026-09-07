@@ -246,6 +246,13 @@ struct ContentView: View {
                 }
                 .disabled(!viewModel.hasExplanationContent)
 
+                Button(role: .destructive) {
+                    viewModel.clearExplanation()
+                } label: {
+                    Label("清空讲解", systemImage: "trash")
+                }
+                .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
+
                 Divider()
 
                 Button {
@@ -364,6 +371,94 @@ struct ContentView: View {
                 }
             }
             .help("逐字/整段翻译、朗读与翻译文件管理")
+
+            BookToolbarMenuButton(title: "朗读功能", icon: "speaker.wave.2.fill") {
+                Button {
+                    viewModel.readOriginalFullTextAloud()
+                } label: {
+                    Label("朗读原文全文", systemImage: "text.book.closed")
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            && !viewModel.isSpeakingExplanation)
+                )
+
+                Button {
+                    viewModel.readOriginalSelectionAloud()
+                } label: {
+                    Label("朗读原文选中", systemImage: "text.cursor")
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (viewModel.effectiveSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+                )
+
+                Divider()
+
+                Button {
+                    viewModel.readTranslationFullTextAloud()
+                } label: {
+                    Label("朗读翻译全文", systemImage: "character.book.closed")
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            && !viewModel.isSpeakingExplanation)
+                )
+
+                Button {
+                    viewModel.readTranslationSelectionAloud()
+                } label: {
+                    Label("朗读翻译选择", systemImage: "selection.pin.in.out")
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (viewModel.effectiveLessonPlanSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+                )
+
+                Divider()
+
+                Button {
+                    viewModel.readExplanationFullTextAloud()
+                } label: {
+                    Label("朗读讲解全文", systemImage: "sparkles.text.clipboard")
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation)
+                )
+
+                Button {
+                    viewModel.readExplanationSelectionAloud()
+                } label: {
+                    Label("朗读讲解选中", systemImage: "text.quote")
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (viewModel.effectiveExplanationPanelSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+                )
+
+                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                    Divider()
+
+                    Button {
+                        viewModel.toggleExplanationSpeechPause()
+                    } label: {
+                        Label(
+                            viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
+                            systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                        )
+                    }
+
+                    Button {
+                        viewModel.stopExplanationSpeech()
+                    } label: {
+                        Label("停止朗读", systemImage: "stop.fill")
+                    }
+                }
+            }
+            .help("原文、翻译与讲解的选中/全文朗读")
         }
     }
 
@@ -424,27 +519,36 @@ struct ContentView: View {
                 }
                 .disabled(viewModel.fileContent.isEmpty)
 
-                Button {
-                    viewModel.readSelectionAloud()
-                } label: {
-                    Label(
-                        viewModel.isSpeakingExplanation ? "停止朗读" : "朗读",
-                        systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
-                    )
-                }
-                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
-
                 if viewModel.isRunning || viewModel.isSpeakingExplanation {
                     Divider()
 
-                    Button {
-                        viewModel.stopCurrentRun()
-                    } label: {
-                        Label("停止", systemImage: "stop.fill")
+                    if viewModel.isSpeakingExplanation {
+                        Button {
+                            viewModel.toggleExplanationSpeechPause()
+                        } label: {
+                            Label(
+                                viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
+                                systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                            )
+                        }
+
+                        Button {
+                            viewModel.stopExplanationSpeech()
+                        } label: {
+                            Label("停止朗读", systemImage: "stop.fill")
+                        }
+                    }
+
+                    if viewModel.isRunning {
+                        Button {
+                            viewModel.stopCurrentRun()
+                        } label: {
+                            Label("停止生成", systemImage: "stop.fill")
+                        }
                     }
                 }
             }
-            .help("选择/全文讲解、朗读与停止")
+            .help("选择/全文讲解与全选")
         }
     }
 
@@ -515,8 +619,8 @@ struct ContentView: View {
                 subtitle: viewModel.fileContent.isEmpty
                     ? "可直接输入，或 ⌘N 新建 / ⌘O 打开 .txt · ⌘S 保存"
                     : viewModel.isEditingNotes
-                        ? "可编辑 · 命令笔记自动保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读"
-                        : "可编辑 · ⌘S 保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读"
+                        ? "可编辑 · 命令笔记自动保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读原文"
+                        : "可编辑 · ⌘S 保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读原文"
             )
 
             ZStack {
