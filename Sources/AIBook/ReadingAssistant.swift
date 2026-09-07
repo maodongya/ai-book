@@ -11,7 +11,7 @@ enum ReadingAssistant {
     """
 
     static let welcomeMessage = """
-    右页是你的读书助手：选中左页文字后点击「讲解」，模型回复完成后会用所选声音朗读；可在设置中下载在线女声。
+    右页是你的读书助手：选中左页文字后点击「讲解」，模型回复完成后会用所选系统声音朗读；可在设置中切换语音与朗读节奏。
     左页可粘贴名著节选，点击顶栏「\(ClassicLiteratureSupplement.capabilityLabel)」补全为完整篇章并自动保存。
     支持 \(LLMConnector.supportedSummary) 等大模型 API，以及 Cursor 本地对话；在顶栏右侧 AI 进化区可切换后端，顶栏胶囊显示当前模式；重启后会恢复上次的对话上下文。
     """

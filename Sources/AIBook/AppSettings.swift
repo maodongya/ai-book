@@ -1,12 +1,24 @@
 import Foundation
 
 enum SpeechEngineMode: String, CaseIterable, Identifiable, Codable {
-    case fastLocal = "极速（本地）"
-    case balancedNeural = "平衡（在线）"
-    case neuralQuality = "高音质（在线）"
-    case studioBeauty = "美声（在线）"
+    case fast = "快速"
+    case balanced = "平衡"
+    case natural = "自然"
+    case relaxed = "舒缓"
 
     var id: String { rawValue }
+
+    static func migrated(from stored: String?) -> SpeechEngineMode {
+        guard let stored, !stored.isEmpty else { return .balanced }
+        if let mode = SpeechEngineMode(rawValue: stored) { return mode }
+        switch stored {
+        case "极速（本地）": return .fast
+        case "平衡（在线）": return .balanced
+        case "高音质（在线）": return .natural
+        case "美声（在线）": return .relaxed
+        default: return .balanced
+        }
+    }
 }
 
 enum SpeechLanguageMode: String, CaseIterable, Identifiable, Codable {
@@ -95,8 +107,6 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(speechLanguageMode.rawValue, forKey: Keys.speechLanguageMode) }
     }
 
-    @Published private(set) var downloadedNeuralVoiceIDs: Set<String> = SpeechVoiceStore.downloadedNeuralVoiceIDs
-
     private enum Keys {
         static let provider = "aiBook.provider"
         static let baseURL = "aiBook.baseURL"
@@ -162,25 +172,19 @@ final class AppSettings: ObservableObject {
         }
         explanationVoiceID = SpeechVoiceStore.selectedVoiceID
         let storedSpeechMode = UserDefaults.standard.string(forKey: Keys.speechEngineMode)
-        speechEngineMode = SpeechEngineMode(rawValue: storedSpeechMode ?? "") ?? .studioBeauty
+        speechEngineMode = SpeechEngineMode.migrated(from: storedSpeechMode)
         let storedLanguageMode = UserDefaults.standard.string(forKey: Keys.speechLanguageMode)
         speechLanguageMode = SpeechLanguageMode(rawValue: storedLanguageMode ?? "") ?? .deep
-        SpeechVoiceStore.purgeInvalidNeuralDownloads()
         normalizeExplanationVoiceSelection()
-        downloadedNeuralVoiceIDs = SpeechVoiceStore.downloadedNeuralVoiceIDs
     }
 
     func reloadExplanationVoices() {
-        SpeechVoiceStore.purgeInvalidNeuralDownloads()
-        downloadedNeuralVoiceIDs = SpeechVoiceStore.downloadedNeuralVoiceIDs
         normalizeExplanationVoiceSelection()
     }
 
     private func normalizeExplanationVoiceSelection() {
-        let groups = SpeechVoiceCatalog.groupedSelectableOptions(
-            downloadedNeuralIDs: SpeechVoiceStore.downloadedNeuralVoiceIDs
-        )
-        let selectable = groups.flatMap(\.voices)
+        SpeechVoiceStore.normalizeStoredSelection()
+        let selectable = SpeechVoiceCatalog.groupedSelectableOptions().flatMap(\.voices)
         guard !selectable.contains(where: { $0.id == explanationVoiceID }) else { return }
         if let first = selectable.first {
             explanationVoiceID = first.id

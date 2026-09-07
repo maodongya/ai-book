@@ -155,32 +155,6 @@ enum SpeechTextSanitizer {
         return units
     }
 
-    /// 在线 / 本地 TTS 句间停顿时长（纳秒）。停顿过长会让朗读显得拖沓。
-    static func pauseNanoseconds(after kind: SpeechPauseKind, engineMode: SpeechEngineMode) -> UInt64 {
-        let base: UInt64
-        switch engineMode {
-        case .fastLocal:
-            base = 12_000_000
-        case .balancedNeural:
-            base = 22_000_000
-        case .neuralQuality:
-            base = 32_000_000
-        case .studioBeauty:
-            base = 42_000_000
-        }
-
-        switch kind {
-        case .brief:
-            return base + 18_000_000
-        case .comma:
-            return base + 38_000_000
-        case .clause:
-            return base + 58_000_000
-        case .sentence:
-            return base + 88_000_000
-        }
-    }
-
     /// Splits speech text into short, readable chunks.
     static func sentenceChunks(for text: String, mode: SpeechLanguageMode = .balanced) -> [String] {
         speechUnits(for: text, mode: mode).map(\.spoken)
@@ -317,7 +291,7 @@ enum SpeechTextSanitizer {
         return text
     }
 
-    /// 去掉装饰符号，但保留中文韵律标点，供 Edge / 系统 TTS 把握停顿与咬字。
+    /// 去掉装饰符号，但保留中文韵律标点，供系统 TTS 把握停顿与咬字。
     private static func stripExpressionSymbols(_ text: String) -> String {
         text.replacingOccurrences(
             of: """

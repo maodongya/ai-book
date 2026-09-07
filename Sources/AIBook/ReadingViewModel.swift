@@ -15,6 +15,7 @@ final class ReadingViewModel: ObservableObject {
         }
     }
     @Published var fileName = "未命名"
+    @Published private(set) var isDocumentOpen = false
     @Published var selectedText = ""
     /// 最近一次非空选区；点击顶栏时系统常会清空高亮，朗读/讲解仍用此缓存。
     private var lastCommittedSelectionText = ""
@@ -57,7 +58,6 @@ final class ReadingViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showSettings = false
     @Published private(set) var isSpeakingExplanation = false
-    @Published private(set) var isSynthesizingExplanation = false
     @Published private(set) var lastSaveMessage: String?
 
     private let llmService = LLMService()
@@ -97,13 +97,10 @@ final class ReadingViewModel: ObservableObject {
 
     func onAppear() {
         scheduleAutoEvolutionIfNeeded()
-        Task {
-            await ExplanationSpeechReader.shared.prewarmCurrentVoice()
-        }
     }
 
     var displayFileName: String {
-        guard !fileContent.isEmpty || currentFileURL != nil else {
+        guard isDocumentOpen || currentFileURL != nil || !fileContent.isEmpty else {
             return "未打开文件"
         }
         let name = currentFileURL?.lastPathComponent ?? fileName
@@ -441,6 +438,28 @@ final class ReadingViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    func newDocument() {
+        guard !isRunning else { return }
+        guard confirmDiscardUnsavedIfNeeded() else { return }
+
+        stopExplanationSpeech()
+        fileContent = ""
+        savedContent = ""
+        fileName = "未命名"
+        currentFileURL = nil
+        isDocumentOpen = true
+        isDirty = false
+        selectedText = ""
+        lastCommittedSelectionText = ""
+        lastCommittedSelectionRange = nil
+        selectedTextRange = nil
+        readingPromptMessages = [Self.defaultWelcomeMessage]
+        syncDisplayedChatMessages()
+        readingChatInput = ""
+        errorMessage = nil
+        persistChatSession()
+    }
+
     func openFile() {
         guard confirmDiscardUnsavedIfNeeded() else { return }
 
@@ -477,6 +496,7 @@ final class ReadingViewModel: ObservableObject {
             isDirty = false
             fileName = url.lastPathComponent
             currentFileURL = url
+            isDocumentOpen = true
             selectedText = ""
             lastCommittedSelectionText = ""
             lastCommittedSelectionRange = nil
@@ -697,6 +717,7 @@ final class ReadingViewModel: ObservableObject {
         savedContent = content
         fileName = "readme-notes.txt"
         currentFileURL = nil
+        isDocumentOpen = true
         isDirty = false
     }
 
@@ -1932,15 +1953,6 @@ final class ReadingViewModel: ObservableObject {
 
     private func speakExplanation(_ text: String, preferLowLatency: Bool = false) {
         let settings = AppSettings.shared
-
-        if settings.speechEngineMode != .fastLocal,
-           let selected = SpeechVoiceCatalog.option(for: settings.explanationVoiceID),
-           selected.isNeural,
-           let hint = SpeechVoiceStore.neuralVoiceSetupHint() {
-            errorMessage = hint
-            return
-        }
-
         let units = SpeechTextSanitizer.speechUnits(
             for: text,
             mode: settings.speechLanguageMode
@@ -1950,12 +1962,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        let reader = ExplanationSpeechReader.shared
-        reader.onSpeakIssue = { [weak self] message in
-            self?.errorMessage = "在线语音合成失败，已改用系统语音：\(message)"
-        }
-        let useLowLatency = preferLowLatency && settings.speechEngineMode == .fastLocal
-        reader.speak(text, preferLowLatency: useLowLatency)
+        ExplanationSpeechReader.shared.speak(text, preferLowLatency: preferLowLatency)
         isSpeakingExplanation = true
         scheduleSpeakingStatusRefresh()
     }
@@ -1964,7 +1971,6 @@ final class ReadingViewModel: ObservableObject {
         speakingRefreshTask?.cancel()
         ExplanationSpeechReader.shared.stop()
         isSpeakingExplanation = false
-        isSynthesizingExplanation = false
     }
 
     private func scheduleSpeakingStatusRefresh() {
@@ -1973,13 +1979,11 @@ final class ReadingViewModel: ObservableObject {
             while !Task.isCancelled {
                 guard let self else { return }
                 let reader = ExplanationSpeechReader.shared
-                self.isSynthesizingExplanation = reader.isSynthesizing
                 self.isSpeakingExplanation = reader.isBusy
                 if !reader.isBusy { break }
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
             self?.isSpeakingExplanation = false
-            self?.isSynthesizingExplanation = false
         }
     }
 

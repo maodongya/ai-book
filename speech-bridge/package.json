@@ -1,8 +1,0 @@
-{
-  "name": "aibook-speech-bridge",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "msedge-tts": "^2.0.5"
-  }
-}

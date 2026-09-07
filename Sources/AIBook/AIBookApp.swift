@@ -19,6 +19,11 @@ struct AIBookApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("新建") {
+                    viewModel.newDocument()
+                }
+                .keyboardShortcut("n")
+
                 Button("打开文本文件…") {
                     viewModel.openFile()
                 }

@@ -202,7 +202,7 @@ enum BookInterface {
                     Text("翻开书页")
                         .font(BookTheme.titleFont)
                         .foregroundStyle(BookTheme.ink.opacity(0.65))
-                    Text("在此输入命令笔记，或打开 .txt 原文")
+                    Text("在此输入命令笔记，或从顶栏「核心功能」新建 / 打开")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted.opacity(0.7))
                     Text("选中文字后点击顶部「讲解」")

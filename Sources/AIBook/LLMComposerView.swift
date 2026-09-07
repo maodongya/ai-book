@@ -421,10 +421,10 @@ struct LLMComposerView: View {
                 }
             } else if viewModel.isSpeakingExplanation {
                 HStack(spacing: 8) {
-                    Image(systemName: viewModel.isSynthesizingExplanation ? "waveform" : "speaker.wave.2.fill")
+                    Image(systemName: "speaker.wave.2.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(BookTheme.leather)
-                    Text(viewModel.isSynthesizingExplanation ? "正在合成讲解语音…" : "正在朗读讲解…")
+                    Text("正在朗读讲解…")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.leather)
                 }

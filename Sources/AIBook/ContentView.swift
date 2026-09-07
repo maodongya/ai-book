@@ -159,28 +159,47 @@ struct ContentView: View {
 
     private var documentActionBar: some View {
         HStack(spacing: 8) {
-            BookActionButton(title: "打开", icon: "doc.text", isCompact: true) {
-                viewModel.openFile()
-            }
+            BookToolbarMenuButton(title: "核心功能", icon: "folder.badge.plus") {
+                Button {
+                    viewModel.newDocument()
+                } label: {
+                    Label("新建", systemImage: "doc.badge.plus")
+                }
+                .disabled(viewModel.isRunning)
 
-            BookActionButton(title: "保存", icon: "square.and.arrow.down", isCompact: true, isDisabled: viewModel.fileContent.isEmpty && !viewModel.isDirty) {
-                viewModel.save()
-            }
+                Button {
+                    viewModel.openFile()
+                } label: {
+                    Label("打开", systemImage: "doc.text")
+                }
+                .disabled(viewModel.isRunning)
 
-            BookActionButton(title: "另存为", icon: "square.and.arrow.down.on.square", isCompact: true, isDisabled: viewModel.fileContent.isEmpty) {
-                viewModel.saveAs()
-            }
-            .help("将左页全文保存到新文件（\(DocumentExporter.shortcutHint)）")
+                Divider()
 
-            BookActionButton(
-                title: ClassicLiteratureSupplement.capabilityLabel,
-                icon: "text.append",
-                isCompact: true,
-                isDisabled: viewModel.fileContent.isEmpty || viewModel.isRunning
-            ) {
-                viewModel.supplementClassicLiterature()
+                Button {
+                    viewModel.save()
+                } label: {
+                    Label("保存", systemImage: "square.and.arrow.down")
+                }
+                .disabled(viewModel.fileContent.isEmpty && !viewModel.isDirty)
+
+                Button {
+                    viewModel.saveAs()
+                } label: {
+                    Label("另存为", systemImage: "square.and.arrow.down.on.square")
+                }
+                .disabled(viewModel.fileContent.isEmpty)
+
+                Divider()
+
+                Button {
+                    viewModel.supplementClassicLiterature()
+                } label: {
+                    Label(ClassicLiteratureSupplement.capabilityLabel, systemImage: "text.append")
+                }
+                .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
             }
-            .help("识别左页名著节选并补全为完整篇章（\(ClassicLiteratureSupplement.shortcutHint)）")
+            .help("新建、打开、保存、另存为与名著补充")
         }
     }
 
@@ -366,7 +385,7 @@ struct ContentView: View {
                 title: "原文 / 命令笔记",
                 icon: "text.book.closed",
                 subtitle: viewModel.fileContent.isEmpty
-                    ? "可直接输入，或拖入/打开 .txt · ⌘S 保存"
+                    ? "可直接输入，或 ⌘N 新建 / ⌘O 打开 .txt · ⌘S 保存"
                     : viewModel.isEditingNotes
                         ? "可编辑 · 命令笔记自动保存 · ⌘⇧C 名著补充 · ⌘R 讲解 · ⌘⌥R 朗读"
                         : "可编辑 · ⌘S 保存 · ⌘⇧C 名著补充 · ⌘R 讲解 · ⌘⌥R 朗读"
@@ -382,7 +401,7 @@ struct ContentView: View {
                 )
                 .id("leftPageTextView")
 
-                if viewModel.fileContent.isEmpty {
+                if viewModel.fileContent.isEmpty && !viewModel.isDocumentOpen {
                     BookInterface.EmptyPageWelcome {
                         viewModel.openFile()
                     }

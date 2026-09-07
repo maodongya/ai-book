@@ -59,19 +59,6 @@ if [[ -d "$ROOT/cursor-bridge" ]]; then
   fi
 fi
 
-if [[ -d "$ROOT/speech-bridge" ]]; then
-  echo "==> Bundling speech-bridge..."
-  SPEECH_DEST="$STAGING/Contents/Resources/speech-bridge"
-  mkdir -p "$SPEECH_DEST"
-  rsync -a \
-    --exclude node_modules/.cache \
-    "$ROOT/speech-bridge/" "$SPEECH_DEST/"
-  if [[ ! -d "$SPEECH_DEST/node_modules" ]]; then
-    echo "==> Installing speech-bridge dependencies..."
-    (cd "$SPEECH_DEST" && npm install --omit=dev --silent)
-  fi
-fi
-
 echo "==> Installing to $APP_PATH..."
 if [[ -w "$INSTALL_DIR" ]]; then
   rm -rf "$APP_PATH"

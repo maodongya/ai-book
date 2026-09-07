@@ -23,7 +23,7 @@ struct SettingsView: View {
             case .ai:
                 return "配置大模型、Cursor 本地对话与自我进化"
             case .voice:
-                return "调整朗读引擎、语言处理与在线女声"
+                return "调整朗读节奏、语言处理与系统语音"
             }
         }
     }
@@ -227,10 +227,10 @@ struct SettingsView: View {
             }
 
             settingsSection(title: "关于语音", icon: "music.note") {
-                Text("在本页可切换语音引擎、语言处理策略和讲解声音模型。")
+                Text("在本页可切换朗读节奏、语言处理策略和系统讲解声音。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Text("建议：低延时使用「极速（本地）+ 高效」，高音质使用「美声（在线）+ 深度」。")
+                Text("建议：快速浏览使用「快速 + 高效」，细读讲解使用「舒缓 + 深度」。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }

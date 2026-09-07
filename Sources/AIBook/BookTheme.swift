@@ -126,12 +126,14 @@ extension View {
 }
 
 struct BookToolbarMenuButton<MenuContent: View>: View {
+    var title: String = "更多"
+    var icon: String = "ellipsis.circle"
     @ViewBuilder let menuContent: () -> MenuContent
     @State private var isHovering = false
 
     var body: some View {
         Menu(content: menuContent) {
-            Label("更多", systemImage: "ellipsis.circle")
+            Label(title, systemImage: icon)
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.goldSoft)
                 .lineLimit(1)
