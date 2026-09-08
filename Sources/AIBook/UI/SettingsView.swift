@@ -21,7 +21,7 @@ struct SettingsView: View {
         var subtitle: String {
             switch self {
             case .ai:
-                return "配置大模型、Cursor 本地对话与自我进化"
+                return "配置 AI 进化用的大模型与 Cursor 本地（读书模型见顶栏 book设置）"
             case .voice:
                 return "调整朗读节奏、语言处理与系统语音"
             }
@@ -205,7 +205,7 @@ struct SettingsView: View {
                 Text("左页「\(ClassicLiteratureSupplement.capabilityLabel)」可识别名著节选并由大模型补全为完整篇章，自动保存。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Text("顶栏右侧（AI 进化区）提供「大模型 API」与「Cursor 本地」切换；读书助手讲解与翻译使用同一设置（可在设置中查看）。")
+                Text("顶栏右侧（AI 进化区）提供「大模型 API」与「Cursor 本地」切换；读书助手使用顶栏「book设置」独立配置本地模型。")
                     .font(BookTheme.bodyFont)
                     .foregroundStyle(BookTheme.inkSecondary)
                 Text("大模型 API 支持 \(LLMConnector.supportedSummary) 等 OpenAI 兼容接口。")

@@ -224,27 +224,40 @@ struct ExplanationChatView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
             }
-        } else if settings.explanationSource == .cursor && !settings.isCursorRunnable {
-            if settings.isLLMConfigured {
-                llmFallbackBanner
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-            } else {
-                CursorConfigPanel()
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-            }
-        } else if settings.explanationSource == .llm && !settings.isLLMConfigured {
-            LLMConfigPanel()
+        } else if !settings.isBookLLMConfigured {
+            bookConfigBanner
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
         }
     }
 
+    private var bookConfigBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "book.closed.fill")
+                .foregroundStyle(BookTheme.gold)
+            Text("读书功能需配置 book 大模型（推荐本机 Ollama）。")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkSecondary)
+            Spacer(minLength: 8)
+            Button("book设置") {
+                viewModel.openBookSettings()
+            }
+            .font(BookTheme.captionFont)
+            .foregroundStyle(BookTheme.leather)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(BookTheme.selection.opacity(0.3))
+        }
+    }
+
     @ViewBuilder
     private func composer(for mode: RightPageTab) -> some View {
-        let useCursor = settings.isCursorRunnable && settings.explanationSource == .cursor
-        if useCursor {
+        if mode == .aiEvolution,
+           settings.isCursorRunnable,
+           settings.explanationSource == .cursor {
             CursorComposerView(mode: mode)
         } else {
             LLMComposerView(mode: mode)
@@ -702,7 +715,7 @@ struct ExplanationChatView: View {
         if viewModel.rightPageTab == .aiEvolution {
             return "AI进化"
         }
-        return settings.explanationSource == .cursor ? "Cursor" : "读书助手"
+        return "读书助手"
     }
 
     private func isEditing(_ id: UUID) -> Bool {

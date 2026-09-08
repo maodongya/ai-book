@@ -16,14 +16,18 @@ struct LLMProfile: Codable, Equatable {
 }
 
 enum LLMProfileStore {
-    private static let storageKey = "aiBook.llmProfiles"
+    private static let legacyStorageKey = "aiBook.llmProfiles"
+    private static let scopedStorageKey = "aiBook.llmProfilesByScope"
 
     static func sanitizedKey(_ apiKey: String) -> String {
         apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    static func resolvedConfiguration(for provider: LLMProvider) -> LLMConfiguration {
-        var profile = profile(for: provider)
+    static func resolvedConfiguration(
+        for provider: LLMProvider,
+        scope: LLMProfileScope = .evolution
+    ) -> LLMConfiguration {
+        var profile = profile(for: provider, scope: scope)
         if provider == .qwen {
             profile = QwenBailianConfig.repairProfile(profile)
         } else if provider == .ollama {
@@ -47,23 +51,17 @@ enum LLMProfileStore {
         )
     }
 
-    static func isConfigured(for provider: LLMProvider) -> Bool {
-        let configuration = resolvedConfiguration(for: provider)
+    static func isConfigured(for provider: LLMProvider, scope: LLMProfileScope = .evolution) -> Bool {
+        let configuration = resolvedConfiguration(for: provider, scope: scope)
         return LLMConnector.isConfigured(provider: provider, apiKey: configuration.apiKey)
     }
 
-    static func loadAll() -> [String: LLMProfile] {
-        guard
-            let data = UserDefaults.standard.data(forKey: storageKey),
-            let decoded = try? JSONDecoder().decode([String: LLMProfile].self, from: data)
-        else {
-            return [:]
-        }
-        return decoded
+    static func loadAll(scope: LLMProfileScope) -> [String: LLMProfile] {
+        loadScoped()[scope.rawValue] ?? [:]
     }
 
-    static func profile(for provider: LLMProvider) -> LLMProfile {
-        let stored = loadAll()[provider.rawValue] ?? .defaults(for: provider)
+    static func profile(for provider: LLMProvider, scope: LLMProfileScope = .evolution) -> LLMProfile {
+        let stored = loadAll(scope: scope)[provider.rawValue] ?? .defaults(for: provider)
         if provider == .qwen {
             return QwenBailianConfig.repairProfile(stored)
         }
@@ -73,40 +71,55 @@ enum LLMProfileStore {
         return stored
     }
 
-    static func save(_ profile: LLMProfile, for provider: LLMProvider) {
-        var all = loadAll()
-        all[provider.rawValue] = profile
-        persist(all)
+    static func save(_ profile: LLMProfile, for provider: LLMProvider, scope: LLMProfileScope) {
+        var scoped = loadScoped()
+        var bucket = scoped[scope.rawValue] ?? [:]
+        bucket[provider.rawValue] = profile
+        scoped[scope.rawValue] = bucket
+        persistScoped(scoped)
     }
 
-    static func configuredProviders() -> [LLMProvider] {
-        LLMProvider.allCases.filter { isConfigured(for: $0) }
+    static func configuredProviders(scope: LLMProfileScope) -> [LLMProvider] {
+        LLMProvider.allCases.filter { isConfigured(for: $0, scope: scope) }
     }
 
-    static func migrateLegacySingleKey(currentProvider: LLMProvider, apiKey: String, baseURL: String, model: String) {
+    static func migrateLegacySingleKey(
+        currentProvider: LLMProvider,
+        apiKey: String,
+        baseURL: String,
+        model: String,
+        scope: LLMProfileScope = .evolution
+    ) {
         let trimmedKey = sanitizedKey(apiKey)
         guard !trimmedKey.isEmpty else { return }
-        var all = loadAll()
-        // Only migrate the old single-key storage on first upgrade; never copy it to a newly selected provider.
-        guard all.isEmpty else { return }
-        all[currentProvider.rawValue] = LLMProfile(apiKey: trimmedKey, baseURL: baseURL, model: model)
-        persist(all)
+        var scoped = loadScoped()
+        var bucket = scoped[scope.rawValue] ?? [:]
+        guard bucket.isEmpty else { return }
+        bucket[currentProvider.rawValue] = LLMProfile(apiKey: trimmedKey, baseURL: baseURL, model: model)
+        scoped[scope.rawValue] = bucket
+        persistScoped(scoped)
     }
 
     /// Clears a legacy key that was accidentally copied to multiple providers (e.g. OpenAI key on 通义千问).
-    static func repairDuplicateLegacyKeys(legacyAPIKey: String, legacyBaseURL: String, activeProvider: LLMProvider) {
+    static func repairDuplicateLegacyKeys(
+        legacyAPIKey: String,
+        legacyBaseURL: String,
+        activeProvider: LLMProvider,
+        scope: LLMProfileScope = .evolution
+    ) {
         let trimmedLegacy = sanitizedKey(legacyAPIKey)
         guard !trimmedLegacy.isEmpty else { return }
 
-        var all = loadAll()
+        var scoped = loadScoped()
+        var bucket = scoped[scope.rawValue] ?? [:]
         let matchingProviders = LLMProvider.allCases.filter {
-            sanitizedKey(all[$0.rawValue]?.apiKey ?? "") == trimmedLegacy
+            sanitizedKey(bucket[$0.rawValue]?.apiKey ?? "") == trimmedLegacy
         }
         guard matchingProviders.count > 1 else { return }
 
         let legacyHost = URL(string: legacyBaseURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host ?? ""
         let keeper = LLMProvider.allCases.first { provider in
-            let profile = all[provider.rawValue] ?? .defaults(for: provider)
+            let profile = bucket[provider.rawValue] ?? .defaults(for: provider)
             let resolvedBaseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             let host = URL(string: resolvedBaseURL.isEmpty ? provider.defaultBaseURL : resolvedBaseURL)?.host ?? ""
             return !legacyHost.isEmpty && host == legacyHost
@@ -114,18 +127,56 @@ enum LLMProfileStore {
 
         var changed = false
         for provider in matchingProviders where provider != keeper {
-            var profile = all[provider.rawValue] ?? .defaults(for: provider)
+            var profile = bucket[provider.rawValue] ?? .defaults(for: provider)
             profile.apiKey = ""
-            all[provider.rawValue] = profile
+            bucket[provider.rawValue] = profile
             changed = true
         }
         if changed {
-            persist(all)
+            scoped[scope.rawValue] = bucket
+            persistScoped(scoped)
         }
     }
 
-    private static func persist(_ profiles: [String: LLMProfile]) {
-        guard let data = try? JSONEncoder().encode(profiles) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+    static func migrateLegacyFlatStorageIfNeeded() {
+        guard UserDefaults.standard.data(forKey: scopedStorageKey) == nil else { return }
+        guard let data = UserDefaults.standard.data(forKey: legacyStorageKey),
+              let legacy = try? JSONDecoder().decode([String: LLMProfile].self, from: data),
+              !legacy.isEmpty
+        else { return }
+
+        var scoped: [String: [String: LLMProfile]] = [:]
+        scoped[LLMProfileScope.evolution.rawValue] = legacy
+        persistScoped(scoped)
+    }
+
+    static func seedBookScopeIfNeeded(activeEvolutionProvider: LLMProvider) {
+        var scoped = loadScoped()
+        guard scoped[LLMProfileScope.book.rawValue] == nil else { return }
+
+        if activeEvolutionProvider == .ollama {
+            scoped[LLMProfileScope.book.rawValue] = scoped[LLMProfileScope.evolution.rawValue] ?? [:]
+        } else {
+            scoped[LLMProfileScope.book.rawValue] = [
+                LLMProvider.ollama.rawValue: .defaults(for: .ollama)
+            ]
+        }
+        persistScoped(scoped)
+    }
+
+    private static func loadScoped() -> [String: [String: LLMProfile]] {
+        migrateLegacyFlatStorageIfNeeded()
+        guard
+            let data = UserDefaults.standard.data(forKey: scopedStorageKey),
+            let decoded = try? JSONDecoder().decode([String: [String: LLMProfile]].self, from: data)
+        else {
+            return [:]
+        }
+        return decoded
+    }
+
+    private static func persistScoped(_ scoped: [String: [String: LLMProfile]]) {
+        guard let data = try? JSONEncoder().encode(scoped) else { return }
+        UserDefaults.standard.set(data, forKey: scopedStorageKey)
     }
 }

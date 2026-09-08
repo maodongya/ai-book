@@ -26,6 +26,9 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showSettings) {
             SettingsView()
         }
+        .sheet(isPresented: $viewModel.showBookSettings) {
+            BookSettingsView()
+        }
         .frame(minWidth: 960, minHeight: 640)
         .onAppear {
             viewModel.onAppear()
@@ -80,9 +83,22 @@ struct ContentView: View {
                         BookStatusPill(title: SelfEvolution.capabilityLabel, icon: "arrow.triangle.2.circlepath", tint: Color.white.opacity(0.52))
                             .help(viewModel.evolutionStatusLabel ?? "")
                     }
-                    if settings.explanationSource == .llm {
-                        BookStatusPill(title: LLMConnector.capabilityLabel, icon: "sparkles", tint: Color.white.opacity(0.52))
-                            .help(LLMConnector.supportedSummary)
+                    if viewModel.rightPageTab == .readingAssistant {
+                        BookStatusPill(
+                            title: settings.isBookLLMConfigured ? settings.bookLLMDisplayLabel : "book 未配置",
+                            icon: "book.closed.fill",
+                            tint: Color.white.opacity(0.52)
+                        )
+                        .help("读书大模型（book 设置）")
+                    } else if viewModel.rightPageTab == .aiEvolution {
+                        BookStatusPill(
+                            title: settings.explanationSource == .llm && settings.isLLMConfigured
+                                ? settings.llmDisplayLabel
+                                : settings.explanationSource.rawValue,
+                            icon: settings.explanationSource == .cursor ? "cursorarrow.rays" : "cpu",
+                            tint: Color.white.opacity(0.66)
+                        )
+                        .help("AI 进化后端与模型")
                     }
 
                     Spacer(minLength: 12)
@@ -99,34 +115,12 @@ struct ContentView: View {
         }
     }
 
-    /// 标签栏右侧：当前模式、未保存、大模型 / Cursor 切换。
+    /// 标签栏右侧：当前模式与对应模型摘要。
     private var headerModeAndSourceControls: some View {
         HStack(spacing: 8) {
-            BookStatusPill(
-                title: settings.explanationSource == .llm && settings.isLLMConfigured
-                    ? settings.llmDisplayLabel
-                    : settings.explanationSource.rawValue,
-                icon: settings.explanationSource == .cursor ? "cursorarrow.rays" : "cpu",
-                tint: Color.white.opacity(0.66)
-            )
-
             if viewModel.isDirty {
                 BookStatusPill(title: "未保存", icon: "circle.fill", tint: Color.orange.opacity(0.95))
                     .help("有未保存的修改")
-            }
-
-            ForEach(ExplanationSource.allCases) { source in
-                BookActionButton(
-                    title: source.rawValue,
-                    icon: source == .cursor ? "cursorarrow.rays" : "cpu",
-                    isProminent: settings.explanationSource == source,
-                    isCompact: true,
-                    isDisabled: viewModel.isRunning
-                ) {
-                    viewModel.selectRightPageTab(.aiEvolution)
-                    settings.explanationSource = source
-                }
-                .help("进化与追问使用 \(source.rawValue)")
             }
         }
         .fixedSize(horizontal: true, vertical: false)
@@ -177,6 +171,16 @@ struct ContentView: View {
                 viewModel.selectRightPageTab(.readingAssistant)
             }
             .help("切换到读书助手：讲解、朗读与文章翻译")
+
+            BookActionButton(
+                title: "book设置",
+                icon: "slider.horizontal.3",
+                isProminent: false,
+                isCompact: true
+            ) {
+                viewModel.openBookSettings()
+            }
+            .help("配置读书助手大模型（推荐本机 Ollama）")
 
             BookToolbarMenuButton(title: "原文操作", icon: "folder.badge.plus") {
                 Button {
@@ -646,7 +650,7 @@ struct ContentView: View {
     private var rightPageSubtitle: String {
         switch viewModel.rightPageTab {
         case .readingAssistant:
-            return "\(viewModel.readingAssistantPanel.rawValue) · \(settings.explanationSource.rawValue)"
+            return "\(viewModel.readingAssistantPanel.rawValue) · \(settings.bookLLMDisplayLabel)"
         case .aiEvolution:
             if let label = viewModel.evolutionStatusLabel {
                 return "\(label) · \(settings.explanationSource.rawValue)"

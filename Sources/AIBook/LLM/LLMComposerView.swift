@@ -73,32 +73,39 @@ struct LLMComposerView: View {
             if mode == .aiEvolution {
                 evolutionComposerSummary
             } else {
-                DisclosureGroup(isExpanded: $showingAdvancedControls) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        modelControlsRow
-                        contextUsageControls
-                    }
-                    .padding(.top, 8)
-                } label: {
-                    HStack(spacing: 8) {
-                        Label(llmSummary, systemImage: "cpu")
-                            .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leather)
-                            .lineLimit(1)
-
-                        Spacer(minLength: 8)
-
-                        compactUsageMeter
-                    }
-                }
-                .font(BookTheme.captionFont)
-                .tint(BookTheme.leather)
+                bookComposerSummary
             }
         }
-        .task(id: settings.provider) {
-            guard settings.provider == .ollama else { return }
-            await ollamaCatalog.refresh(baseURL: settings.baseURL, apiKey: settings.apiKey)
+        .task(id: settings.bookProvider) {
+            guard mode == .readingAssistant, settings.bookProvider == .ollama else { return }
+            await ollamaCatalog.refresh(baseURL: settings.bookBaseURL, apiKey: settings.bookApiKey)
         }
+    }
+
+    private var bookComposerSummary: some View {
+        HStack(spacing: 8) {
+            Label(
+                settings.isBookLLMConfigured ? settings.bookLLMDisplayLabel : "book 未配置",
+                systemImage: "book.closed.fill"
+            )
+            .font(BookTheme.captionFont)
+            .foregroundStyle(BookTheme.leather)
+            .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            Button {
+                viewModel.openBookSettings()
+            } label: {
+                Text("book设置")
+                    .font(BookTheme.captionFont)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(BookTheme.leather)
+
+            compactUsageMeter
+        }
+        .font(BookTheme.captionFont)
     }
 
     private var evolutionComposerSummary: some View {

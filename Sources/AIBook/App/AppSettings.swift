@@ -91,6 +91,44 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(llmContextPercent, forKey: Keys.llmContextPercent) }
     }
 
+    @Published var bookProvider: LLMProvider {
+        didSet {
+            guard bookProvider != oldValue else { return }
+            guard !suppressBookProfilePersistence else { return }
+            persistBookProfile(for: oldValue)
+            UserDefaults.standard.set(bookProvider.rawValue, forKey: Keys.bookProvider)
+            loadBookProfile(for: bookProvider)
+        }
+    }
+
+    @Published var bookBaseURL: String {
+        didSet {
+            UserDefaults.standard.set(bookBaseURL, forKey: Keys.bookBaseURL)
+            guard !suppressBookProfilePersistence else { return }
+            persistBookProfile(for: bookProvider)
+        }
+    }
+
+    @Published var bookModel: String {
+        didSet {
+            UserDefaults.standard.set(bookModel, forKey: Keys.bookModel)
+            guard !suppressBookProfilePersistence else { return }
+            persistBookProfile(for: bookProvider)
+        }
+    }
+
+    @Published var bookApiKey: String {
+        didSet {
+            UserDefaults.standard.set(bookApiKey, forKey: Keys.bookApiKey)
+            guard !suppressBookProfilePersistence else { return }
+            persistBookProfile(for: bookProvider)
+        }
+    }
+
+    @Published var bookContextPercent: Double {
+        didSet { UserDefaults.standard.set(bookContextPercent, forKey: Keys.bookContextPercent) }
+    }
+
     @Published var autoEvolutionEnabled: Bool {
         didSet { UserDefaults.standard.set(autoEvolutionEnabled, forKey: Keys.autoEvolutionEnabled) }
     }
@@ -118,16 +156,28 @@ final class AppSettings: ObservableObject {
         static let cursorBridgePath = "aiBook.cursorBridgePath"
         static let cursorContextPercent = "aiBook.cursorContextPercent"
         static let llmContextPercent = "aiBook.llmContextPercent"
+        static let bookProvider = "aiBook.book.provider"
+        static let bookBaseURL = "aiBook.book.baseURL"
+        static let bookModel = "aiBook.book.model"
+        static let bookApiKey = "aiBook.book.apiKey"
+        static let bookContextPercent = "aiBook.book.contextPercent"
         static let autoEvolutionEnabled = "aiBook.autoEvolutionEnabled"
         static let speechEngineMode = "aiBook.speechEngineMode"
         static let speechLanguageMode = "aiBook.speechLanguageMode"
     }
 
     private var suppressLLMProfilePersistence = false
+    private var suppressBookProfilePersistence = false
 
     private init() {
         suppressLLMProfilePersistence = true
-        defer { suppressLLMProfilePersistence = false }
+        suppressBookProfilePersistence = true
+        defer {
+            suppressLLMProfilePersistence = false
+            suppressBookProfilePersistence = false
+        }
+
+        LLMProfileStore.migrateLegacyFlatStorageIfNeeded()
 
         let storedProvider = UserDefaults.standard.string(forKey: Keys.provider)
         let resolvedProvider = LLMProvider(rawValue: storedProvider ?? "") ?? .openAI
@@ -141,18 +191,33 @@ final class AppSettings: ObservableObject {
             currentProvider: resolvedProvider,
             apiKey: legacyAPIKey,
             baseURL: legacyBaseURL,
-            model: legacyModel
+            model: legacyModel,
+            scope: .evolution
         )
         LLMProfileStore.repairDuplicateLegacyKeys(
             legacyAPIKey: legacyAPIKey,
             legacyBaseURL: legacyBaseURL,
-            activeProvider: resolvedProvider
+            activeProvider: resolvedProvider,
+            scope: .evolution
         )
+        LLMProfileStore.seedBookScopeIfNeeded(activeEvolutionProvider: resolvedProvider)
 
-        let profile = LLMProfileStore.profile(for: resolvedProvider)
+        let profile = LLMProfileStore.profile(for: resolvedProvider, scope: .evolution)
         baseURL = profile.baseURL.isEmpty ? legacyBaseURL : profile.baseURL
         model = profile.model.isEmpty ? legacyModel : profile.model
         apiKey = profile.apiKey
+
+        let storedBookProvider = UserDefaults.standard.string(forKey: Keys.bookProvider)
+        let resolvedBookProvider = LLMProvider(rawValue: storedBookProvider ?? "") ?? .ollama
+        bookProvider = resolvedBookProvider
+        let bookProfile = LLMProfileStore.profile(for: resolvedBookProvider, scope: .book)
+        bookBaseURL = UserDefaults.standard.string(forKey: Keys.bookBaseURL)
+            ?? (bookProfile.baseURL.isEmpty ? resolvedBookProvider.defaultBaseURL : bookProfile.baseURL)
+        bookModel = UserDefaults.standard.string(forKey: Keys.bookModel)
+            ?? (bookProfile.model.isEmpty ? resolvedBookProvider.defaultModel : bookProfile.model)
+        bookApiKey = UserDefaults.standard.string(forKey: Keys.bookApiKey) ?? bookProfile.apiKey
+        let storedBookContext = UserDefaults.standard.object(forKey: Keys.bookContextPercent) as? Double
+        bookContextPercent = storedBookContext ?? 50
 
         let storedSource = UserDefaults.standard.string(forKey: Keys.explanationSource)
         explanationSource = ExplanationSource(rawValue: storedSource ?? "") ?? .llm
@@ -215,7 +280,15 @@ final class AppSettings: ObservableObject {
     }
 
     var llmConfiguration: LLMConfiguration {
-        LLMProfileStore.resolvedConfiguration(for: provider)
+        LLMProfileStore.resolvedConfiguration(for: provider, scope: .evolution)
+    }
+
+    var bookLLMConfiguration: LLMConfiguration {
+        LLMProfileStore.resolvedConfiguration(for: bookProvider, scope: .book)
+    }
+
+    var evolutionLLMConfiguration: LLMConfiguration {
+        llmConfiguration
     }
 
     var cursorConfiguration: CursorConfiguration? {
@@ -237,7 +310,7 @@ final class AppSettings: ObservableObject {
     }
 
     func applyProviderDefaults() {
-        let profile = LLMProfileStore.profile(for: provider)
+        let profile = LLMProfileStore.profile(for: provider, scope: .evolution)
         if profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             baseURL = provider.defaultBaseURL
         } else {
@@ -251,32 +324,78 @@ final class AppSettings: ObservableObject {
         apiKey = profile.apiKey
     }
 
+    func applyBookProviderDefaults() {
+        let profile = LLMProfileStore.profile(for: bookProvider, scope: .book)
+        if profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            bookBaseURL = bookProvider.defaultBaseURL
+        } else {
+            bookBaseURL = profile.baseURL
+        }
+        if profile.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            bookModel = bookProvider.defaultModel
+        } else {
+            bookModel = profile.model
+        }
+        bookApiKey = profile.apiKey
+    }
+
     func loadLLMProfile(for provider: LLMProvider) {
         suppressLLMProfilePersistence = true
         defer { suppressLLMProfilePersistence = false }
 
-        let profile = LLMProfileStore.profile(for: provider)
+        let profile = LLMProfileStore.profile(for: provider, scope: .evolution)
         baseURL = profile.baseURL.isEmpty ? provider.defaultBaseURL : profile.baseURL
         model = profile.model.isEmpty ? provider.defaultModel : profile.model
         apiKey = profile.apiKey
     }
 
+    func loadBookProfile(for provider: LLMProvider) {
+        suppressBookProfilePersistence = true
+        defer { suppressBookProfilePersistence = false }
+
+        let profile = LLMProfileStore.profile(for: provider, scope: .book)
+        bookBaseURL = profile.baseURL.isEmpty ? provider.defaultBaseURL : profile.baseURL
+        bookModel = profile.model.isEmpty ? provider.defaultModel : profile.model
+        bookApiKey = profile.apiKey
+    }
+
     func persistActiveLLMProfile(for provider: LLMProvider) {
         LLMProfileStore.save(
             LLMProfile(apiKey: apiKey, baseURL: baseURL, model: model),
-            for: provider
+            for: provider,
+            scope: .evolution
+        )
+    }
+
+    func persistBookProfile(for provider: LLMProvider) {
+        LLMProfileStore.save(
+            LLMProfile(apiKey: bookApiKey, baseURL: bookBaseURL, model: bookModel),
+            for: provider,
+            scope: .book
         )
     }
 
     var configuredLLMProviders: [LLMProvider] {
-        LLMProfileStore.configuredProviders()
+        LLMProfileStore.configuredProviders(scope: .evolution)
+    }
+
+    var configuredBookProviders: [LLMProvider] {
+        LLMProfileStore.configuredProviders(scope: .book)
     }
 
     var isLLMConfigured: Bool {
-        LLMProfileStore.isConfigured(for: provider)
+        LLMProfileStore.isConfigured(for: provider, scope: .evolution)
+    }
+
+    var isBookLLMConfigured: Bool {
+        LLMProfileStore.isConfigured(for: bookProvider, scope: .book)
     }
 
     var llmDisplayLabel: String {
         LLMConnector.displayLabel(provider: provider, model: model)
+    }
+
+    var bookLLMDisplayLabel: String {
+        LLMConnector.displayLabel(provider: bookProvider, model: bookModel)
     }
 }

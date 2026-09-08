@@ -79,6 +79,7 @@ final class ReadingViewModel: ObservableObject {
     @Published private(set) var evolutionRunKind: EvolutionRunKind = .none
     @Published var errorMessage: String?
     @Published var showSettings = false
+    @Published var showBookSettings = false
     @Published private(set) var isSpeakingExplanation = false
     @Published private(set) var isExplanationSpeechPaused = false
     @Published private(set) var lastSaveMessage: String?
@@ -176,7 +177,7 @@ final class ReadingViewModel: ObservableObject {
             selectedText: selectedText,
             history: readingPromptMessages,
             input: readingChatInput,
-            contextPercent: AppSettings.shared.llmContextPercent,
+            contextPercent: AppSettings.shared.bookContextPercent,
             limitCharacters: LLMContextLimits.maxCharacters
         )
     }
@@ -295,6 +296,11 @@ final class ReadingViewModel: ObservableObject {
     func openSettings() {
         selectRightPageTab(.aiEvolution)
         showSettings = true
+    }
+
+    func openBookSettings() {
+        selectRightPageTab(.readingAssistant)
+        showBookSettings = true
     }
 
     private func resetStreamingState() {
@@ -600,7 +606,7 @@ final class ReadingViewModel: ObservableObject {
                 readingPromptMessages = [
                     ChatMessage(
                         role: .assistant,
-                        content: "已打开「\(fileName)」。请在左页选中文字后使用「选择讲解」或「全文讲解」，或在下方输入问题让 \(AppSettings.shared.explanationSource.rawValue) 帮你解析。"
+                        content: "已打开「\(fileName)」。请在左页选中文字后使用「选择讲解」或「全文讲解」，或在下方输入问题让读书助手帮你解析。"
                     ),
                 ]
                 evolutionPromptMessages = []
@@ -1258,7 +1264,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+        if let configError = AppGuard.evolutionSourceErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
         }
@@ -1295,7 +1301,7 @@ final class ReadingViewModel: ObservableObject {
         ensureEvolutionWelcome()
         guard !isRunning, !isEvolutionRebuilding else { return }
 
-        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+        if let configError = AppGuard.evolutionSourceErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
         }
@@ -1371,7 +1377,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+        if let configError = AppGuard.bookLLMErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
         }
@@ -1404,7 +1410,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+        if let configError = AppGuard.bookLLMErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
         }
@@ -1450,8 +1456,8 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        guard AppSettings.shared.isLLMConfigured else {
-            errorMessage = "名著补充需配置大模型 API，请在设置中填写 API Key。"
+        guard AppSettings.shared.isBookLLMConfigured else {
+            errorMessage = "名著补充需配置读书大模型，请在 book 设置中选择本地模型。"
             return
         }
 
@@ -1478,7 +1484,7 @@ final class ReadingViewModel: ObservableObject {
                 let reply = try await llmService.chat(
                     prompt: prompt,
                     history: llmMode.apiHistory,
-                    configuration: settings.llmConfiguration,
+                    configuration: settings.bookLLMConfiguration,
                     systemPrompt: llmMode.systemPrompt,
                     maxTokens: 8192,
                     onEvent: { [weak self] event in
@@ -1514,7 +1520,7 @@ final class ReadingViewModel: ObservableObject {
             } catch {
                 guard !Task.isCancelled else { return }
                 if !(error is CancellationError) {
-                    let message = LLMServiceErrorPresenter.message(for: error, provider: settings.provider)
+                    let message = LLMServiceErrorPresenter.message(for: error, provider: settings.bookProvider)
                     errorMessage = message
                     appendDisplayOnlyMessage(
                         ChatMessage(role: .assistant, content: "名著补充失败：\(message)")
@@ -1581,7 +1587,7 @@ final class ReadingViewModel: ObservableObject {
         let text = readingChatInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+        if let configError = AppGuard.bookLLMErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
         }
@@ -1594,7 +1600,7 @@ final class ReadingViewModel: ObservableObject {
         let text = evolutionChatInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+        if let configError = AppGuard.evolutionSourceErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
         }
@@ -1712,7 +1718,7 @@ final class ReadingViewModel: ObservableObject {
                 AutoEvolutionCoordinator.clearChain()
                 return
             }
-            if AppGuard.explanationSourceErrorMessage(for: settings) != nil { return }
+            if AppGuard.evolutionSourceErrorMessage(for: settings) != nil { return }
             guard self.canRunEvolution else {
                 AutoEvolutionCoordinator.clearChain()
                 self.errorMessage = self.evolutionTokenBudget.blockMessage(for: "自动进化")
@@ -1803,7 +1809,7 @@ final class ReadingViewModel: ObservableObject {
                     handleAnalysisCompletion(reply: resolvedReply)
                 }
 
-                if runKind == .evolution, shouldUseCursorBridge(settings: settings) {
+                if runKind == .evolution, shouldUseCursorBridge(settings: settings, isEvolutionTask: true) {
                     recordEvolutionCursorEstimate(
                         prompt: prompt,
                         history: Array(history),
@@ -1865,7 +1871,7 @@ final class ReadingViewModel: ObservableObject {
 
     private func runLessonPlanTask(displayText: String, prompt: String) {
         let settings = AppSettings.shared
-        if let configError = AppGuard.explanationSourceErrorMessage(for: settings) {
+        if let configError = AppGuard.bookLLMErrorMessage(for: settings) {
             errorMessage = configError
             return
         }
@@ -2020,8 +2026,8 @@ final class ReadingViewModel: ObservableObject {
         let fallbackNotice: String?
     }
 
-    private func shouldUseCursorBridge(settings: AppSettings) -> Bool {
-        settings.isCursorRunnable && settings.explanationSource == .cursor
+    private func shouldUseCursorBridge(settings: AppSettings, isEvolutionTask: Bool) -> Bool {
+        isEvolutionTask && settings.isCursorRunnable && settings.explanationSource == .cursor
     }
 
     private func fetchAssistantReply(
@@ -2040,8 +2046,9 @@ final class ReadingViewModel: ObservableObject {
         case .none:
             resolvedSystemPrompt = llmMode?.systemPrompt ?? ReadingAssistant.systemPrompt
         }
-        let wantsCursor = shouldUseCursorBridge(settings: settings)
         let isEvolutionTask = evolutionRunKind != .none
+        let wantsCursor = shouldUseCursorBridge(settings: settings, isEvolutionTask: isEvolutionTask)
+        let readingConfiguration = settings.bookLLMConfiguration
 
         if wantsCursor {
             do {
@@ -2068,7 +2075,7 @@ final class ReadingViewModel: ObservableObject {
                 let llmText = try await fetchLLMReply(
                     prompt: prompt,
                     history: history,
-                    settings: settings,
+                    configuration: readingConfiguration,
                     systemPrompt: resolvedSystemPrompt
                 )
                 return AssistantReplyOutcome(
@@ -2091,14 +2098,14 @@ final class ReadingViewModel: ObservableObject {
             )
         }
 
-        guard settings.isLLMConfigured else {
-            throw LLMServiceError.missingAPIKey(provider: settings.provider)
+        guard settings.isBookLLMConfigured else {
+            throw LLMServiceError.missingAPIKey(provider: settings.bookProvider)
         }
 
         let llmText = try await fetchLLMReply(
             prompt: prompt,
             history: history,
-            settings: settings,
+            configuration: readingConfiguration,
             systemPrompt: resolvedSystemPrompt
         )
         return AssistantReplyOutcome(text: llmText, thinking: nil, fallbackNotice: nil)
@@ -2171,12 +2178,11 @@ final class ReadingViewModel: ObservableObject {
     private func fetchLLMReply(
         prompt: String,
         history: [ChatMessage],
-        settings: AppSettings,
+        configuration: LLMConfiguration,
         systemPrompt: String
     ) async throws -> String {
-        let configuration = settings.llmConfiguration
         if configuration.provider.requiresAPIKey && configuration.apiKey.isEmpty {
-            throw LLMServiceError.missingAPIKey(provider: settings.provider)
+            throw LLMServiceError.missingAPIKey(provider: configuration.provider)
         }
 
         return try await llmService.chat(
@@ -2209,10 +2215,7 @@ final class ReadingViewModel: ObservableObject {
     }
 
     private func buildChatPrompt(for question: String) -> String {
-        let settings = AppSettings.shared
-        let contextPercent = settings.explanationSource == .llm
-            ? settings.llmContextPercent
-            : settings.cursorContextPercent
+        let contextPercent = AppSettings.shared.bookContextPercent
         var sections: [String] = []
 
         if !fileContent.isEmpty {
@@ -2235,9 +2238,7 @@ final class ReadingViewModel: ObservableObject {
     }
 
     private func surroundingContext(for selection: String, in content: String) -> String {
-        let percent = AppSettings.shared.explanationSource == .llm
-            ? AppSettings.shared.llmContextPercent
-            : AppSettings.shared.cursorContextPercent
+        let percent = AppSettings.shared.bookContextPercent
         let radius = max(Int(Double(content.count) * percent / 100.0 / 2.0), 300)
         guard let range = content.range(of: selection) else {
             return CursorContextCalculator.excerpt(from: content, percent: percent)

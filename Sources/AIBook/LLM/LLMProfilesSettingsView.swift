@@ -360,7 +360,7 @@ struct LLMProfilesSettingsView: View {
 
     private func saveProfile(for provider: LLMProvider) {
         let profile = drafts[provider] ?? LLMProfileStore.profile(for: provider)
-        LLMProfileStore.save(profile, for: provider)
+        LLMProfileStore.save(profile, for: provider, scope: .evolution)
         if settings.provider == provider {
             settings.loadLLMProfile(for: provider)
         }
@@ -369,7 +369,7 @@ struct LLMProfilesSettingsView: View {
 
     private func testProfile(for provider: LLMProvider) {
         let draft = drafts[provider] ?? LLMProfileStore.profile(for: provider)
-        LLMProfileStore.save(draft, for: provider)
+        LLMProfileStore.save(draft, for: provider, scope: .evolution)
         let configuration = LLMProfileStore.resolvedConfiguration(for: provider)
         testingProvider = provider
         testResults[provider] = nil
