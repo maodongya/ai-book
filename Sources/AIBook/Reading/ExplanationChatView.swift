@@ -180,6 +180,7 @@ struct ExplanationChatView: View {
                 executingCommandNumber: viewModel.executingEvolutionCommandNumber,
                 budget: viewModel.evolutionTokenBudget,
                 liveToolLabel: viewModel.evolutionLiveToolLabel,
+                lastRequestId: viewModel.evolutionLastRequestId,
                 hasPending: viewModel.hasPendingOptimization,
                 onAddUserItem: { viewModel.addUserOptimization(title: $0) },
                 onSkip: { viewModel.skipOptimization(id: $0) },

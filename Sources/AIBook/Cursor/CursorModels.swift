@@ -2,7 +2,7 @@ import Foundation
 
 enum CursorModelOption: String, CaseIterable, Identifiable, Codable {
     case composer25 = "composer-2.5"
-    case composer2 = "composer-2"
+    case autoSmart = "auto-smart"
     case auto = "auto"
     case gpt4o = "gpt-4o"
     case claudeSonnet = "claude-sonnet-4"
@@ -12,7 +12,7 @@ enum CursorModelOption: String, CaseIterable, Identifiable, Codable {
     var label: String {
         switch self {
         case .composer25: return "Composer 2.5"
-        case .composer2: return "Composer 2"
+        case .autoSmart: return "Cursor Router"
         case .auto: return "Auto"
         case .gpt4o: return "GPT-4o"
         case .claudeSonnet: return "Claude Sonnet"

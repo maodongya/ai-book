@@ -278,6 +278,7 @@ final class AppSettings: ObservableObject {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return CursorModelOption.composer25.rawValue }
         if trimmed.hasPrefix("crsr_") { return CursorModelOption.composer25.rawValue }
+        if trimmed == "composer-2" || trimmed == "composer-2-fast" { return CursorModelOption.composer25.rawValue }
         if CursorModelOption(rawValue: trimmed) != nil { return trimmed }
         if trimmed.contains("-"), !trimmed.contains("_") { return trimmed }
         return CursorModelOption.composer25.rawValue

@@ -17,6 +17,8 @@ public enum EvolutionAnalyzer {
     - 双后端：大模型 API（OpenAI 兼容）与 Cursor 本地 Agent
     - 设置：提供商、模型、Cursor Key、自动升级、语音
 
+    进化后端固定为 Cursor SDK 本地 Agent（`Agent.create` / `Agent.resume`），分析阶段仅开放 read/grep/glob/ls/semSearch。
+
     优化优先级：用户可感知缺口（讲解看不见、入口过深、流程断裂）优先于重构、注释、重命名。
     已知 P0：读书助手 Tab 不展示讲解对话与流式输出，用户只能听不能看。
     """

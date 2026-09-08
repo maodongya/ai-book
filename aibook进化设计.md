@@ -133,13 +133,8 @@
              │         ┌─────────────────────┼─────────┐
              │         │                     │         │
              ▼         ▼                     ▼         ▼
-     LLMEvolutionAgent              CursorService
-     (allowMutations: Bool)         (分析 Prompt 禁止改码)
-             │                               │
-             ▼                               ▼
-     EvolutionLocalTools            cursor-bridge/explain.mjs
-     分析：read / grep / glob       执行：完整工具链
-     执行：+ edit / write / shell
+     CursorService + cursor-bridge/explain.mjs
+     （Agent.create / Agent.resume；分析 tools 只读）
              │
              ▼
      OptimizationQueueStore  ←── 唯一真源
@@ -524,6 +519,22 @@ maxIterations: Int? = nil
 | `AIBookProduct.aboutLines` | 「按左页编号命令自我进化」改为「AI 分析优化队列并一键升级」 |
 
 本文档是进化功能的实现依据；功能总文档在本设计落地后按上表修订，避免两套说法并存。
+
+---
+
+## 16. Cursor SDK 对齐（2026）
+
+进化后端固定 **Cursor 本地 Agent**（`@cursor/sdk`），通过 `cursor-bridge/explain.mjs` 调用。
+
+| 能力 | 实现 |
+|------|------|
+| 多轮追问 | `Agent.resume(agentId)`；`agentId` 存于 Application Support |
+| 分析只读 | SDK `tools: [read, grep, glob, ls, semSearch]` |
+| 进化改码 | `settingSources: ["all"]` + `autoAuthorize` |
+| System Prompt | SDK `systemPrompt` 字段 |
+| 模型 | 默认 `composer-2.5`；支持 `auto-smart`；`models.mjs` 动态列表 |
+| Token | 优先 `run.usage` 真实用量 |
+| 排错 | UI 展示 `requestId` 前缀 |
 
 ---
 

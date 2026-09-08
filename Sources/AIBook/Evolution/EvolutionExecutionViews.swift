@@ -13,6 +13,7 @@ struct EvolutionUtilityTabsPanel: View {
     let executingCommandNumber: Int?
     let budget: ModelTokenBudget
     let liveToolLabel: String?
+    let lastRequestId: String?
     let hasPending: Bool
     let onAddUserItem: (String) -> Void
     let onSkip: (UUID) -> Void
@@ -101,6 +102,11 @@ struct EvolutionUtilityTabsPanel: View {
                     .foregroundStyle(BookTheme.leather)
                     .lineLimit(1)
             }
+        } else if let lastRequestId, !lastRequestId.isEmpty {
+            Text("Run \(lastRequestId.prefix(8))")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+                .lineLimit(1)
         } else if !items.isEmpty {
             let completed = items.filter { $0.status == .completed }.count
             Text("队列 \(completed)/\(items.count)")
@@ -117,15 +123,22 @@ struct EvolutionUtilityTabsPanel: View {
 /// 进化页 Cursor 模型选择（暂仅支持 Cursor）。
 struct EvolutionCursorModelRow: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var catalog = CursorModelCatalog.shared
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "cursorarrow.rays")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(BookTheme.leather)
-            Picker("Cursor 模型", selection: $settings.selectedCursorModel) {
-                ForEach(CursorModelOption.allCases) { model in
-                    Text(model.label).tag(model)
+            Picker("Cursor 模型", selection: cursorModelBinding) {
+                if catalog.models.isEmpty {
+                    ForEach(CursorModelOption.allCases) { model in
+                        Text(model.label).tag(model.rawValue)
+                    }
+                } else {
+                    ForEach(catalog.models) { model in
+                        Text(model.label).tag(model.id)
+                    }
                 }
             }
             .labelsHidden()
@@ -143,6 +156,16 @@ struct EvolutionCursorModelRow: View {
                     .help("请在「进化设置」配置 Cursor API Key")
             }
         }
+        .task {
+            await catalog.refresh()
+        }
+    }
+
+    private var cursorModelBinding: Binding<String> {
+        Binding(
+            get: { settings.resolvedCursorModel },
+            set: { settings.cursorModel = $0 }
+        )
     }
 }
 

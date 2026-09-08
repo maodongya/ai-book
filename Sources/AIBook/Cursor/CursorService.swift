@@ -92,6 +92,25 @@ struct CursorConfiguration {
     let workingDirectory: String
 }
 
+enum CursorSessionMode: String {
+    case analysis
+    case evolution
+}
+
+struct CursorChatResult {
+    let text: String
+    let thinking: String?
+    let agentId: String?
+    let requestId: String?
+    let usage: LLMTokenUsage?
+}
+
+struct CursorModelInfo: Identifiable, Equatable {
+    let id: String
+    let label: String
+    let description: String?
+}
+
 enum CursorServiceError: LocalizedError {
     case bridgeNotFound
     case nodeNotFound
@@ -157,8 +176,12 @@ struct CursorService {
         configuration: CursorConfiguration,
         systemInstruction: String? = nil,
         autoAuthorize: Bool = false,
+        sessionMode: CursorSessionMode = .evolution,
+        freshAgent: Bool = true,
+        agentId: String? = nil,
+        closeAgentAfterRun: Bool = false,
         onEvent: (@Sendable (CursorStreamEvent) -> Void)? = nil
-    ) async throws -> (text: String, thinking: String?) {
+    ) async throws -> CursorChatResult {
         let scriptURL = configuration.bridgeDirectory.appendingPathComponent("explain.mjs")
         guard Self.isBridgeReady(at: configuration.bridgeDirectory) else {
             throw CursorServiceError.bridgeNotFound
@@ -178,10 +201,15 @@ struct CursorService {
             "model": configuration.model,
             "cwd": configuration.workingDirectory,
             "autoAuthorize": autoAuthorize,
-            "history": history.map { ["role": $0.role.rawValue, "content": $0.content] },
+            "sessionMode": sessionMode.rawValue,
+            "freshAgent": freshAgent,
+            "closeAgent": closeAgentAfterRun,
         ]
+        if let agentId, !agentId.isEmpty {
+            payload["agentId"] = agentId
+        }
         if let systemInstruction, !systemInstruction.isEmpty {
-            payload["systemInstruction"] = systemInstruction
+            payload["systemPrompt"] = systemInstruction
         }
 
         let inputData = try JSONSerialization.data(withJSONObject: payload)
@@ -212,10 +240,13 @@ struct CursorService {
                         var stdoutBuffer = Data()
                         var finalText = ""
                         var finalThinking: String?
+                        var finalAgentId: String?
+                        var finalRequestId: String?
+                        var finalUsage: LLMTokenUsage?
                         var receivedNeedsAuth = false
                         var didResume = false
 
-                        func resumeOnce(with result: Result<(text: String, thinking: String?), Error>) {
+                        func resumeOnce(with result: Result<CursorChatResult, Error>) {
                             guard !didResume else { return }
                             didResume = true
                             self.runHandle.terminate()
@@ -268,6 +299,18 @@ struct CursorService {
                                 case "done":
                                     finalText = json["text"] as? String ?? ""
                                     finalThinking = json["thinking"] as? String
+                                    finalAgentId = json["agentId"] as? String
+                                    finalRequestId = json["requestId"] as? String
+                                    if let usage = json["usage"] as? [String: Any] {
+                                        let prompt = usage["promptTokens"] as? Int ?? 0
+                                        let completion = usage["completionTokens"] as? Int ?? 0
+                                        if prompt > 0 || completion > 0 {
+                                            finalUsage = LLMTokenUsage(
+                                                promptTokens: prompt,
+                                                completionTokens: completion
+                                            )
+                                        }
+                                    }
                                     onEvent?(.done(text: finalText, thinking: finalThinking))
                                 case "needs_auth":
                                     receivedNeedsAuth = true
@@ -321,7 +364,13 @@ struct CursorService {
                             return
                         }
 
-                        resumeOnce(with: .success((text: finalText, thinking: finalThinking)))
+                        resumeOnce(with: .success(CursorChatResult(
+                            text: finalText,
+                            thinking: finalThinking,
+                            agentId: finalAgentId,
+                            requestId: finalRequestId,
+                            usage: finalUsage
+                        )))
                     } catch {
                         self.runHandle.terminate()
                         continuation.resume(throwing: error)
@@ -330,6 +379,85 @@ struct CursorService {
             }
         } onCancel: {
             runHandle.terminate()
+        }
+    }
+
+    func listModels(configuration: CursorConfiguration) async throws -> [CursorModelInfo] {
+        let scriptURL = configuration.bridgeDirectory.appendingPathComponent("models.mjs")
+        guard Self.isBridgeReady(at: configuration.bridgeDirectory) else {
+            throw CursorServiceError.bridgeNotFound
+        }
+        guard let node = NodeRuntime.resolveExecutable() else {
+            throw CursorServiceError.nodeNotFound
+        }
+        if configuration.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw CursorServiceError.needsAuthentication
+        }
+
+        let payload: [String: Any] = ["apiKey": configuration.apiKey]
+        let inputData = try JSONSerialization.data(withJSONObject: payload)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: node.path)
+                    process.arguments = node.prefixArgs + [scriptURL.path]
+                    process.currentDirectoryURL = configuration.bridgeDirectory
+
+                    var environment = ProcessInfo.processInfo.environment
+                    environment["CURSOR_API_KEY"] = configuration.apiKey
+                    process.environment = environment
+
+                    let stdin = Pipe()
+                    let stdout = Pipe()
+                    let stderr = Pipe()
+                    process.standardInput = stdin
+                    process.standardOutput = stdout
+                    process.standardError = stderr
+
+                    try process.run()
+                    stdin.fileHandleForWriting.write(inputData)
+                    stdin.fileHandleForWriting.closeFile()
+                    process.waitUntilExit()
+
+                    let outputData = stdout.fileHandleForReading.readDataToEndOfFile()
+                    let output = String(data: outputData, encoding: .utf8) ?? ""
+                    let lines = output.split(separator: "\n").map(String.init)
+
+                    for line in lines {
+                        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard let data = trimmed.data(using: .utf8),
+                              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                              let event = json["event"] as? String else { continue }
+
+                        if event == "needs_auth" {
+                            continuation.resume(throwing: CursorServiceError.needsAuthentication)
+                            return
+                        }
+                        if event == "error" {
+                            let message = json["error"] as? String ?? "Cursor 模型列表获取失败"
+                            continuation.resume(throwing: CursorServiceError.processFailed(message))
+                            return
+                        }
+                        if event == "done",
+                           let models = json["models"] as? [[String: Any]] {
+                            let mapped = models.compactMap { item -> CursorModelInfo? in
+                                guard let id = item["id"] as? String else { return nil }
+                                let label = (item["label"] as? String) ?? id
+                                let description = item["description"] as? String
+                                return CursorModelInfo(id: id, label: label, description: description)
+                            }
+                            continuation.resume(returning: mapped)
+                            return
+                        }
+                    }
+
+                    continuation.resume(throwing: CursorServiceError.invalidResponse)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
         }
     }
 

@@ -8,7 +8,7 @@ enum SelfEvolution {
 
     static let productDefinition: [String] = [
         "ai-book（AIBook）：辅助读书软件，左页阅读原文，右页讲解与 AI 进化",
-        "Swift 实现，可连接大模型 API 或 Cursor 本地对话",
+        "Swift 实现；读书用 book 大模型，进化固定 Cursor SDK 本地 Agent",
         "左页名著补充：识别节选并补全为完整篇章",
         "可新建或打开本地 .txt；重启后记住对话上下文",
         "ai-book 自我进化：AI 分析优化队列，点「进化」自动改码、打包重启并继续下一条",

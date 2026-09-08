@@ -2,6 +2,37 @@ import AIBookEvolution
 import AppKit
 import Foundation
 
+enum SpeechSource: Equatable {
+    case originalFull
+    case originalSelection
+    case translationFull
+    case translationSelection
+    case explanationFull
+    case explanationSelection
+    case aiReply
+
+    var label: String {
+        switch self {
+        case .originalFull: return "原文全文"
+        case .originalSelection: return "原文选中"
+        case .translationFull: return "翻译全文"
+        case .translationSelection: return "翻译选中"
+        case .explanationFull: return "讲解全文"
+        case .explanationSelection: return "讲解选中"
+        case .aiReply: return "AI 回复"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .originalFull, .originalSelection: return "text.book.closed"
+        case .translationFull, .translationSelection: return "character.book.closed"
+        case .explanationFull, .explanationSelection: return "sparkles.text.clipboard"
+        case .aiReply: return "bubble.left.and.text.bubble.right"
+        }
+    }
+}
+
 @MainActor
 final class ReadingViewModel: ObservableObject {
     private enum PromptContext {
@@ -13,6 +44,7 @@ final class ReadingViewModel: ObservableObject {
         case none
         case analysis
         case evolution
+        case followUp
     }
 
     @Published var fileContent = "" {
@@ -77,11 +109,13 @@ final class ReadingViewModel: ObservableObject {
     @Published private(set) var evolutionAgentContextTokens = 0
     @Published var optimizationQueue = OptimizationQueue.empty
     @Published private(set) var evolutionRunKind: EvolutionRunKind = .none
+    @Published private(set) var evolutionLastRequestId: String?
     @Published var errorMessage: String?
     @Published var showSettings = false
     @Published var showBookSettings = false
     @Published private(set) var isSpeakingExplanation = false
     @Published private(set) var isExplanationSpeechPaused = false
+    @Published private(set) var currentSpeechSource: SpeechSource?
     @Published private(set) var lastSaveMessage: String?
 
     private let llmService = LLMService()
@@ -519,6 +553,8 @@ final class ReadingViewModel: ObservableObject {
         evolutionChatInput = ""
         evolutionSessionTokensConsumed = 0
         evolutionAgentContextTokens = 0
+        evolutionLastRequestId = nil
+        EvolutionCursorSession.clear()
         errorMessage = nil
         if isDisplaying(.evolution) {
             chatMessages = evolutionPromptMessages
@@ -795,7 +831,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(content)
+        speakExplanation(content, source: .aiReply)
     }
 
     func openAssistantMessageFile() {
@@ -1215,7 +1251,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        speakExplanation(text, source: .originalFull)
     }
 
     func readOriginalSelectionAloud() {
@@ -1227,7 +1263,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        speakExplanation(text, source: .originalSelection)
     }
 
     func readTranslationFullTextAloud() {
@@ -1242,7 +1278,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        speakExplanation(text, source: .translationFull)
     }
 
     func readTranslationSelectionAloud() {
@@ -1257,7 +1293,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        speakExplanation(text, source: .translationSelection)
     }
 
     func readExplanationFullTextAloud() {
@@ -1272,7 +1308,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        speakExplanation(text, source: .explanationFull)
     }
 
     func readExplanationSelectionAloud() {
@@ -1288,7 +1324,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        speakExplanation(text, source: .explanationSelection)
     }
 
     @discardableResult
@@ -1593,7 +1629,8 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        speakExplanation(text)
+        let source: SpeechSource = selected.isEmpty ? .originalFull : .originalSelection
+        speakExplanation(text, source: source)
     }
 
     func readLessonPlanAloud() {
@@ -1764,7 +1801,8 @@ final class ReadingViewModel: ObservableObject {
             prompt,
             displayText: text,
             isEvolution: true,
-            triggerEvolutionRebuild: false
+            triggerEvolutionRebuild: false,
+            evolutionRunKind: .followUp
         )
     }
 
@@ -1954,14 +1992,14 @@ final class ReadingViewModel: ObservableObject {
                    !suppressReplySpeech,
                    !Task.isCancelled,
                    !resolvedReply.isEmpty {
-                    speakExplanation(resolvedReply)
+                    speakExplanation(resolvedReply, source: .aiReply)
                 }
 
                 if runKind == .analysis {
                     handleAnalysisCompletion(reply: resolvedReply)
                 }
 
-                if runKind == .evolution {
+                if runKind == .evolution || runKind == .followUp {
                     recordEvolutionCursorEstimate(
                         prompt: prompt,
                         history: Array(history),
@@ -2223,7 +2261,7 @@ final class ReadingViewModel: ObservableObject {
         switch evolutionRunKind {
         case .analysis:
             resolvedSystemPrompt = EvolutionAnalyzer.analysisSystemPrompt
-        case .evolution:
+        case .evolution, .followUp:
             resolvedSystemPrompt = EvolutionAssistant.systemPrompt
         case .none:
             resolvedSystemPrompt = llmMode?.systemPrompt ?? ReadingAssistant.systemPrompt
@@ -2240,7 +2278,7 @@ final class ReadingViewModel: ObservableObject {
                 history: history,
                 settings: settings,
                 systemInstruction: resolvedSystemPrompt,
-                autoAuthorize: evolutionRunKind == .evolution
+                evolutionRunKind: evolutionRunKind
             )
         }
 
@@ -2262,23 +2300,72 @@ final class ReadingViewModel: ObservableObject {
         history: [ChatMessage],
         settings: AppSettings,
         systemInstruction: String,
-        autoAuthorize: Bool
+        evolutionRunKind: EvolutionRunKind
     ) async throws -> AssistantReplyOutcome {
         guard let cursorConfig = settings.cursorConfiguration else {
             throw CursorServiceError.bridgeNotFound
         }
+
+        let sessionMode: CursorSessionMode = evolutionRunKind == .analysis ? .analysis : .evolution
+        let freshAgent: Bool
+        let agentId: String?
+        let closeAgentAfterRun: Bool
+        let autoAuthorize: Bool
+
+        switch evolutionRunKind {
+        case .analysis:
+            freshAgent = true
+            agentId = nil
+            closeAgentAfterRun = true
+            autoAuthorize = false
+        case .evolution:
+            EvolutionCursorSession.clear()
+            freshAgent = true
+            agentId = nil
+            closeAgentAfterRun = false
+            autoAuthorize = true
+        case .followUp:
+            freshAgent = false
+            agentId = EvolutionCursorSession.agentId
+            closeAgentAfterRun = false
+            autoAuthorize = true
+        case .none:
+            freshAgent = true
+            agentId = nil
+            closeAgentAfterRun = false
+            autoAuthorize = false
+        }
+
         let result = try await cursorService.chat(
             message: prompt,
             history: history,
             configuration: cursorConfig,
             systemInstruction: systemInstruction,
             autoAuthorize: autoAuthorize,
+            sessionMode: sessionMode,
+            freshAgent: freshAgent,
+            agentId: agentId,
+            closeAgentAfterRun: closeAgentAfterRun,
             onEvent: { [weak self] event in
                 Task { @MainActor in
                     self?.handleCursorStreamEvent(event)
                 }
             }
         )
+
+        if let usage = result.usage {
+            recordEvolutionTokenUsage(usage)
+        }
+        if let agentId = result.agentId, !agentId.isEmpty, !closeAgentAfterRun {
+            EvolutionCursorSession.save(agentId: agentId, requestId: result.requestId)
+        }
+        if closeAgentAfterRun {
+            EvolutionCursorSession.clear()
+        }
+        if let requestId = result.requestId {
+            evolutionLastRequestId = requestId
+        }
+
         return AssistantReplyOutcome(text: result.text, thinking: result.thinking, fallbackNotice: nil)
     }
 
@@ -2623,7 +2710,7 @@ final class ReadingViewModel: ObservableObject {
     private var speakingRefreshTask: Task<Void, Never>?
     private var suppressReplySpeech = false
 
-    private func speakExplanation(_ text: String, preferLowLatency: Bool = false) {
+    private func speakExplanation(_ text: String, source: SpeechSource, preferLowLatency: Bool = false) {
         let settings = AppSettings.shared
         let units = SpeechTextSanitizer.speechUnits(
             for: text,
@@ -2637,6 +2724,7 @@ final class ReadingViewModel: ObservableObject {
         ExplanationSpeechReader.shared.speak(text, preferLowLatency: preferLowLatency)
         isSpeakingExplanation = true
         isExplanationSpeechPaused = false
+        currentSpeechSource = source
         scheduleSpeakingStatusRefresh()
     }
 
@@ -2655,6 +2743,7 @@ final class ReadingViewModel: ObservableObject {
         ExplanationSpeechReader.shared.stop()
         isSpeakingExplanation = false
         isExplanationSpeechPaused = false
+        currentSpeechSource = nil
     }
 
     private func syncExplanationSpeechState() {

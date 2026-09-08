@@ -93,7 +93,7 @@ struct ContentView: View {
                     } else if viewModel.rightPageTab == .aiEvolution {
                         BookStatusPill(
                             title: settings.isCursorRunnable
-                                ? settings.selectedCursorModel.label
+                                ? ModelTokenLimits.cursorModelLabel(settings.resolvedCursorModel)
                                 : "Cursor 未就绪",
                             icon: "cursorarrow.rays",
                             tint: Color.white.opacity(0.66)
@@ -294,25 +294,6 @@ struct ContentView: View {
                     )
                 }
                 .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
-
-                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
-                    Divider()
-
-                    Button {
-                        viewModel.toggleExplanationSpeechPause()
-                    } label: {
-                        Label(
-                            viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
-                            systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
-                        )
-                    }
-
-                    Button {
-                        viewModel.stopExplanationSpeech()
-                    } label: {
-                        Label("停止朗读", systemImage: "stop.fill")
-                    }
-                }
             }
             .help("选择/全文讲解、文稿管理与朗读")
 
@@ -381,24 +362,6 @@ struct ContentView: View {
                 }
                 .disabled(viewModel.isRunning || viewModel.lessonPlanContent.isEmpty)
 
-                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
-                    Divider()
-
-                    Button {
-                        viewModel.toggleExplanationSpeechPause()
-                    } label: {
-                        Label(
-                            viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
-                            systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
-                        )
-                    }
-
-                    Button {
-                        viewModel.stopExplanationSpeech()
-                    } label: {
-                        Label("停止朗读", systemImage: "stop.fill")
-                    }
-                }
             }
             .help("逐字/整段翻译、朗读与翻译文件管理")
 
@@ -468,34 +431,108 @@ struct ContentView: View {
                     viewModel.isRunning
                         || (viewModel.effectiveExplanationPanelSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
                 )
-
-                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
-                    Divider()
-
-                    Button {
-                        viewModel.toggleExplanationSpeechPause()
-                    } label: {
-                        Label(
-                            viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读",
-                            systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
-                        )
-                    }
-
-                    Button {
-                        viewModel.stopExplanationSpeech()
-                    } label: {
-                        Label("停止朗读", systemImage: "stop.fill")
-                    }
-                }
             }
-            .help("原文、翻译与讲解的选中/全文朗读")
+            .help("原文、翻译与讲解的选中/全文朗读；朗读中请使用顶栏中部播控")
         }
     }
 
     private var readingActionBar: some View {
-        Color.clear
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .accessibilityHidden(true)
+        HStack(spacing: 8) {
+            if viewModel.isSpeakingExplanation {
+                unifiedSpeechPlaybackBar
+            } else {
+                readingPrimaryActionButtons
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.easeOut(duration: 0.18), value: viewModel.isSpeakingExplanation)
+    }
+
+    private var readingPrimaryActionButtons: some View {
+        HStack(spacing: 8) {
+            BookActionButton(
+                title: "选择讲解",
+                icon: "text.cursor",
+                isCompact: true,
+                isDisabled: viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning
+            ) {
+                viewModel.explainSelection()
+            }
+            .help("讲解左页选中文字（⌘R）")
+
+            BookActionButton(
+                title: "全文讲解",
+                icon: "doc.text.magnifyingglass",
+                isCompact: true,
+                isDisabled: viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || viewModel.isRunning
+            ) {
+                viewModel.explainFullText()
+            }
+            .help("讲解左页全文（⌘⇧R）")
+
+            BookActionButton(
+                title: "逐字翻译",
+                icon: "text.magnifyingglass",
+                isCompact: true,
+                isDisabled: viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || viewModel.isRunning
+            ) {
+                viewModel.generateLessonPlan()
+            }
+            .help("按左页原文生成逐字翻译表")
+
+            BookActionButton(
+                title: "整段翻译",
+                icon: "paragraphsign",
+                isCompact: true,
+                isDisabled: viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || viewModel.isRunning
+            ) {
+                viewModel.refineLessonPlan()
+            }
+            .help("按左页原文生成整段翻译")
+        }
+    }
+
+    private var unifiedSpeechPlaybackBar: some View {
+        HStack(spacing: 8) {
+            if let source = viewModel.currentSpeechSource {
+                BookStatusPill(
+                    title: source.label,
+                    icon: source.icon,
+                    tint: BookTheme.goldSoft
+                )
+                .help("当前朗读：\(source.label)")
+            } else {
+                BookStatusPill(
+                    title: "朗读中",
+                    icon: "speaker.wave.2.fill",
+                    tint: BookTheme.goldSoft
+                )
+                .help("正在朗读")
+            }
+
+            BookActionButton(
+                title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                isCompact: true,
+                isDisabled: viewModel.isRunning
+            ) {
+                viewModel.toggleExplanationSpeechPause()
+            }
+            .help(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
+
+            BookActionButton(
+                title: "停止",
+                icon: "stop.fill",
+                isCompact: true,
+                isDisabled: viewModel.isRunning
+            ) {
+                viewModel.stopExplanationSpeech()
+            }
+            .help("停止朗读")
+        }
     }
 
     private var utilityActionBar: some View {
@@ -685,7 +722,7 @@ struct ContentView: View {
         case .readingAssistant:
             return "\(viewModel.readingAssistantPanel.rawValue) · \(settings.bookLLMDisplayLabel)"
         case .aiEvolution:
-            let modelLabel = settings.selectedCursorModel.label
+            let modelLabel = ModelTokenLimits.cursorModelLabel(settings.resolvedCursorModel)
             if let label = viewModel.evolutionStatusLabel {
                 return "\(label) · \(modelLabel)"
             }

@@ -2,6 +2,8 @@
 import { readFileSync } from "node:fs";
 import { Agent } from "@cursor/sdk";
 
+const READ_ONLY_TOOLS = ["read", "grep", "glob", "ls", "semSearch"];
+
 function emit(event) {
   process.stdout.write(`${JSON.stringify(event)}\n`);
 }
@@ -113,6 +115,7 @@ function sanitizeModelId(raw) {
   const trimmed = String(raw ?? "").trim();
   if (!trimmed) return "composer-2.5";
   if (trimmed.startsWith("crsr_")) return "composer-2.5";
+  if (trimmed === "composer-2" || trimmed === "composer-2-fast") return "composer-2.5";
   return trimmed;
 }
 
@@ -150,6 +153,56 @@ function emitToolEvent(update, status) {
   emit(payload);
 }
 
+function usagePayload(usage) {
+  if (!usage || typeof usage !== "object") return undefined;
+  const prompt = usage.promptTokens ?? usage.inputTokens ?? usage.input_tokens ?? 0;
+  const completion = usage.completionTokens ?? usage.outputTokens ?? usage.output_tokens ?? 0;
+  if (!prompt && !completion) return undefined;
+  return { promptTokens: prompt, completionTokens: completion };
+}
+
+function buildAgentOptions(input, modelId, systemPrompt) {
+  const isAnalysis = input.sessionMode === "analysis";
+  const autoAuthorize = Boolean(input.autoAuthorize);
+  const settingSources = isAnalysis
+    ? ["project"]
+    : autoAuthorize
+      ? ["all"]
+      : ["project", "user"];
+
+  const options = {
+    apiKey: input.apiKey,
+    model: { id: modelId },
+    local: {
+      cwd: input.cwd || process.cwd(),
+      settingSources,
+    },
+  };
+
+  if (systemPrompt) {
+    options.systemPrompt = systemPrompt;
+  }
+
+  if (isAnalysis) {
+    options.tools = READ_ONLY_TOOLS;
+  }
+
+  return options;
+}
+
+async function openAgent(input, modelId, systemPrompt) {
+  const options = buildAgentOptions(input, modelId, systemPrompt);
+  const freshAgent = Boolean(input.freshAgent) || !input.agentId;
+
+  if (freshAgent) {
+    const agent = await Agent.create(options);
+    return { agent, created: true };
+  }
+
+  const agent = await Agent.resume(input.agentId, options);
+  return { agent, created: false };
+}
+
 async function main() {
   const raw = readFileSync(0, "utf8");
   const input = JSON.parse(raw);
@@ -160,46 +213,20 @@ async function main() {
     return;
   }
 
-  const history = Array.isArray(input.history) ? input.history : [];
   const message = String(input.message ?? "").trim();
   if (!message) {
     throw new Error("消息不能为空。");
   }
 
-  const systemInstruction = String(input.systemInstruction ?? "").trim();
-
-  let prompt = message;
-  if (history.length > 0) {
-    const transcript = history
-      .map((entry) => {
-        const role = entry.role === "assistant" ? "assistant" : "user";
-        return `${role}: ${entry.content}`;
-      })
-      .join("\n\n");
-    prompt = `${transcript}\n\nuser: ${message}`;
-  }
-
-  if (systemInstruction) {
-    prompt = `${systemInstruction}\n\n---\n\n${prompt}`;
-  }
-
-  const autoAuthorize = Boolean(input.autoAuthorize);
+  const systemPrompt = String(input.systemPrompt ?? input.systemInstruction ?? "").trim();
   const modelId = sanitizeModelId(input.model || "composer-2.5");
-  const agentOptions = {
-    apiKey,
-    model: { id: modelId },
-    local: {
-      cwd: input.cwd || process.cwd(),
-      settingSources: autoAuthorize ? ["all"] : [],
-    },
-  };
 
   let thinkingText = "";
   let responseText = "";
 
-  const agent = await Agent.create(agentOptions);
+  const { agent, created } = await openAgent(input, modelId, systemPrompt || undefined);
   try {
-    const run = await agent.send(prompt, {
+    const run = await agent.send(message, {
       model: { id: modelId },
       onDelta: ({ update }) => {
         if (
@@ -250,9 +277,15 @@ async function main() {
       event: "done",
       text: finalText,
       thinking: thinkingText.trim() || undefined,
+      agentId: agent.agentId,
+      requestId: result.requestId ?? run.requestId,
+      createdAgent: created,
+      usage: usagePayload(result.usage ?? run.usage),
     });
   } finally {
-    agent.close();
+    if (input.closeAgent) {
+      agent.close();
+    }
   }
 }
 

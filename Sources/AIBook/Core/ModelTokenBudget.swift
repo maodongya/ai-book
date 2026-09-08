@@ -127,6 +127,7 @@ enum ModelTokenLimits {
     static func limit(forCursorModel model: String) -> Int {
         let lower = model.lowercased()
         if lower.contains("composer") { return 200_000 }
+        if lower.contains("auto-smart") { return 200_000 }
         if lower.contains("claude") { return 200_000 }
         if lower.contains("gpt-4") { return 128_000 }
         if lower == "auto" { return 128_000 }
