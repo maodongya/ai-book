@@ -223,8 +223,8 @@ explainSelection() → sendMessage() → readingPromptMessages / chatMessages �
 
 **组成**：
 1. **EvolutionUtilityTabsPanel**（进化 / 队列 子 Tab）
-   - 进化：执行/停止/清空、后端与模型、Token 与控制条
-   - 队列：左页编号命令列表、完成状态、源码路径
+   - 进化：分析优化 / 进化 / 停止、后端与模型、Token 与控制条
+   - 队列：独立优化项列表（待办/完成/跳过）、手写添加、源码路径
 2. **EvolutionRebuildBanner**（构建安装时）
 3. **chatList** — 对话 + Agent 执行轨迹
 4. **Composer** — 进化追问
@@ -373,10 +373,10 @@ explainSelection() → sendMessage() → readingPromptMessages / chatMessages �
 ### 4.4 自我进化流
 
 ```
-左页编号命令 → AI进化 Tab → 进化
-  → 工具面板 + 对话轨迹
-  → 完成写回左页「已完成」
-  → build-and-install → 重启 → 自动下一条
+分析优化（只读）→ 写入优化队列 → AI进化 Tab 确认
+  → 进化(⌘E) → 工具面板 + 对话轨迹
+  → 完成更新队列摘要
+  → build-and-install → 重启 → 自动下一条（链已激活时）
 ```
 
 **评估**：⭐⭐⭐⭐⭐ **闭环完整** — 产品差异化能力强；信息密度高适合 power user。

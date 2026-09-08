@@ -77,14 +77,22 @@ enum AppRelauncher {
         NSApp.terminate(nil)
     }
 
-    static func rebuildAndRelaunch(projectPath: String, relaunchDelay: TimeInterval = 1.5) async -> RebuildResult {
+    static func rebuildAndRelaunch(
+        projectPath: String,
+        relaunchDelay: TimeInterval = 1.5,
+        continueChain: Bool = true
+    ) async -> RebuildResult {
         let result = await rebuildIfNeeded(projectPath: projectPath)
         guard result.succeeded else {
             AutoEvolutionCoordinator.clearChain()
             return result
         }
 
-        AutoEvolutionCoordinator.markChainActive()
+        if continueChain {
+            AutoEvolutionCoordinator.markChainActive()
+        } else {
+            AutoEvolutionCoordinator.clearChain()
+        }
         await MainActor.run {
             scheduleRelaunch(delay: relaunchDelay)
         }

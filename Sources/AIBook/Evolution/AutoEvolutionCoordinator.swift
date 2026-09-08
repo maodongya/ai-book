@@ -1,3 +1,4 @@
+import AIBookEvolution
 import Foundation
 
 /// Tracks automatic self-evolution / upgrade chain across relaunches.
@@ -23,7 +24,15 @@ enum AutoEvolutionCoordinator {
         try? FileManager.default.removeItem(at: flagURL)
     }
 
-    static func shouldAutoStart(autoEvolutionEnabled: Bool, pendingCount: Int) -> Bool {
-        autoEvolutionEnabled && pendingCount > 0
+    static func shouldAutoStart(
+        autoEvolutionEnabled: Bool,
+        isChainActive: Bool,
+        pendingCount: Int
+    ) -> Bool {
+        AutoEvolutionPolicy.shouldAutoStart(
+            autoEvolutionEnabled: autoEvolutionEnabled,
+            isChainActive: isChainActive,
+            pendingCount: pendingCount
+        )
     }
 }

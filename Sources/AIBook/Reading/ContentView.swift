@@ -504,7 +504,7 @@ struct ContentView: View {
             ) {
                 viewModel.selectRightPageTab(.aiEvolution)
             }
-            .help("切换到 AI 进化：按左页编号命令升级 ai-book")
+            .help("切换到 AI 进化：分析优化队列并升级 ai-book")
 
             BookToolbarMenuButton {
                 Button {

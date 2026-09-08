@@ -1,3 +1,4 @@
+import AIBookEvolution
 import AppKit
 import Foundation
 
@@ -5,6 +6,12 @@ import Foundation
 final class ReadingViewModel: ObservableObject {
     private enum PromptContext {
         case reading
+        case evolution
+    }
+
+    enum EvolutionRunKind {
+        case none
+        case analysis
         case evolution
     }
 
@@ -68,6 +75,8 @@ final class ReadingViewModel: ObservableObject {
     @Published var evolutionRebuildStatus = ""
     @Published private(set) var evolutionSessionTokensConsumed = 0
     @Published private(set) var evolutionAgentContextTokens = 0
+    @Published var optimizationQueue = OptimizationQueue.empty
+    @Published private(set) var evolutionRunKind: EvolutionRunKind = .none
     @Published var errorMessage: String?
     @Published var showSettings = false
     @Published private(set) var isSpeakingExplanation = false
@@ -79,6 +88,9 @@ final class ReadingViewModel: ObservableObject {
     private let cursorService = CursorService()
     private let chatSessionStore = ChatSessionStore.shared
     private let readmeNotesStore = ReadmeNotesStore.shared
+    private let optimizationQueueStore = OptimizationQueueStore(
+        fileURL: OptimizationQueueStore.defaultFileURL
+    )
     private var currentFileURL: URL?
     private var savedContent = ""
     private var selectedTextRange: NSRange?
@@ -107,6 +119,7 @@ final class ReadingViewModel: ObservableObject {
             self?.syncExplanationSpeechState()
         }
         loadReadmeNotes()
+        loadOptimizationQueue()
         ensureEvolutionWelcome()
         restoreChatSession()
         syncDisplayedChatMessages()
@@ -114,6 +127,25 @@ final class ReadingViewModel: ObservableObject {
 
     func onAppear() {
         scheduleAutoEvolutionIfNeeded()
+    }
+
+    private func loadOptimizationQueue() {
+        do {
+            optimizationQueue = try optimizationQueueStore.migrateFromReadmeNotesIfNeeded(
+                readmeNotesStore.loadInitialContent()
+            )
+        } catch {
+            errorMessage = "无法加载优化队列：\(error.localizedDescription)"
+            optimizationQueue = .empty
+        }
+    }
+
+    func persistOptimizationQueue() {
+        do {
+            try optimizationQueueStore.save(optimizationQueue)
+        } catch {
+            errorMessage = "无法保存优化队列：\(error.localizedDescription)"
+        }
     }
 
     var displayFileName: String {
@@ -285,6 +317,7 @@ final class ReadingViewModel: ObservableObject {
 
     private func clearEvolutionExecutionState() {
         executingEvolutionCommandNumber = nil
+        evolutionRunKind = .none
     }
 
     private func handleLLMStreamEvent(_ event: LLMStreamEvent) {
@@ -422,6 +455,7 @@ final class ReadingViewModel: ObservableObject {
 
     func stopCurrentRun() {
         let wasRunning = isRunning || activeTask != nil
+        let stoppedEvolutionNumber = executingEvolutionCommandNumber
         suppressReplySpeech = true
         activeTask?.cancel()
         activeTask = nil
@@ -437,11 +471,21 @@ final class ReadingViewModel: ObservableObject {
         streamingToolSteps = []
         executingEvolutionCommandNumber = nil
         showsExecutionTrace = false
+        if wasRunning, let number = stoppedEvolutionNumber {
+            revertRunningOptimization(number: number)
+        }
         if wasRunning {
             appendDisplayedMessage(
                 ChatMessage(role: .assistant, content: "已停止执行。"),
                 to: activePromptContext
             )
+        }
+    }
+
+    private func revertRunningOptimization(number: Int) {
+        guard let item = optimizationQueue.items.first(where: { $0.number == number }) else { return }
+        if optimizationQueue.revertRunningToPending(id: item.id) {
+            persistOptimizationQueue()
         }
     }
 
@@ -1162,11 +1206,19 @@ final class ReadingViewModel: ObservableObject {
     }
 
     var evolutionStatusLabel: String? {
-        SelfEvolution.statusLabel(from: fileContent)
+        SelfEvolution.statusLabel(from: optimizationQueue)
     }
 
-    var evolutionCommands: [EvolutionPlanner.Command] {
-        EvolutionPlanner.parseCommands(from: fileContent)
+    var evolutionItems: [OptimizationItem] {
+        optimizationQueue.items.sorted { $0.number < $1.number }
+    }
+
+    var hasPendingOptimization: Bool {
+        optimizationQueue.nextPending() != nil
+    }
+
+    var isAnalyzing: Bool {
+        isRunning && evolutionRunKind == .analysis
     }
 
     /// 输入栏旁的运行状态：进化展示工具步骤，读书/名著补充仅展示简单进度。
@@ -1195,14 +1247,14 @@ final class ReadingViewModel: ObservableObject {
         selectRightPageTab(.aiEvolution)
         ensureEvolutionWelcome()
 
-        let commands = EvolutionPlanner.parseCommands(from: fileContent)
-        guard let pending = EvolutionPlanner.nextPending(from: fileContent) else {
-            guard !commands.isEmpty else {
-                errorMessage = "左页没有找到编号命令（格式如「16、…」）。"
-                return
-            }
+        if let running = optimizationQueue.items.first(where: { $0.status == .running }) {
+            _ = optimizationQueue.revertRunningToPending(id: running.id)
+            persistOptimizationQueue()
+        }
+
+        guard let pending = optimizationQueue.nextPending() else {
+            errorMessage = "请先点「分析优化」，或在队列中手写一条。"
             AutoEvolutionCoordinator.clearChain()
-            restartWhenEvolutionQueueEmpty()
             return
         }
 
@@ -1218,38 +1270,89 @@ final class ReadingViewModel: ObservableObject {
 
         let projectPath = SelfEvolution.sourceProjectPath()
         let prompt = EvolutionPlanner.buildEvolutionPrompt(
-            allCommands: commands,
+            queue: optimizationQueue,
             pending: pending,
             projectPath: projectPath
         )
         guard guardEvolutionTokenLimit(for: prompt, action: "执行进化") else { return }
+
+        guard optimizationQueue.markRunning(id: pending.id) else { return }
+        persistOptimizationQueue()
+        AutoEvolutionCoordinator.markChainActive()
+
         sendMessage(
             prompt,
             displayText: "自我进化 · 第 \(pending.number) 条",
             isEvolution: true,
             evolutionCommandNumber: pending.number,
-            triggerEvolutionRebuild: true
+            triggerEvolutionRebuild: true,
+            evolutionRunKind: .evolution
         )
     }
 
-    private func restartWhenEvolutionQueueEmpty() {
-        guard let projectURL = SelfEvolution.sourceProjectDirectory() else {
-            errorMessage = "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。"
+    func analyzeOptimizations() {
+        selectRightPageTab(.aiEvolution)
+        ensureEvolutionWelcome()
+        guard !isRunning, !isEvolutionRebuilding else { return }
+
+        if let configError = AppGuard.explanationSourceErrorMessage(for: AppSettings.shared) {
+            errorMessage = configError
+            return
+        }
+        guard SelfEvolution.sourceProjectReady else {
+            errorMessage = "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。请确认 \(SelfEvolution.sourceProjectPath()) 存在。"
             return
         }
 
-        errorMessage = nil
-        appendDisplayedMessage(
-            ChatMessage(
-                role: .assistant,
-                content: "左页命令均已标记完成，没有待进化项。正在重新打包并重启 AIBook…"
-            ),
-            to: .evolution
+        let prompt = EvolutionAnalyzer.buildAnalysisPrompt(
+            queue: optimizationQueue,
+            projectPath: SelfEvolution.sourceProjectPath()
         )
-        let projectPath = projectURL.path
-        Task {
-            await handleEvolutionRebuild(projectPath: projectPath)
+        guard guardEvolutionTokenLimit(for: prompt, action: "分析优化") else { return }
+
+        evolutionRunKind = .analysis
+        sendMessage(
+            prompt,
+            displayText: "分析优化",
+            isEvolution: true,
+            evolutionCommandNumber: nil,
+            triggerEvolutionRebuild: false,
+            evolutionRunKind: .analysis
+        )
+    }
+
+    func skipOptimization(id: UUID) {
+        guard !isRunning else { return }
+        if optimizationQueue.skip(id: id) {
+            persistOptimizationQueue()
         }
+    }
+
+    func restoreOptimization(id: UUID) {
+        guard !isRunning else { return }
+        if optimizationQueue.restore(id: id) {
+            persistOptimizationQueue()
+        }
+    }
+
+    func deleteOptimization(id: UUID) {
+        guard !isRunning else { return }
+        optimizationQueue.remove(id: id)
+        persistOptimizationQueue()
+    }
+
+    func pinOptimization(id: UUID) {
+        guard !isRunning else { return }
+        optimizationQueue.pin(id: id)
+        persistOptimizationQueue()
+    }
+
+    func addUserOptimization(title: String) {
+        guard !isRunning else { return }
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        _ = optimizationQueue.addUserItem(title: trimmed)
+        persistOptimizationQueue()
     }
 
     func explainSelection() {
@@ -1582,9 +1685,10 @@ final class ReadingViewModel: ObservableObject {
         didScheduleAutoEvolution = true
 
         let settings = AppSettings.shared
-        let pending = SelfEvolution.status(from: fileContent).pendingCount
+        let pending = optimizationQueue.items.filter { $0.status == .pending }.count
         guard AutoEvolutionCoordinator.shouldAutoStart(
             autoEvolutionEnabled: settings.autoEvolutionEnabled,
+            isChainActive: AutoEvolutionCoordinator.isChainActive,
             pendingCount: pending
         ) else {
             if pending == 0 {
@@ -1593,14 +1697,12 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
-        AutoEvolutionCoordinator.markChainActive()
-
         autoEvolutionTask?.cancel()
         autoEvolutionTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             guard !Task.isCancelled else { return }
             guard let self, !self.isRunning else { return }
-            guard EvolutionPlanner.nextPending(from: self.fileContent) != nil else {
+            guard self.optimizationQueue.nextPending() != nil else {
                 AutoEvolutionCoordinator.clearChain()
                 return
             }
@@ -1620,19 +1722,24 @@ final class ReadingViewModel: ObservableObject {
         isEvolution: Bool = false,
         evolutionCommandNumber: Int? = nil,
         speakReplyWhenDone: Bool = false,
-        triggerEvolutionRebuild: Bool = false
+        triggerEvolutionRebuild: Bool = false,
+        evolutionRunKind: EvolutionRunKind = .none
     ) {
+        let runKind = evolutionRunKind == .none
+            ? (isEvolution ? EvolutionRunKind.evolution : .none)
+            : evolutionRunKind
         let settings = AppSettings.shared
-        let promptContext: PromptContext = isEvolution ? .evolution : .reading
+        let promptContext: PromptContext = runKind == .none ? .reading : .evolution
         let userMessage = ChatMessage(role: .user, content: displayText)
         appendDisplayedMessage(userMessage, to: promptContext)
-        if !isEvolution {
+        if runKind == .none {
             selectRightPageTab(.readingAssistant)
             selectReadingAssistantPanel(.explanation)
             readingAssistantActiveTask = .explanation
         }
-        beginRun(showsExecutionTrace: isEvolution)
-        if isEvolution {
+        self.evolutionRunKind = runKind
+        beginRun(showsExecutionTrace: runKind != .none)
+        if runKind == .evolution {
             executingEvolutionCommandNumber = evolutionCommandNumber
         } else {
             executingEvolutionCommandNumber = nil
@@ -1641,7 +1748,7 @@ final class ReadingViewModel: ObservableObject {
 
         let history: [ChatMessage]
         let readingLLMMode: AIBookLLMPrompt.Mode?
-        if isEvolution {
+        if runKind != .none {
             history = Array(apiHistory(for: promptContext).dropLast())
             readingLLMMode = nil
         } else {
@@ -1656,12 +1763,12 @@ final class ReadingViewModel: ObservableObject {
                     prompt: prompt,
                     history: history,
                     settings: settings,
-                    isEvolution: isEvolution,
+                    evolutionRunKind: runKind,
                     llmMode: readingLLMMode
                 )
 
                 guard !Task.isCancelled else { return }
-                let resolvedThinking = isEvolution
+                let resolvedThinking = runKind != .none
                     ? (outcome.thinking ?? (streamingThinking.isEmpty ? nil : streamingThinking))
                     : nil
                 let resolvedReply = outcome.text.isEmpty ? streamingResponse : outcome.text
@@ -1675,7 +1782,7 @@ final class ReadingViewModel: ObservableObject {
                     role: .assistant,
                     content: resolvedReply,
                     thinking: resolvedThinking,
-                    toolSteps: isEvolution ? resolvedToolStepsForMessage() : nil
+                    toolSteps: runKind != .none ? resolvedToolStepsForMessage() : nil
                 )
                 appendDisplayedMessage(assistantMessage, to: promptContext)
 
@@ -1686,7 +1793,11 @@ final class ReadingViewModel: ObservableObject {
                     speakExplanation(resolvedReply)
                 }
 
-                if isEvolution, shouldUseCursorBridge(settings: settings) {
+                if runKind == .analysis {
+                    handleAnalysisCompletion(reply: resolvedReply)
+                }
+
+                if runKind == .evolution, shouldUseCursorBridge(settings: settings) {
                     recordEvolutionCursorEstimate(
                         prompt: prompt,
                         history: Array(history),
@@ -1695,10 +1806,10 @@ final class ReadingViewModel: ObservableObject {
                     )
                 }
 
-                if isEvolution, triggerEvolutionRebuild {
+                if runKind == .evolution, triggerEvolutionRebuild {
                     let commandNumber = evolutionCommandNumber
                         ?? extractEvolutionCommandNumber(from: displayText)
-                    applyEvolutionReadmeUpdate(reply: resolvedReply, commandNumber: commandNumber)
+                    applyEvolutionQueueUpdate(reply: resolvedReply, commandNumber: commandNumber)
 
                     guard let projectURL = SelfEvolution.sourceProjectDirectory() else {
                         errorMessage = "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。"
@@ -1707,24 +1818,30 @@ final class ReadingViewModel: ObservableObject {
                     }
 
                     let projectPath = projectURL.path
-                    let stillPending = SelfEvolution.status(from: fileContent).pendingCount > 0
-                    AutoEvolutionCoordinator.markChainActive()
+                    let stillPending = optimizationQueue.nextPending() != nil
+                    let continueChain = AppSettings.shared.autoEvolutionEnabled && stillPending
 
                     appendDisplayedMessage(
                         ChatMessage(
                             role: .assistant,
                             content: stillPending
                                 ? "第 \(commandNumber ?? 0) 条进化已完成。正在自动升级并继续下一条…"
-                                : "全部命令已完成。正在自动升级并重启 AIBook…"
+                                : "全部优化项已完成。正在自动升级并重启 AIBook…"
                         ),
                         to: .evolution
                     )
                     Task {
-                        await self.handleEvolutionRebuild(projectPath: projectPath)
+                        await self.handleEvolutionRebuild(
+                            projectPath: projectPath,
+                            continueChain: continueChain
+                        )
                     }
                 }
             } catch {
                 guard !Task.isCancelled else { return }
+                if runKind == .evolution, let number = evolutionCommandNumber {
+                    revertRunningOptimization(number: number)
+                }
                 if !(error is CancellationError) {
                     let message = LLMServiceErrorPresenter.message(for: error, provider: AppSettings.shared.provider)
                     errorMessage = message
@@ -1759,7 +1876,6 @@ final class ReadingViewModel: ObservableObject {
                     prompt: prompt,
                     history: llmMode.apiHistory,
                     settings: settings,
-                    isEvolution: false,
                     llmMode: llmMode
                 )
 
@@ -1861,13 +1977,16 @@ final class ReadingViewModel: ObservableObject {
         return "\(base)-翻译.txt"
     }
 
-    private func handleEvolutionRebuild(projectPath: String) async {
+    private func handleEvolutionRebuild(projectPath: String, continueChain: Bool = true) async {
         await MainActor.run {
             isEvolutionRebuilding = true
             evolutionRebuildStatus = "正在执行 scripts/build-and-install.sh …"
         }
 
-        let result = await AppRelauncher.rebuildAndRelaunch(projectPath: projectPath)
+        let result = await AppRelauncher.rebuildAndRelaunch(
+            projectPath: projectPath,
+            continueChain: continueChain
+        )
 
         await MainActor.run {
             isEvolutionRebuilding = false
@@ -1903,18 +2022,20 @@ final class ReadingViewModel: ObservableObject {
         prompt: String,
         history: [ChatMessage],
         settings: AppSettings,
-        isEvolution: Bool,
+        evolutionRunKind: EvolutionRunKind = .none,
         llmMode: AIBookLLMPrompt.Mode? = nil
     ) async throws -> AssistantReplyOutcome {
         let resolvedSystemPrompt: String
-        if isEvolution {
+        switch evolutionRunKind {
+        case .analysis:
+            resolvedSystemPrompt = EvolutionAnalyzer.analysisSystemPrompt
+        case .evolution:
             resolvedSystemPrompt = EvolutionAssistant.systemPrompt
-        } else if let llmMode {
-            resolvedSystemPrompt = llmMode.systemPrompt
-        } else {
-            resolvedSystemPrompt = ReadingAssistant.systemPrompt
+        case .none:
+            resolvedSystemPrompt = llmMode?.systemPrompt ?? ReadingAssistant.systemPrompt
         }
         let wantsCursor = shouldUseCursorBridge(settings: settings)
+        let isEvolutionTask = evolutionRunKind != .none
 
         if wantsCursor {
             do {
@@ -1923,18 +2044,19 @@ final class ReadingViewModel: ObservableObject {
                     history: history,
                     settings: settings,
                     systemInstruction: resolvedSystemPrompt,
-                    autoAuthorize: isEvolution
+                    autoAuthorize: evolutionRunKind == .evolution
                 )
             } catch {
                 guard settings.isLLMConfigured, isCursorAuthenticationFailure(error) else {
                     throw error
                 }
                 resetStreamingState()
-                if isEvolution {
+                if isEvolutionTask {
                     return try await fetchLLMEvolutionReply(
                         prompt: prompt,
                         history: history,
-                        settings: settings
+                        settings: settings,
+                        evolutionRunKind: evolutionRunKind
                     )
                 }
                 let llmText = try await fetchLLMReply(
@@ -1951,14 +2073,15 @@ final class ReadingViewModel: ObservableObject {
             }
         }
 
-        if isEvolution {
+        if isEvolutionTask {
             guard settings.isLLMConfigured else {
                 throw LLMServiceError.missingAPIKey(provider: settings.provider)
             }
             return try await fetchLLMEvolutionReply(
                 prompt: prompt,
                 history: history,
-                settings: settings
+                settings: settings,
+                evolutionRunKind: evolutionRunKind
             )
         }
 
@@ -1978,7 +2101,8 @@ final class ReadingViewModel: ObservableObject {
     private func fetchLLMEvolutionReply(
         prompt: String,
         history: [ChatMessage],
-        settings: AppSettings
+        settings: AppSettings,
+        evolutionRunKind: EvolutionRunKind
     ) async throws -> AssistantReplyOutcome {
         guard let projectURL = SelfEvolution.sourceProjectDirectory() else {
             throw LLMServiceError.apiError(
@@ -1992,6 +2116,8 @@ final class ReadingViewModel: ObservableObject {
             history: history,
             configuration: settings.llmConfiguration,
             projectRoot: projectURL,
+            allowMutations: evolutionRunKind == .evolution,
+            maxIterations: evolutionRunKind == .analysis ? 8 : nil,
             onEvent: { [weak self] event in
                 Task { @MainActor in
                     self?.handleCursorStreamEvent(event)
@@ -2117,11 +2243,17 @@ final class ReadingViewModel: ObservableObject {
     }
 
     private func buildEvolutionChatPrompt(for question: String) -> String {
-        let commands = EvolutionPlanner.parseCommands(from: fileContent)
-        let commandList = commands
-            .map { entry in
-                let mark = entry.isCompleted ? "✓" : "○"
-                return "\(mark) \(entry.text)"
+        let queueSummary = optimizationQueue.items
+            .sorted { $0.number < $1.number }
+            .map { item in
+                let mark: String
+                switch item.status {
+                case .completed: mark = "✓"
+                case .running: mark = "▶"
+                case .skipped: mark = "—"
+                case .pending: mark = "○"
+                }
+                return "\(mark) #\(item.number) \(item.title)"
             }
             .joined(separator: "\n")
 
@@ -2133,8 +2265,8 @@ final class ReadingViewModel: ObservableObject {
         【AIBook 产品定义】
         \(definition)
 
-        【左页全部命令】
-        \(commandList.isEmpty ? "（暂无编号命令）" : commandList)
+        【优化队列摘要】
+        \(queueSummary.isEmpty ? "（队列为空）" : queueSummary)
 
         【源码目录】
         \(SelfEvolution.sourceProjectPath())
@@ -2309,27 +2441,70 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
-    private func applyEvolutionReadmeUpdate(reply: String, commandNumber: Int?) {
-        guard let number = commandNumber else { return }
+    private func applyEvolutionQueueUpdate(reply: String, commandNumber: Int?) {
+        guard let number = commandNumber,
+              let item = optimizationQueue.items.first(where: { $0.number == number })
+        else { return }
 
-        let fallback = SelfEvolution.markCompleted(
-            in: fileContent,
-            number: number,
-            summary: "第 \(number) 条自我进化已执行（SelfEvolution 模块、自动授权与 readme 自动标记）。"
-        )
+        let summary = EvolutionPlanner.parseCompletionSummary(from: reply, number: number)
+            ?? "第 \(number) 条自我进化已执行。"
 
-        if let updated = SelfEvolution.applyCompletionFromReply(reply, to: fileContent, expectedNumber: number) {
-            fileContent = updated
-        } else {
-            fileContent = fallback
+        if item.status == .running {
+            _ = optimizationQueue.markCompleted(id: item.id, summary: summary)
+        } else if let index = optimizationQueue.items.firstIndex(where: { $0.id == item.id }) {
+            optimizationQueue.items[index].status = .completed
+            optimizationQueue.items[index].completionSummary = summary
+            optimizationQueue.updatedAt = Date()
+        }
+        persistOptimizationQueue()
+    }
+
+    private func handleAnalysisCompletion(reply: String) {
+        if let projectPath = SelfEvolution.sourceProjectDirectory()?.path,
+           !gitWorkingTreeIsClean(at: projectPath) {
+            appendDisplayedMessage(
+                ChatMessage(
+                    role: .assistant,
+                    content: "分析过程修改了源码，已放弃入队。请用 git 恢复后重试。"
+                ),
+                to: .evolution
+            )
+            return
         }
 
-        savedContent = fileContent
-        isDirty = false
+        let drafts = EvolutionAnalyzer.parseItems(from: reply)
+        if drafts.isEmpty {
+            appendDisplayedMessage(
+                ChatMessage(role: .assistant, content: "未发现新的优化项。"),
+                to: .evolution
+            )
+            return
+        }
+
+        let report = optimizationQueue.merge(drafts: drafts)
+        persistOptimizationQueue()
+        appendDisplayedMessage(
+            ChatMessage(role: .assistant, content: report.summaryChinese),
+            to: .evolution
+        )
+        UserDefaults.standard.set(EvolutionUtilityTab.queue.rawValue, forKey: "evolutionUtilityTab")
+    }
+
+    private func gitWorkingTreeIsClean(at projectPath: String) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = ["-C", projectPath, "status", "--porcelain"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
         do {
-            try readmeNotesStore.save(fileContent)
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { return true }
+            let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         } catch {
-            errorMessage = "自我进化结果已写入左页，但保存命令笔记失败：\(error.localizedDescription)"
+            return true
         }
     }
 

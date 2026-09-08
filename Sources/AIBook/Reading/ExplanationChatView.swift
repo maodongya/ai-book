@@ -173,17 +173,25 @@ struct ExplanationChatView: View {
             configurationNotice
 
             EvolutionUtilityTabsPanel(
-                commands: viewModel.evolutionCommands,
+                items: viewModel.evolutionItems,
                 projectPath: SelfEvolution.sourceProjectPath(),
                 isRunning: viewModel.isRunning,
+                isAnalyzing: viewModel.isAnalyzing,
                 executingCommandNumber: viewModel.executingEvolutionCommandNumber,
                 budget: viewModel.evolutionTokenBudget,
                 showsAgentTrace: viewModel.showsEvolutionExecutionTrace,
                 liveToolLabel: viewModel.evolutionLiveToolLabel,
                 canRunEvolution: viewModel.canRunEvolution,
+                hasPending: viewModel.hasPendingOptimization,
                 isEvolutionRebuilding: viewModel.isEvolutionRebuilding,
+                onAnalyze: { viewModel.analyzeOptimizations() },
                 onEvolve: { viewModel.startEvolution() },
-                onStop: { viewModel.stopCurrentRun() }
+                onStop: { viewModel.stopCurrentRun() },
+                onAddUserItem: { viewModel.addUserOptimization(title: $0) },
+                onSkip: { viewModel.skipOptimization(id: $0) },
+                onDelete: { viewModel.deleteOptimization(id: $0) },
+                onPin: { viewModel.pinOptimization(id: $0) },
+                onRestore: { viewModel.restoreOptimization(id: $0) }
             )
 
             if viewModel.isEvolutionRebuilding {

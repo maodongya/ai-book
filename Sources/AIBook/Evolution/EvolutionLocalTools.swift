@@ -1,3 +1,4 @@
+import AIBookEvolution
 import Foundation
 
 /// Sandboxed local tools for LLM evolution agent (mirrors Cursor Agent capabilities within ai-book source tree).
@@ -11,6 +12,7 @@ enum EvolutionLocalTools {
         case fileNotFound(String)
         case editMiss(String)
         case shellBlocked(String)
+        case mutationBlocked(String)
         case executionFailed(String)
 
         var errorDescription: String? {
@@ -20,12 +22,21 @@ enum EvolutionLocalTools {
             case .fileNotFound(let path): return "文件不存在：\(path)"
             case .editMiss(let path): return "未找到要替换的内容：\(path)"
             case .shellBlocked(let command): return "命令被安全策略拒绝：\(command)"
+            case .mutationBlocked(let tool): return "分析模式禁止 \(tool)，请只使用 read / grep / glob。"
             case .executionFailed(let message): return message
             }
         }
     }
 
-    static func execute(name: String, argumentsJSON: String, projectRoot: URL) -> Result<String, ToolError> {
+    static func execute(
+        name: String,
+        argumentsJSON: String,
+        projectRoot: URL,
+        allowMutations: Bool = true
+    ) -> Result<String, ToolError> {
+        if !allowMutations, EvolutionToolPolicy.isMutating(name) {
+            return .failure(.mutationBlocked(name))
+        }
         guard let data = argumentsJSON.data(using: .utf8),
               let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return .failure(.invalidArguments("工具参数不是合法 JSON。"))
@@ -50,7 +61,11 @@ enum EvolutionLocalTools {
     }
 
     static var openAIToolDefinitions: [[String: Any]] {
-        [
+        openAIToolDefinitions(allowMutations: true)
+    }
+
+    static func openAIToolDefinitions(allowMutations: Bool) -> [[String: Any]] {
+        let readTools: [[String: Any]] = [
             toolDefinition(
                 name: "read",
                 description: "读取 ai-book 项目内的文件内容。path 可为相对项目根的路径。",
@@ -75,6 +90,9 @@ enum EvolutionLocalTools {
                 ],
                 required: ["pattern"]
             ),
+        ]
+        guard allowMutations else { return readTools }
+        return readTools + [
             toolDefinition(
                 name: "edit",
                 description: "在文件中精确替换一段文本（old_string 须唯一匹配）。",

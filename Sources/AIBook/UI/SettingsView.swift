@@ -194,9 +194,9 @@ struct SettingsView: View {
             }
 
             settingsSection(title: "ai-book 自我进化", icon: "arrow.triangle.2.circlepath") {
-                Toggle("自动升级（有待办命令时自动进化并重启）", isOn: $settings.autoEvolutionEnabled)
+                Toggle("自动升级（有待办时自动进化并重启）", isOn: $settings.autoEvolutionEnabled)
                     .font(BookTheme.bodyFont)
-                Text("开启后，启动 AIBook 时若左页有未完成的编号命令，将自动执行进化、打包安装并继续下一条，无需手动点击「进化」。")
+                Text("开启后，在本次会话中点击过「进化」且队列仍有待办时，将自动执行进化、打包安装并继续下一条。冷启动不会自动开始。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }

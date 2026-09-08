@@ -1,3 +1,4 @@
+import AIBookEvolution
 import AppKit
 import SwiftUI
 
@@ -22,17 +23,25 @@ struct EvolutionUtilityTabsPanel: View {
     @ObservedObject private var ollamaCatalog = OllamaModelCatalog.shared
     @AppStorage("evolutionUtilityTab") private var selectedTabRaw = EvolutionUtilityTab.evolution.rawValue
 
-    let commands: [EvolutionPlanner.Command]
+    let items: [OptimizationItem]
     let projectPath: String
     let isRunning: Bool
+    let isAnalyzing: Bool
     let executingCommandNumber: Int?
     let budget: ModelTokenBudget
     let showsAgentTrace: Bool
     let liveToolLabel: String?
     let canRunEvolution: Bool
+    let hasPending: Bool
     let isEvolutionRebuilding: Bool
+    let onAnalyze: () -> Void
     let onEvolve: () -> Void
     let onStop: () -> Void
+    let onAddUserItem: (String) -> Void
+    let onSkip: (UUID) -> Void
+    let onDelete: (UUID) -> Void
+    let onPin: (UUID) -> Void
+    let onRestore: (UUID) -> Void
 
     private var selectedTab: EvolutionUtilityTab {
         EvolutionUtilityTab(rawValue: selectedTabRaw) ?? .evolution
@@ -51,11 +60,18 @@ struct EvolutionUtilityTabsPanel: View {
                     evolutionTabContent
                 case .queue:
                     EvolutionCommandQueuePanel(
-                        commands: commands,
+                        items: items,
                         projectPath: projectPath,
                         isRunning: isRunning,
+                        isAnalyzing: isAnalyzing,
                         executingCommandNumber: executingCommandNumber,
-                        embeddedInTabs: true
+                        embeddedInTabs: true,
+                        onAnalyze: onAnalyze,
+                        onAddUserItem: onAddUserItem,
+                        onSkip: onSkip,
+                        onDelete: onDelete,
+                        onPin: onPin,
+                        onRestore: onRestore
                     )
                 }
             }
@@ -130,9 +146,9 @@ struct EvolutionUtilityTabsPanel: View {
             Label("超限", systemImage: "exclamationmark.triangle.fill")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.vermilion)
-        } else if !commands.isEmpty {
-            let completed = commands.filter(\.isCompleted).count
-            Text("\(completed)/\(commands.count)")
+        } else if !items.isEmpty {
+            let completed = items.filter { $0.status == .completed }.count
+            Text("\(completed)/\(items.count)")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
         }
@@ -141,7 +157,7 @@ struct EvolutionUtilityTabsPanel: View {
     private func tabHelp(_ tab: EvolutionUtilityTab) -> String {
         switch tab {
         case .evolution: return "进化操作、后端与模型、自动升级"
-        case .queue: return "左页编号命令队列与源码路径"
+        case .queue: return "优化队列与源码路径"
         }
     }
 
@@ -165,10 +181,19 @@ struct EvolutionUtilityTabsPanel: View {
     private var evolutionActionRow: some View {
         HStack(spacing: 8) {
             BookPageActionButton(
+                title: "分析优化",
+                icon: "magnifyingglass",
+                isProminent: false,
+                isDisabled: isRunning || isEvolutionRebuilding || !canRunEvolution
+            ) {
+                onAnalyze()
+            }
+
+            BookPageActionButton(
                 title: "进化",
                 icon: "arrow.triangle.2.circlepath",
-                isProminent: !isRunning && !isEvolutionRebuilding && canRunEvolution,
-                isDisabled: isRunning || isEvolutionRebuilding || !canRunEvolution
+                isProminent: !isRunning && !isEvolutionRebuilding && canRunEvolution && hasPending,
+                isDisabled: isRunning || isEvolutionRebuilding || !canRunEvolution || !hasPending
             ) {
                 onEvolve()
             }
@@ -185,7 +210,11 @@ struct EvolutionUtilityTabsPanel: View {
 
             Spacer()
 
-            if let number = executingCommandNumber, isRunning {
+            if isAnalyzing, isRunning {
+                Label("分析中", systemImage: "magnifyingglass")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
+            } else if let number = executingCommandNumber, isRunning {
                 Label("第 \(number) 条", systemImage: "number")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.leather)
@@ -352,61 +381,48 @@ struct EvolutionModelSettingsSection: View {
     }
 }
 
-/// AI 进化页顶栏：左页命令队列与源码路径摘要。
+/// AI 进化页顶栏：优化队列与源码路径摘要。
 struct EvolutionCommandQueuePanel: View {
-    let commands: [EvolutionPlanner.Command]
+    let items: [OptimizationItem]
     let projectPath: String
     let isRunning: Bool
+    var isAnalyzing: Bool = false
     var executingCommandNumber: Int?
     var embeddedInTabs: Bool = false
+    var onAnalyze: (() -> Void)?
+    var onAddUserItem: ((String) -> Void)?
+    var onSkip: ((UUID) -> Void)?
+    var onDelete: ((UUID) -> Void)?
+    var onPin: ((UUID) -> Void)?
+    var onRestore: ((UUID) -> Void)?
 
-    private var pending: [EvolutionPlanner.Command] {
-        commands.filter { !$0.isCompleted }
+    @State private var draftTitle = ""
+
+    private var sortedItems: [OptimizationItem] {
+        items.sorted { $0.number < $1.number }
     }
 
-    private var completed: [EvolutionPlanner.Command] {
-        commands.filter(\.isCompleted)
+    private var pendingItems: [OptimizationItem] {
+        items.filter { $0.status == .pending }
+    }
+
+    private var completedCount: Int {
+        items.filter { $0.status == .completed }.count
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !embeddedInTabs {
-                HStack(spacing: 8) {
-                    Label("进化队列", systemImage: "list.number")
-                        .font(BookTheme.labelFont)
-                        .foregroundStyle(BookTheme.leather)
-
-                    Spacer()
-
-                    if isRunning, let executingCommandNumber {
-                        HStack(spacing: 6) {
-                            ProgressView().controlSize(.mini)
-                            Text("执行 #\(executingCommandNumber)")
-                                .font(BookTheme.captionFont)
-                                .foregroundStyle(BookTheme.leather)
-                        }
-                    } else if isRunning {
-                        HStack(spacing: 6) {
-                            ProgressView().controlSize(.mini)
-                            Text("执行中")
-                                .font(BookTheme.captionFont)
-                                .foregroundStyle(BookTheme.leather)
-                        }
-                    }
-
-                    if !commands.isEmpty {
-                        Text("\(completed.count)/\(commands.count) 已完成")
-                            .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.inkMuted)
-                    }
-                }
-            } else if !commands.isEmpty {
+            if embeddedInTabs, !items.isEmpty {
                 HStack {
-                    Text("\(completed.count)/\(commands.count) 已完成")
+                    Text("\(completedCount)/\(items.count) 已完成")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
                     Spacer()
-                    if isRunning, let executingCommandNumber {
+                    if isAnalyzing, isRunning {
+                        Label("分析中", systemImage: "magnifyingglass")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                    } else if isRunning, let executingCommandNumber {
                         Label("执行 #\(executingCommandNumber)", systemImage: "play.circle.fill")
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.leather)
@@ -414,32 +430,60 @@ struct EvolutionCommandQueuePanel: View {
                 }
             }
 
-            if commands.isEmpty {
-                Text("左页暂无编号命令。格式示例：29、完善 AI 进化执行过程展示")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                    .lineSpacing(3)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(commands) { command in
-                            commandChip(command)
+            if items.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("点「分析优化」，让 AI 找出可改进处")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.inkMuted)
+                    if let onAnalyze {
+                        BookPageActionButton(
+                            title: "分析优化",
+                            icon: "magnifyingglass",
+                            isProminent: true,
+                            isDisabled: isRunning
+                        ) {
+                            onAnalyze()
                         }
                     }
                 }
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(sortedItems) { item in
+                            queueRow(item)
+                        }
+                    }
+                }
+                .frame(maxHeight: 180)
 
-                if let next = pending.first {
+                if let next = pendingItems.sorted(by: { $0.number < $1.number }).first {
                     HStack(alignment: .top, spacing: 6) {
                         Image(systemName: isRunning && executingCommandNumber == next.number
                             ? "play.circle.fill"
                             : "arrow.right.circle")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(BookTheme.leather)
-                        Text("下一条：\(commandTitle(next))")
+                        Text("下一条：\(next.title)")
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.inkSecondary)
                             .lineLimit(2)
                     }
+                }
+            }
+
+            if onAddUserItem != nil {
+                HStack(spacing: 6) {
+                    TextField("手写一条优化…", text: $draftTitle)
+                        .textFieldStyle(.roundedBorder)
+                        .font(BookTheme.captionFont)
+                    Button("添加") {
+                        let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty else { return }
+                        onAddUserItem?(title)
+                        draftTitle = ""
+                    }
+                    .font(BookTheme.captionFont)
+                    .disabled(isRunning || draftTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
 
@@ -458,63 +502,108 @@ struct EvolutionCommandQueuePanel: View {
         .modifier(EvolutionPanelChromeModifier(embeddedInTabs: embeddedInTabs))
     }
 
-    private func commandTitle(_ command: EvolutionPlanner.Command) -> String {
-        let stripped = command.text
-            .replacingOccurrences(of: #"^\d+[、.]\s*"#, with: "", options: .regularExpression)
-        return stripped.isEmpty ? command.text : stripped
-    }
+    @ViewBuilder
+    private func queueRow(_ item: OptimizationItem) -> some View {
+        let isExecuting = isRunning && executingCommandNumber == item.number
+        let isNext = item.status == .pending && item.number == pendingItems.sorted(by: { $0.number < $1.number }).first?.number
 
-    private func commandChip(_ command: EvolutionPlanner.Command) -> some View {
-        let isNext = !command.isCompleted && command.number == pending.first?.number
-        let isExecuting = isRunning && executingCommandNumber == command.number
-        let title = commandTitle(command)
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: statusIcon(for: item, isExecuting: isExecuting, isNext: isNext))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(statusColor(for: item, isExecuting: isExecuting, isNext: isNext))
+                .frame(width: 14)
 
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                Image(systemName: chipIcon(for: command, isNext: isNext, isExecuting: isExecuting))
-                    .font(.system(size: 10, weight: .semibold))
-                Text("#\(command.number)")
-                    .font(BookTheme.captionFont)
-            }
-            Text(title)
-                .font(.system(size: 10))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-        }
-        .foregroundStyle(chipForeground(for: command, isNext: isNext, isExecuting: isExecuting))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .frame(maxWidth: 168, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(chipBackground(for: command, isNext: isNext, isExecuting: isExecuting))
-                .overlay {
-                    if isExecuting {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(BookTheme.leather.opacity(0.55), lineWidth: 1.5)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text("#\(item.number)")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.leather)
+                    Text(item.title)
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.inkSecondary)
+                        .lineLimit(2)
+                    Spacer(minLength: 0)
+                    Text(item.source == .ai ? "AI" : "手写")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(BookTheme.inkMuted)
+                }
+                HStack(spacing: 6) {
+                    Text(statusLabel(for: item))
+                        .font(.system(size: 9))
+                        .foregroundStyle(BookTheme.inkMuted)
+                    Text(item.category.rawValue)
+                        .font(.system(size: 9))
+                        .foregroundStyle(BookTheme.inkMuted)
+                    if item.priority == .high {
+                        Text("高优")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(BookTheme.vermilion)
                     }
                 }
+            }
         }
-        .help(command.text)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(rowBackground(for: item, isExecuting: isExecuting, isNext: isNext))
+        }
+        .contextMenu {
+            if item.status == .pending {
+                if let onPin {
+                    Button("置顶") { onPin(item.id) }
+                }
+                if let onSkip {
+                    Button("跳过") { onSkip(item.id) }
+                }
+                if let onDelete {
+                    Button("删除", role: .destructive) { onDelete(item.id) }
+                }
+            } else if item.status == .skipped {
+                if let onRestore {
+                    Button("恢复") { onRestore(item.id) }
+                }
+                if let onDelete {
+                    Button("删除", role: .destructive) { onDelete(item.id) }
+                }
+            }
+        }
     }
 
-    private func chipIcon(for command: EvolutionPlanner.Command, isNext: Bool, isExecuting: Bool) -> String {
-        if command.isCompleted { return "checkmark.circle.fill" }
-        if isExecuting { return "play.circle.fill" }
-        if isNext { return "arrow.right.circle.fill" }
-        return "circle"
+    private func statusIcon(for item: OptimizationItem, isExecuting: Bool, isNext: Bool) -> String {
+        switch item.status {
+        case .completed: return "checkmark.circle.fill"
+        case .skipped: return "minus.circle"
+        case .running, .pending:
+            if isExecuting { return "play.circle.fill" }
+            if isNext { return "arrow.right.circle.fill" }
+            return "circle"
+        }
     }
 
-    private func chipForeground(for command: EvolutionPlanner.Command, isNext: Bool, isExecuting: Bool) -> Color {
-        if command.isCompleted { return BookTheme.jade }
-        if isExecuting || isNext { return BookTheme.leather }
-        return BookTheme.inkMuted
+    private func statusColor(for item: OptimizationItem, isExecuting: Bool, isNext: Bool) -> Color {
+        switch item.status {
+        case .completed: return BookTheme.jade
+        case .skipped: return BookTheme.inkMuted
+        case .running, .pending:
+            if isExecuting || isNext { return BookTheme.leather }
+            return BookTheme.inkMuted
+        }
     }
 
-    private func chipBackground(for command: EvolutionPlanner.Command, isNext: Bool, isExecuting: Bool) -> Color {
+    private func statusLabel(for item: OptimizationItem) -> String {
+        switch item.status {
+        case .pending: return "待办"
+        case .running: return "执行中"
+        case .completed: return "已完成"
+        case .skipped: return "已跳过"
+        }
+    }
+
+    private func rowBackground(for item: OptimizationItem, isExecuting: Bool, isNext: Bool) -> Color {
         if isExecuting { return BookTheme.gold.opacity(0.34) }
         if isNext { return BookTheme.gold.opacity(0.22) }
-        return Color.white.opacity(command.isCompleted ? 0.55 : 0.35)
+        return Color.white.opacity(item.status == .completed ? 0.55 : 0.35)
     }
 }
 

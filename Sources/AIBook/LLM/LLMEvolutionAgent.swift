@@ -16,7 +16,7 @@ struct LLMCompletionResult {
 /// LLM API evolution agent: OpenAI-compatible tool-calling loop with local sandboxed execution.
 final class LLMEvolutionAgent {
     private let llmService = LLMService()
-    private let maxIterations = 24
+    private let maxIterationsDefault = 24
 
     func cancel() {
         llmService.cancel()
@@ -27,16 +27,19 @@ final class LLMEvolutionAgent {
         history: [ChatMessage],
         configuration: LLMConfiguration,
         projectRoot: URL,
+        allowMutations: Bool = true,
+        maxIterations: Int? = nil,
         onEvent: (@Sendable (CursorStreamEvent) -> Void)? = nil,
         onUsage: (@Sendable (LLMTokenUsage) -> Void)? = nil,
         onContextTokens: (@Sendable (Int) -> Void)? = nil
     ) async throws -> (text: String, thinking: String?, usage: LLMTokenUsage) {
         let configuration = await resolvedConfiguration(configuration)
         var messages = buildMessages(prompt: prompt, history: history)
-        let tools = EvolutionLocalTools.openAIToolDefinitions
+        let tools = EvolutionLocalTools.openAIToolDefinitions(allowMutations: allowMutations)
         var accumulatedThinking = ""
         var accumulatedText = ""
         var iteration = 0
+        let iterationLimit = maxIterations ?? maxIterationsDefault
         var totalUsage = LLMTokenUsage.zero
         let tokenLimit = ModelTokenLimits.limit(forLLMModel: configuration.model, provider: configuration.provider)
 
@@ -51,7 +54,7 @@ final class LLMEvolutionAgent {
             }
         }
 
-        while iteration < maxIterations {
+        while iteration < iterationLimit {
             try Task.checkCancellation()
             iteration += 1
 
@@ -66,7 +69,7 @@ final class LLMEvolutionAgent {
                 )
             }
 
-            onEvent?(.statusUpdate("第 \(iteration)/\(maxIterations) 轮 · 等待大模型响应…"))
+            onEvent?(.statusUpdate("第 \(iteration)/\(iterationLimit) 轮 · 等待大模型响应…"))
 
             let completion = try await llmService.completeWithTools(
                 messages: messages,
@@ -138,7 +141,7 @@ final class LLMEvolutionAgent {
                 return (text: finalText, thinking: thinking, usage: totalUsage)
             }
 
-            onEvent?(.statusUpdate("第 \(iteration)/\(maxIterations) 轮 · 执行 \(completion.toolCalls.count) 个工具…"))
+            onEvent?(.statusUpdate("第 \(iteration)/\(iterationLimit) 轮 · 执行 \(completion.toolCalls.count) 个工具…"))
 
             if let content = completion.content, !content.isEmpty {
                 if !contentHasPrefix(accumulatedText, content) {
@@ -188,6 +191,7 @@ final class LLMEvolutionAgent {
             let toolOutcomes = await executeToolCalls(
                 completion.toolCalls,
                 projectRoot: projectRoot,
+                allowMutations: allowMutations,
                 onEvent: onEvent
             )
 
@@ -202,7 +206,7 @@ final class LLMEvolutionAgent {
         }
 
         throw LLMServiceError.apiError(
-            "进化 Agent 达到最大工具轮次（\(maxIterations)），请缩小任务范围后重试。",
+            "进化 Agent 达到最大工具轮次（\(iterationLimit)），请缩小任务范围后重试。",
             provider: configuration.provider
         )
     }
@@ -259,6 +263,7 @@ final class LLMEvolutionAgent {
     private func executeToolCalls(
         _ calls: [LLMToolCall],
         projectRoot: URL,
+        allowMutations: Bool,
         onEvent: (@Sendable (CursorStreamEvent) -> Void)?
     ) async -> [ToolRunOutcome] {
         guard !calls.isEmpty else { return [] }
@@ -284,7 +289,8 @@ final class LLMEvolutionAgent {
                     switch EvolutionLocalTools.execute(
                         name: call.name,
                         argumentsJSON: call.arguments,
-                        projectRoot: projectRoot
+                        projectRoot: projectRoot,
+                        allowMutations: allowMutations
                     ) {
                     case .success(let output):
                         toolResult = output
@@ -447,7 +453,7 @@ final class LLMEvolutionAgent {
     - 改码前先用 read/grep/glob 探索；改码用 edit 或 write；改码后优先 shell 运行 `swift build` 或 `scripts/build-and-install.sh` 验证
     - 同一轮可并行发起多个工具调用；不要只描述计划而不调用工具
     - 最小必要改动，保持 BookTheme 书籍风格；展示思考与中间过程
-    - 最终回复须含一行左页摘要：「编号、已完成：…」
+    - 最终回复须含一行完成摘要：「编号、已完成：…」
     """
 }
 
