@@ -1,12 +1,28 @@
 import SwiftUI
 
-/// Settings panel to configure multiple LLM providers at once (command #26).
+/// Settings panel to configure multiple LLM providers; scope selects book (reading) or evolution profiles.
 struct LLMProfilesSettingsView: View {
+    var scope: LLMProfileScope = .book
+
     @ObservedObject private var settings = AppSettings.shared
     @State private var drafts: [LLMProvider: LLMProfile] = [:]
     @State private var expandedProviders: Set<LLMProvider> = []
     @State private var testingProvider: LLMProvider?
     @State private var testResults: [LLMProvider: (success: Bool, message: String)] = [:]
+
+    private var configuredProviders: [LLMProvider] {
+        switch scope {
+        case .book: return settings.configuredBookProviders
+        case .evolution: return settings.configuredLLMProviders
+        }
+    }
+
+    private var activeProvider: LLMProvider {
+        switch scope {
+        case .book: return settings.bookProvider
+        case .evolution: return settings.provider
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -16,19 +32,27 @@ struct LLMProfilesSettingsView: View {
                 Text("当前使用")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Picker("当前提供商", selection: $settings.provider) {
+                Picker("当前提供商", selection: activeProviderBinding) {
                     ForEach(LLMProvider.allCases) { provider in
                         Text(providerPickerLabel(provider)).tag(provider)
                     }
                 }
                 .pickerStyle(.menu)
+                .onChange(of: settings.bookProvider) { _ in
+                    guard scope == .book else { return }
+                    applyActiveProviderDefaults()
+                    expandedProviders.insert(settings.bookProvider)
+                }
                 .onChange(of: settings.provider) { _ in
-                    settings.applyProviderDefaults()
+                    guard scope == .evolution else { return }
+                    applyActiveProviderDefaults()
                     expandedProviders.insert(settings.provider)
                 }
             }
 
-            Text("以下可同时保存多家 API Key；切换「当前使用」不会丢失其他提供商配置。")
+            Text(scope == .book
+                ? "读书讲解、翻译与名著补充使用此处模型；可同时保存多家 API Key，切换不会丢失其他配置。"
+                : "以下可同时保存多家 API Key；切换「当前使用」不会丢失其他提供商配置。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
 
@@ -38,20 +62,28 @@ struct LLMProfilesSettingsView: View {
         }
         .onAppear {
             loadDrafts()
-            expandedProviders = [settings.provider]
+            expandedProviders = [activeProvider]
+        }
+    }
+
+    private var activeProviderBinding: Binding<LLMProvider> {
+        switch scope {
+        case .book:
+            return $settings.bookProvider
+        case .evolution:
+            return $settings.provider
         }
     }
 
     private var summaryRow: some View {
-        let configured = settings.configuredLLMProviders
-        return HStack(spacing: 8) {
+        HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
-                .foregroundStyle(configured.isEmpty ? BookTheme.inkMuted : .green)
-            Text("已配置 \(configured.count)/\(LLMProvider.allCases.count) 家")
+                .foregroundStyle(configuredProviders.isEmpty ? BookTheme.inkMuted : .green)
+            Text("已配置 \(configuredProviders.count)/\(LLMProvider.allCases.count) 家")
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.ink)
-            if !configured.isEmpty {
-                Text(configured.map(\.rawValue).joined(separator: " · "))
+            if !configuredProviders.isEmpty {
+                Text(configuredProviders.map(\.rawValue).joined(separator: " · "))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                     .lineLimit(2)
@@ -60,7 +92,7 @@ struct LLMProfilesSettingsView: View {
     }
 
     private func providerPickerLabel(_ provider: LLMProvider) -> String {
-        let profile = LLMProfileStore.profile(for: provider)
+        let profile = storedProfile(for: provider)
         if LLMConnector.isConfigured(provider: provider, apiKey: profile.apiKey) {
             return "\(provider.rawValue) ✓"
         }
@@ -69,8 +101,8 @@ struct LLMProfilesSettingsView: View {
 
     private func providerCard(_ provider: LLMProvider) -> some View {
         let isExpanded = expandedProviders.contains(provider)
-        let isActive = settings.provider == provider
-        let draft = drafts[provider] ?? LLMProfileStore.profile(for: provider)
+        let isActive = activeProvider == provider
+        let draft = drafts[provider] ?? storedProfile(for: provider)
         let isConfigured = LLMConnector.isConfigured(provider: provider, apiKey: draft.apiKey)
 
         return VStack(alignment: .leading, spacing: 0) {
@@ -163,9 +195,9 @@ struct LLMProfilesSettingsView: View {
                         .padding(.vertical, 8)
                         .background { Capsule().fill(BookTheme.gold) }
 
-                        if settings.provider != provider {
+                        if activeProvider != provider {
                             Button("设为当前") {
-                                settings.provider = provider
+                                setActiveProvider(provider)
                             }
                             .buttonStyle(.plain)
                             .font(BookTheme.captionFont)
@@ -278,30 +310,55 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    private func storedProfile(for provider: LLMProvider) -> LLMProfile {
+        LLMProfileStore.profile(for: provider, scope: scope)
+    }
+
+    private func applyActiveProviderDefaults() {
+        switch scope {
+        case .book: settings.applyBookProviderDefaults()
+        case .evolution: settings.applyProviderDefaults()
+        }
+    }
+
+    private func setActiveProvider(_ provider: LLMProvider) {
+        switch scope {
+        case .book: settings.bookProvider = provider
+        case .evolution: settings.provider = provider
+        }
+    }
+
+    private func loadActiveProfile(for provider: LLMProvider) {
+        switch scope {
+        case .book: settings.loadBookProfile(for: provider)
+        case .evolution: settings.loadLLMProfile(for: provider)
+        }
+    }
+
     private func applyQwenRegion(_ region: QwenBailianRegion, for provider: LLMProvider) {
-        var profile = drafts[provider] ?? LLMProfileStore.profile(for: provider)
+        var profile = drafts[provider] ?? storedProfile(for: provider)
         profile.baseURL = region.compatibleBaseURL
         drafts[provider] = profile
     }
 
     private func refreshQwenKeyFromEnvironment(for provider: LLMProvider) {
-        var profile = drafts[provider] ?? LLMProfileStore.profile(for: provider)
+        var profile = drafts[provider] ?? storedProfile(for: provider)
         profile.apiKey = QwenBailianConfig.resolveAPIKey(stored: "")
         drafts[provider] = profile
     }
 
     private func profileBinding(for provider: LLMProvider) -> Binding<LLMProfile> {
         Binding(
-            get: { drafts[provider] ?? LLMProfileStore.profile(for: provider) },
+            get: { drafts[provider] ?? storedProfile(for: provider) },
             set: { drafts[provider] = $0 }
         )
     }
 
     private func binding(for provider: LLMProvider, keyPath: WritableKeyPath<LLMProfile, String>) -> Binding<String> {
         Binding(
-            get: { drafts[provider]?[keyPath: keyPath] ?? LLMProfileStore.profile(for: provider)[keyPath: keyPath] },
+            get: { drafts[provider]?[keyPath: keyPath] ?? storedProfile(for: provider)[keyPath: keyPath] },
             set: { newValue in
-                var profile = drafts[provider] ?? LLMProfileStore.profile(for: provider)
+                var profile = drafts[provider] ?? storedProfile(for: provider)
                 profile[keyPath: keyPath] = newValue
                 drafts[provider] = profile
             }
@@ -353,24 +410,24 @@ struct LLMProfilesSettingsView: View {
     private func loadDrafts() {
         var loaded: [LLMProvider: LLMProfile] = [:]
         for provider in LLMProvider.allCases {
-            loaded[provider] = LLMProfileStore.profile(for: provider)
+            loaded[provider] = storedProfile(for: provider)
         }
         drafts = loaded
     }
 
     private func saveProfile(for provider: LLMProvider) {
-        let profile = drafts[provider] ?? LLMProfileStore.profile(for: provider)
-        LLMProfileStore.save(profile, for: provider, scope: .evolution)
-        if settings.provider == provider {
-            settings.loadLLMProfile(for: provider)
+        let profile = drafts[provider] ?? storedProfile(for: provider)
+        LLMProfileStore.save(profile, for: provider, scope: scope)
+        if activeProvider == provider {
+            loadActiveProfile(for: provider)
         }
         testResults[provider] = nil
     }
 
     private func testProfile(for provider: LLMProvider) {
-        let draft = drafts[provider] ?? LLMProfileStore.profile(for: provider)
-        LLMProfileStore.save(draft, for: provider, scope: .evolution)
-        let configuration = LLMProfileStore.resolvedConfiguration(for: provider)
+        let draft = drafts[provider] ?? storedProfile(for: provider)
+        LLMProfileStore.save(draft, for: provider, scope: scope)
+        let configuration = LLMProfileStore.resolvedConfiguration(for: provider, scope: scope)
         testingProvider = provider
         testResults[provider] = nil
         Task {

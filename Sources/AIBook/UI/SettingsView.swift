@@ -1,32 +1,9 @@
 import SwiftUI
 
+/// Evolution-focused system settings (Cursor, auto-upgrade).
 struct SettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedTab: SettingsTab = .ai
-
-    private enum SettingsTab: String, CaseIterable, Identifiable {
-        case ai = "AI模型设置"
-        case voice = "语音设置"
-
-        var id: String { rawValue }
-
-        var icon: String {
-            switch self {
-            case .ai: return "cpu"
-            case .voice: return "speaker.wave.2.fill"
-            }
-        }
-
-        var subtitle: String {
-            switch self {
-            case .ai:
-                return "配置 AI 进化用的大模型与 Cursor 本地（读书模型见顶栏 book设置）"
-            case .voice:
-                return "调整朗读节奏、语言处理与系统语音"
-            }
-        }
-    }
 
     var body: some View {
         ZStack {
@@ -35,15 +12,10 @@ struct SettingsView: View {
 
             VStack(spacing: 14) {
                 settingsHeader
-                tabSwitcher
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        if selectedTab == .ai {
-                            aiSettingsContent
-                        } else {
-                            voiceSettingsContent
-                        }
+                        evolutionSettingsContent
                     }
                     .padding(24)
                 }
@@ -57,7 +29,7 @@ struct SettingsView: View {
             }
             .padding(24)
         }
-        .frame(minWidth: 680, minHeight: 560)
+        .frame(minWidth: 680, minHeight: 520)
     }
 
     private var settingsHeader: some View {
@@ -66,23 +38,21 @@ struct SettingsView: View {
                 Circle()
                     .fill(Color.white.opacity(0.08))
                     .frame(width: 46, height: 46)
-                Image(systemName: selectedTab.icon)
+                Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 21, weight: .semibold))
                     .foregroundStyle(BookTheme.goldSoft)
             }
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("系统设置")
+                Text("进化设置")
                     .font(BookTheme.titleFont)
                     .foregroundStyle(BookTheme.goldSoft)
-                Text(selectedTab.subtitle)
+                Text("Cursor 本地、自动升级链；读书模型与语音请使用顶栏「book设置」")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(Color.white.opacity(0.66))
             }
 
             Spacer()
-
-            BookStatusPill(title: selectedTab.rawValue, icon: selectedTab.icon, tint: Color.white.opacity(0.66))
 
             BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
                 dismiss()
@@ -101,59 +71,8 @@ struct SettingsView: View {
         }
     }
 
-    private var tabSwitcher: some View {
-        HStack(spacing: 10) {
-            ForEach(SettingsTab.allCases) { tab in
-                tabButton(tab)
-            }
-        }
-        .padding(6)
-        .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.08))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
-                }
-        }
-    }
-
-    private func tabButton(_ tab: SettingsTab) -> some View {
-        let isSelected = selectedTab == tab
-        return Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                selectedTab = tab
-            }
-        } label: {
-            Label(tab.rawValue, systemImage: tab.icon)
-                .font(BookTheme.labelFont)
-                .foregroundStyle(isSelected ? BookTheme.leatherShadow : BookTheme.goldSoft.opacity(0.78))
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                // plain 按钮默认只命中文字/图标；扩展为整块 Tab 区域可点
-                .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                .background {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(isSelected ? AnyShapeStyle(BookTheme.goldGradient) : AnyShapeStyle(Color.white.opacity(0.04)))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .strokeBorder(
-                                    isSelected ? BookTheme.goldSoft.opacity(0.55) : Color.white.opacity(0.08),
-                                    lineWidth: 1
-                                )
-                        }
-                }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var aiSettingsContent: some View {
+    private var evolutionSettingsContent: some View {
         Group {
-            settingsSection(title: "大模型 API（多提供商）", icon: "sparkles") {
-                LLMProfilesSettingsView()
-            }
-
             settingsSection(title: "Cursor 本地对话", icon: "cursorarrow.rays") {
                 labeledSecureField("Cursor API Key", text: $settings.cursorAPIKey)
                     .onSubmit {
@@ -199,40 +118,18 @@ struct SettingsView: View {
                 Text("开启后，在本次会话中点击过「进化」且队列仍有待办时，将自动执行进化、打包安装并继续下一条。冷启动不会自动开始。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
+                Text("大模型 API 与模型选择请在右页 AI 进化 Tab 的「进化」子页配置。")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
             }
 
             settingsSection(title: "说明", icon: "info.circle") {
                 Text("左页「\(ClassicLiteratureSupplement.capabilityLabel)」可识别名著节选并由大模型补全为完整篇章，自动保存。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Text("顶栏右侧（AI 进化区）提供「大模型 API」与「Cursor 本地」切换；读书助手使用顶栏「book设置」独立配置本地模型。")
+                Text("读书讲解、翻译与朗读声音在顶栏「book设置」中配置，与进化互不影响。")
                     .font(BookTheme.bodyFont)
                     .foregroundStyle(BookTheme.inkSecondary)
-                Text("大模型 API 支持 \(LLMConnector.supportedSummary) 等 OpenAI 兼容接口。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                ForEach(LLMConnector.aboutLines, id: \.self) { line in
-                    Text(line)
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.inkMuted)
-                }
-            }
-        }
-    }
-
-    private var voiceSettingsContent: some View {
-        Group {
-            settingsSection(title: "讲解朗读", icon: "waveform") {
-                ExplanationVoiceSettingsView()
-            }
-
-            settingsSection(title: "关于语音", icon: "music.note") {
-                Text("在本页可切换朗读节奏、语言处理策略和系统讲解声音。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                Text("建议：快速浏览使用「快速 + 高效」，细读讲解使用「舒缓 + 深度」。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
             }
         }
     }

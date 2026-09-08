@@ -521,7 +521,7 @@ struct ContentView: View {
                 Button {
                     viewModel.openSettings()
                 } label: {
-                    Label("设置", systemImage: "gearshape")
+                    Label("进化设置", systemImage: "gearshape")
                 }
 
                 if viewModel.isRunning {
@@ -534,7 +534,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .help(viewModel.evolutionStatusLabel ?? "进化、设置与停止当前任务")
+            .help(viewModel.evolutionStatusLabel ?? "进化、进化设置与停止当前任务")
         }
     }
 
