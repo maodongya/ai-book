@@ -15,6 +15,13 @@ struct CursorComposerView: View {
         return hasText && !viewModel.isRunning
     }
 
+    private var canAnalyze: Bool {
+        mode == .aiEvolution
+            && !viewModel.isRunning
+            && !viewModel.isEvolutionRebuilding
+            && viewModel.canRunEvolution
+    }
+
     private var activeChatInput: String {
         mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput
     }
@@ -300,6 +307,17 @@ struct CursorComposerView: View {
 
     private var actionRow: some View {
         HStack(spacing: 8) {
+            if mode == .aiEvolution {
+                BookPageActionButton(
+                    title: "分析优化",
+                    icon: "magnifyingglass",
+                    isProminent: canAnalyze,
+                    isDisabled: !canAnalyze
+                ) {
+                    viewModel.analyzeOptimizations()
+                }
+            }
+
             BookPageActionButton(
                 title: "发送",
                 icon: "paperplane.fill",
@@ -382,7 +400,7 @@ struct CursorComposerView: View {
         case .readingAssistant:
             return "输入翻译要求，例如：整段白话翻译、保留关键词、减少注释"
         case .aiEvolution:
-            return "输入进化相关问题，例如：下一条命令是什么、如何改 Sources/AIBook"
+            return "输入分析方向（可选），例如：读书助手讲解可见性、翻译入口；留空则全面分析。也可输入进化追问"
         }
     }
 

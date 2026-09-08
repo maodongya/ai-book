@@ -34,7 +34,6 @@ struct EvolutionUtilityTabsPanel: View {
     let canRunEvolution: Bool
     let hasPending: Bool
     let isEvolutionRebuilding: Bool
-    let onAnalyze: () -> Void
     let onEvolve: () -> Void
     let onStop: () -> Void
     let onAddUserItem: (String) -> Void
@@ -66,7 +65,6 @@ struct EvolutionUtilityTabsPanel: View {
                         isAnalyzing: isAnalyzing,
                         executingCommandNumber: executingCommandNumber,
                         embeddedInTabs: true,
-                        onAnalyze: onAnalyze,
                         onAddUserItem: onAddUserItem,
                         onSkip: onSkip,
                         onDelete: onDelete,
@@ -180,15 +178,6 @@ struct EvolutionUtilityTabsPanel: View {
 
     private var evolutionActionRow: some View {
         HStack(spacing: 8) {
-            BookPageActionButton(
-                title: "分析优化",
-                icon: "magnifyingglass",
-                isProminent: false,
-                isDisabled: isRunning || isEvolutionRebuilding || !canRunEvolution
-            ) {
-                onAnalyze()
-            }
-
             BookPageActionButton(
                 title: "进化",
                 icon: "arrow.triangle.2.circlepath",
@@ -389,7 +378,6 @@ struct EvolutionCommandQueuePanel: View {
     var isAnalyzing: Bool = false
     var executingCommandNumber: Int?
     var embeddedInTabs: Bool = false
-    var onAnalyze: (() -> Void)?
     var onAddUserItem: ((String) -> Void)?
     var onSkip: ((UUID) -> Void)?
     var onDelete: ((UUID) -> Void)?
@@ -431,21 +419,9 @@ struct EvolutionCommandQueuePanel: View {
             }
 
             if items.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("点「分析优化」，让 AI 找出可改进处")
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.inkMuted)
-                    if let onAnalyze {
-                        BookPageActionButton(
-                            title: "分析优化",
-                            icon: "magnifyingglass",
-                            isProminent: true,
-                            isDisabled: isRunning
-                        ) {
-                            onAnalyze()
-                        }
-                    }
-                }
+                Text("在下方输入分析方向（可选），点「分析优化」让 AI 找出可改进处")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {

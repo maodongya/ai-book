@@ -184,7 +184,6 @@ struct ExplanationChatView: View {
                 canRunEvolution: viewModel.canRunEvolution,
                 hasPending: viewModel.hasPendingOptimization,
                 isEvolutionRebuilding: viewModel.isEvolutionRebuilding,
-                onAnalyze: { viewModel.analyzeOptimizations() },
                 onEvolve: { viewModel.startEvolution() },
                 onStop: { viewModel.stopCurrentRun() },
                 onAddUserItem: { viewModel.addUserOptimization(title: $0) },

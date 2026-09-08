@@ -1304,16 +1304,22 @@ final class ReadingViewModel: ObservableObject {
             return
         }
 
+        let direction = evolutionChatInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !direction.isEmpty {
+            evolutionChatInput = ""
+        }
+
         let prompt = EvolutionAnalyzer.buildAnalysisPrompt(
             queue: optimizationQueue,
-            projectPath: SelfEvolution.sourceProjectPath()
+            projectPath: SelfEvolution.sourceProjectPath(),
+            direction: direction.isEmpty ? nil : direction
         )
         guard guardEvolutionTokenLimit(for: prompt, action: "分析优化") else { return }
 
         evolutionRunKind = .analysis
         sendMessage(
             prompt,
-            displayText: "分析优化",
+            displayText: direction.isEmpty ? "分析优化" : "分析优化：\(direction)",
             isEvolution: true,
             evolutionCommandNumber: nil,
             triggerEvolutionRebuild: false,

@@ -21,7 +21,11 @@ public enum EvolutionAnalyzer {
     已知 P0：读书助手 Tab 不展示讲解对话与流式输出，用户只能听不能看。
     """
 
-    public static func buildAnalysisPrompt(queue: OptimizationQueue, projectPath: String) -> String {
+    public static func buildAnalysisPrompt(
+        queue: OptimizationQueue,
+        projectPath: String,
+        direction: String? = nil
+    ) -> String {
         let pendingTitles = queue.items
             .filter { $0.status == .pending || $0.status == .running }
             .map { "#\($0.number) \($0.title)" }
@@ -30,10 +34,19 @@ public enum EvolutionAnalyzer {
             .filter { $0.status == .completed || $0.status == .skipped }
             .map { "#\($0.number) \($0.title)" }
             .joined(separator: "\n")
+        let trimmedDirection = direction?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let directionSection = trimmedDirection.isEmpty
+            ? ""
+            : """
+
+        【用户指定方向】
+        \(trimmedDirection)
+        请优先围绕上述方向分析；仍须遵守只读、不改码、最多 8 条、不重复已有标题。
+        """
 
         return """
         【任务】分析 AIBook 可优化之处，输出优化队列条目（只诊断，不改码）。
-
+        \(directionSection)
         【产品定位】
         ai-book（AIBook）是一款 macOS 辅助读书应用：左页阅读原文，右页 AI 讲解、翻译与自我进化。
 

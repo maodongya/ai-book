@@ -16,6 +16,13 @@ struct LLMComposerView: View {
         return hasText && !viewModel.isRunning
     }
 
+    private var canAnalyze: Bool {
+        mode == .aiEvolution
+            && !viewModel.isRunning
+            && !viewModel.isEvolutionRebuilding
+            && viewModel.canRunEvolution
+    }
+
     private var activeChatInput: String {
         mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput
     }
@@ -389,6 +396,17 @@ struct LLMComposerView: View {
 
     private var actionRow: some View {
         HStack(spacing: 8) {
+            if mode == .aiEvolution {
+                BookPageActionButton(
+                    title: "分析优化",
+                    icon: "magnifyingglass",
+                    isProminent: canAnalyze,
+                    isDisabled: !canAnalyze
+                ) {
+                    viewModel.analyzeOptimizations()
+                }
+            }
+
             BookPageActionButton(
                 title: "发送",
                 icon: "paperplane.fill",
@@ -476,7 +494,7 @@ struct LLMComposerView: View {
         case .readingAssistant:
             return "输入翻译要求，例如：翻成白话文、保留古文词义、第二段整段翻译"
         case .aiEvolution:
-            return "输入进化相关问题，例如：解释待办命令、Review 改动范围"
+            return "输入分析方向（可选），例如：读书助手讲解可见性、翻译入口；留空则全面分析。也可输入进化追问"
         }
     }
 
