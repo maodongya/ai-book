@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 enum DocumentExporter {
     static let capabilityLabel = "导出"
     static let shortcutHint = "⌘⇧S 另存为 · ⌘⌥S 导出选中"
+    static let evolutionCommandsSuggestedName = "进化命令.txt"
 
     private static let lastDirectoryKey = "DocumentExporter.lastDirectory"
 

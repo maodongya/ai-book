@@ -18,7 +18,7 @@ struct ExplanationChatView: View {
         .padding(.bottom, 2)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            settings.refreshCursorAPIKeyFromSources()
+            settings.reloadCursorAPIKey()
         }
     }
 
@@ -179,13 +179,8 @@ struct ExplanationChatView: View {
                 isAnalyzing: viewModel.isAnalyzing,
                 executingCommandNumber: viewModel.executingEvolutionCommandNumber,
                 budget: viewModel.evolutionTokenBudget,
-                showsAgentTrace: viewModel.showsEvolutionExecutionTrace,
                 liveToolLabel: viewModel.evolutionLiveToolLabel,
-                canRunEvolution: viewModel.canRunEvolution,
                 hasPending: viewModel.hasPendingOptimization,
-                isEvolutionRebuilding: viewModel.isEvolutionRebuilding,
-                onEvolve: { viewModel.startEvolution() },
-                onStop: { viewModel.stopCurrentRun() },
                 onAddUserItem: { viewModel.addUserOptimization(title: $0) },
                 onSkip: { viewModel.skipOptimization(id: $0) },
                 onDelete: { viewModel.deleteOptimization(id: $0) },
@@ -209,18 +204,8 @@ struct ExplanationChatView: View {
     @ViewBuilder
     private var configurationNotice: some View {
         if viewModel.rightPageTab == .aiEvolution {
-            if settings.explanationSource == .cursor && !settings.isCursorRunnable {
-                if settings.isLLMConfigured {
-                    llmFallbackBanner
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                } else {
-                    CursorConfigPanel()
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                }
-            } else if settings.explanationSource == .llm && !settings.isLLMConfigured {
-                LLMConfigPanel()
+            if !settings.isCursorRunnable {
+                CursorConfigPanel()
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
             }
@@ -255,36 +240,11 @@ struct ExplanationChatView: View {
 
     @ViewBuilder
     private func composer(for mode: RightPageTab) -> some View {
-        if mode == .aiEvolution,
-           settings.isCursorRunnable,
-           settings.explanationSource == .cursor {
+        if mode == .aiEvolution {
             CursorComposerView(mode: mode)
         } else {
             LLMComposerView(mode: mode)
         }
-    }
-
-    private var llmFallbackBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.triangle.branch")
-                .foregroundStyle(BookTheme.gold)
-            Text("\(cursorFallbackReason)，对话与进化将自动使用「\(settings.provider.rawValue)」大模型。")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkSecondary)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(BookTheme.selection.opacity(0.3))
-        }
-    }
-
-    private var cursorFallbackReason: String {
-        if !settings.isCursorBridgeReady {
-            return settings.cursorBridgeStatusMessage
-        }
-        return "未配置 Cursor API Key"
     }
 
     private var lessonPlanEditor: some View {

@@ -92,13 +92,13 @@ struct ContentView: View {
                         .help("读书大模型（book 设置）")
                     } else if viewModel.rightPageTab == .aiEvolution {
                         BookStatusPill(
-                            title: settings.explanationSource == .llm && settings.isLLMConfigured
-                                ? settings.llmDisplayLabel
-                                : settings.explanationSource.rawValue,
-                            icon: settings.explanationSource == .cursor ? "cursorarrow.rays" : "cpu",
+                            title: settings.isCursorRunnable
+                                ? settings.selectedCursorModel.label
+                                : "Cursor 未就绪",
+                            icon: "cursorarrow.rays",
                             tint: Color.white.opacity(0.66)
                         )
-                        .help("AI 进化后端与模型")
+                        .help("AI 进化 Cursor 模型")
                     }
 
                     Spacer(minLength: 12)
@@ -510,11 +510,20 @@ struct ContentView: View {
             }
             .help("切换到 AI 进化：分析优化队列并升级 ai-book")
 
-            BookToolbarMenuButton {
+            BookToolbarMenuButton(title: "AI进化", icon: "arrow.triangle.2.circlepath") {
                 Button {
+                    viewModel.selectRightPageTab(.aiEvolution)
                     viewModel.startEvolution()
                 } label: {
                     Label("进化", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(viewModel.isRunning)
+
+                Button {
+                    viewModel.selectRightPageTab(.aiEvolution)
+                    viewModel.analyzeOptimizations()
+                } label: {
+                    Label("分析优化", systemImage: "magnifyingglass")
                 }
                 .disabled(viewModel.isRunning)
 
@@ -523,6 +532,30 @@ struct ContentView: View {
                 } label: {
                     Label("进化设置", systemImage: "gearshape")
                 }
+
+                Divider()
+
+                Button {
+                    viewModel.saveEvolutionCommands()
+                } label: {
+                    Label("保存进化命令", systemImage: "square.and.arrow.down")
+                }
+                .disabled(!viewModel.canSaveEvolutionCommands)
+
+                Button {
+                    viewModel.openEvolutionCommands()
+                } label: {
+                    Label("打开进化命令", systemImage: "folder")
+                }
+                .disabled(!viewModel.canOpenEvolutionCommands)
+
+                Button(role: .destructive) {
+                    viewModel.selectRightPageTab(.aiEvolution)
+                    viewModel.clearAIContext()
+                } label: {
+                    Label("清空 AI 上下文", systemImage: "cpu")
+                }
+                .disabled(viewModel.isRunning || !viewModel.canClearAIContext)
 
                 if viewModel.isRunning {
                     Divider()
@@ -534,7 +567,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .help(viewModel.evolutionStatusLabel ?? "进化、进化设置与停止当前任务")
+            .help(viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置")
         }
     }
 
@@ -652,10 +685,11 @@ struct ContentView: View {
         case .readingAssistant:
             return "\(viewModel.readingAssistantPanel.rawValue) · \(settings.bookLLMDisplayLabel)"
         case .aiEvolution:
+            let modelLabel = settings.selectedCursorModel.label
             if let label = viewModel.evolutionStatusLabel {
-                return "\(label) · \(settings.explanationSource.rawValue)"
+                return "\(label) · \(modelLabel)"
             }
-            return "\(viewModel.rightPageTab.pageSubtitle) · \(settings.explanationSource.rawValue)"
+            return "\(viewModel.rightPageTab.pageSubtitle) · \(modelLabel)"
         }
     }
 

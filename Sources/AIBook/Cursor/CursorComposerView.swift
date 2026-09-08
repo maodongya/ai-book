@@ -22,6 +22,15 @@ struct CursorComposerView: View {
             && viewModel.canRunEvolution
     }
 
+    private var canEvolve: Bool {
+        mode == .aiEvolution
+            && !viewModel.isRunning
+            && !viewModel.isEvolutionRebuilding
+            && viewModel.canRunEvolution
+            && viewModel.hasPendingOptimization
+            && settings.isCursorRunnable
+    }
+
     private var activeChatInput: String {
         mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput
     }
@@ -98,9 +107,9 @@ struct CursorComposerView: View {
 
     private var evolutionComposerSummary: some View {
         HStack(spacing: 8) {
-            Label("模型见上方「进化」Tab", systemImage: "slider.horizontal.3")
+            Label(cursorSummary, systemImage: "cursorarrow.rays")
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.leather)
                 .lineLimit(1)
             Spacer(minLength: 8)
             compactUsageMeter
@@ -316,34 +325,25 @@ struct CursorComposerView: View {
                 ) {
                     viewModel.analyzeOptimizations()
                 }
-            }
 
-            BookPageActionButton(
-                title: "发送",
-                icon: "paperplane.fill",
-                isProminent: canSend,
-                isDisabled: !canSend
-            ) {
-                sendActiveChatInput()
-            }
-
-            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
                 BookPageActionButton(
-                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
-                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
-                    isDisabled: false
+                    title: "进化",
+                    icon: "arrow.triangle.2.circlepath",
+                    isProminent: canEvolve,
+                    isDisabled: !canEvolve
                 ) {
-                    viewModel.toggleExplanationSpeechPause()
+                    viewModel.startEvolution()
                 }
 
                 BookPageActionButton(
-                    title: "停止",
-                    icon: "stop.fill",
-                    isDisabled: false
+                    title: "发送",
+                    icon: "paperplane.fill",
+                    isProminent: canSend,
+                    isDisabled: !canSend
                 ) {
-                    viewModel.stopExplanationSpeech()
+                    sendActiveChatInput()
                 }
-            } else {
+
                 BookPageActionButton(
                     title: "停止",
                     icon: "stop.fill",
@@ -351,45 +351,95 @@ struct CursorComposerView: View {
                 ) {
                     viewModel.stopCurrentRun()
                 }
-            }
 
-            BookPageActionButton(
-                title: "清空读书上下文",
-                icon: "text.book.closed",
-                isDisabled: viewModel.isRunning || !viewModel.canClearReadingContext
-            ) {
-                viewModel.clearReadingContext()
-            }
+                Spacer()
 
-            BookPageActionButton(
-                title: "清空 AI 上下文",
-                icon: "cpu",
-                isDisabled: viewModel.isRunning || !viewModel.canClearAIContext
-            ) {
-                viewModel.clearAIContext()
-            }
+                Text("⌘E 进化 · ⌘↩ 发送")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
 
-            Spacer()
-
-            Text("⌘↩ 发送")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
-
-            if viewModel.isRunning {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text(runningStatusText)
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.leather)
+                if viewModel.isRunning {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(runningStatusText)
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                    }
                 }
-            } else if viewModel.isSpeakingExplanation {
-                HStack(spacing: 8) {
-                    Image(systemName: viewModel.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(BookTheme.leather)
-                    Text(viewModel.isExplanationSpeechPaused ? "朗读已暂停" : "正在朗读讲解…")
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.leather)
+            } else {
+                BookPageActionButton(
+                    title: "发送",
+                    icon: "paperplane.fill",
+                    isProminent: canSend,
+                    isDisabled: !canSend
+                ) {
+                    sendActiveChatInput()
+                }
+
+                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                    BookPageActionButton(
+                        title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                        icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                        isDisabled: false
+                    ) {
+                        viewModel.toggleExplanationSpeechPause()
+                    }
+
+                    BookPageActionButton(
+                        title: "停止",
+                        icon: "stop.fill",
+                        isDisabled: false
+                    ) {
+                        viewModel.stopExplanationSpeech()
+                    }
+                } else {
+                    BookPageActionButton(
+                        title: "停止",
+                        icon: "stop.fill",
+                        isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
+                    ) {
+                        viewModel.stopCurrentRun()
+                    }
+                }
+
+                BookPageActionButton(
+                    title: "清空读书上下文",
+                    icon: "text.book.closed",
+                    isDisabled: viewModel.isRunning || !viewModel.canClearReadingContext
+                ) {
+                    viewModel.clearReadingContext()
+                }
+
+                BookPageActionButton(
+                    title: "清空 AI 上下文",
+                    icon: "cpu",
+                    isDisabled: viewModel.isRunning || !viewModel.canClearAIContext
+                ) {
+                    viewModel.clearAIContext()
+                }
+
+                Spacer()
+
+                Text("⌘↩ 发送")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+
+                if viewModel.isRunning {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(runningStatusText)
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                    }
+                } else if viewModel.isSpeakingExplanation {
+                    HStack(spacing: 8) {
+                        Image(systemName: viewModel.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(BookTheme.leather)
+                        Text(viewModel.isExplanationSpeechPaused ? "朗读已暂停" : "正在朗读讲解…")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.leather)
+                    }
                 }
             }
         }

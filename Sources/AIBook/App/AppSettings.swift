@@ -221,7 +221,11 @@ final class AppSettings: ObservableObject {
 
         let storedSource = UserDefaults.standard.string(forKey: Keys.explanationSource)
         explanationSource = ExplanationSource(rawValue: storedSource ?? "") ?? .llm
-        cursorAPIKey = UserDefaults.standard.string(forKey: Keys.cursorAPIKey) ?? CursorAPIKeyStore.resolveStoredKey()
+        let resolvedCursorKey = CursorAPIKeyStore.resolveStoredKey()
+        cursorAPIKey = resolvedCursorKey
+        if !resolvedCursorKey.isEmpty {
+            CursorAPIKeyStore.save(resolvedCursorKey)
+        }
         cursorModel = Self.sanitizeCursorModel(
             UserDefaults.standard.string(forKey: Keys.cursorModel) ?? CursorModelOption.composer25.rawValue
         )

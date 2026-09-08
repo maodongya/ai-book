@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$ROOT/cursor.local.env"
+BUNDLE_ID="com.aibook.reader"
+APP_SUPPORT="$HOME/Library/Application Support/AIBook"
+KEY_FILE="$APP_SUPPORT/cursor-api-key"
 
 if [[ -z "${CURSOR_API_KEY:-}" ]]; then
   if [[ -f "$ENV_FILE" ]]; then
@@ -16,7 +19,13 @@ if [[ -z "${CURSOR_API_KEY:-}" ]]; then
   exit 1
 fi
 
-defaults write AIBook aiBook.cursorAPIKey "$CURSOR_API_KEY"
-defaults write AIBook aiBook.explanationSource "Cursor 本地"
+mkdir -p "$APP_SUPPORT"
+printf '%s' "$CURSOR_API_KEY" > "$KEY_FILE"
+chmod 600 "$KEY_FILE"
 
-echo "已写入 AIBook 配置（Cursor 本地模式）。"
+defaults write "$BUNDLE_ID" aiBook.cursorAPIKey "$CURSOR_API_KEY"
+defaults write "$BUNDLE_ID" aiBook.explanationSource "Cursor 本地"
+
+echo "已写入 Cursor API Key："
+echo "  - $KEY_FILE"
+echo "  - UserDefaults ($BUNDLE_ID)"

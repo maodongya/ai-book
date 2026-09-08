@@ -27,12 +27,8 @@ struct CursorConfigPanel: View {
                 Text(settings.cursorBridgeStatusMessage)
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-            } else if settings.isLLMConfigured {
-                Text("未填写 Cursor API Key。右页将自动使用已配置的大模型，填写 Key 后可切换为 Cursor 本地。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
             } else {
-                Text("请填写 Cursor API Key，或先配置一个大模型作为进化后端。")
+                Text("请填写 Cursor API Key，进化功能仅支持 Cursor 本地桥接。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }
@@ -82,7 +78,7 @@ struct CursorConfigPanel: View {
                 .disabled(draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button("从环境变量读取") {
-                    settings.refreshCursorAPIKeyFromSources()
+                    settings.reloadCursorAPIKey()
                     draftAPIKey = settings.effectiveCursorAPIKey
                 }
                 .buttonStyle(.plain)
@@ -106,7 +102,7 @@ struct CursorConfigPanel: View {
                 }
         }
         .onAppear {
-            settings.refreshCursorAPIKeyFromSources()
+            settings.reloadCursorAPIKey()
             draftAPIKey = settings.effectiveCursorAPIKey
         }
     }

@@ -88,7 +88,7 @@ struct SettingsView: View {
                     .settingsPillButton(prominent: true)
 
                     Button {
-                        settings.refreshCursorAPIKeyFromSources()
+                        settings.reloadCursorAPIKey()
                     } label: {
                         Label("从环境变量读取", systemImage: "arrow.down.doc")
                     }
@@ -118,7 +118,7 @@ struct SettingsView: View {
                 Text("开启后，在本次会话中点击过「进化」且队列仍有待办时，将自动执行进化、打包安装并继续下一条。冷启动不会自动开始。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Text("大模型 API 与模型选择请在右页 AI 进化 Tab 的「进化」子页配置。")
+                Text("模型在 AI 进化页顶栏选择；Cursor Key 与桥接见上方「Cursor 本地对话」。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }

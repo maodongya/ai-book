@@ -58,6 +58,41 @@ final class OptimizationQueueTests: XCTestCase {
         XCTAssertEqual(queue.items.first { $0.id == second.id }?.status, .pending)
     }
 
+    func testImportFromNotesBuildsQueueWithCompletionStatus() {
+        let notes = """
+        1、已完成：左右分栏
+        2、增加朗读
+        """
+        let queue = OptimizationQueue.importFromNotes(notes)
+        XCTAssertEqual(queue.items.count, 2)
+        XCTAssertEqual(queue.items[0].number, 1)
+        XCTAssertEqual(queue.items[0].status, .completed)
+        XCTAssertEqual(queue.items[0].source, .user)
+        XCTAssertEqual(queue.items[1].number, 2)
+        XCTAssertEqual(queue.items[1].status, .pending)
+        XCTAssertEqual(queue.items[1].title, "增加朗读")
+    }
+
+    func testImportFromNotesReturnsEmptyForInvalidContent() {
+        let queue = OptimizationQueue.importFromNotes("没有编号命令\n纯文本")
+        XCTAssertTrue(queue.items.isEmpty)
+    }
+
+    func testImportFromNotesRoundTripsWithFormatter() {
+        let notes = """
+        1、已完成：左右分栏
+        2、增加朗读
+        3、自我进化
+        """
+        let imported = OptimizationQueue.importFromNotes(notes)
+        let formatted = NumberedNoteFormatter.format(imported)
+        let roundTripped = OptimizationQueue.importFromNotes(formatted)
+        XCTAssertEqual(roundTripped.items.count, 3)
+        XCTAssertEqual(roundTripped.items.filter { $0.status == .completed }.count, 1)
+        XCTAssertEqual(roundTripped.items.filter { $0.status == .pending }.count, 2)
+        XCTAssertEqual(roundTripped.items[2].title, "自我进化")
+    }
+
     private func makeItem(
         number: Int,
         title: String = "标题",

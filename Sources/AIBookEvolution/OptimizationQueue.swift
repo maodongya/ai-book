@@ -22,6 +22,35 @@ public struct OptimizationQueue: Codable, Equatable {
         OptimizationQueue(version: 1, updatedAt: Date(), lastAnalysisAt: nil, items: [])
     }
 
+    /// 从左页编号命令笔记文本构建优化队列（与 `NumberedNoteFormatter` 互逆）。
+    public static func importFromNotes(_ notes: String) -> OptimizationQueue {
+        let parsed = NumberedNoteParser.parse(notes)
+        guard !parsed.isEmpty else { return .empty }
+
+        let now = Date()
+        var queue = OptimizationQueue.empty
+        queue.items = parsed.map { command in
+            OptimizationItem(
+                id: UUID(),
+                number: command.number,
+                title: command.title,
+                rationale: "",
+                category: .featureGap,
+                priority: .medium,
+                risk: .low,
+                suggestedFiles: [],
+                source: .user,
+                status: command.isCompleted ? .completed : .pending,
+                pinnedAt: nil,
+                createdAt: now,
+                updatedAt: now,
+                completionSummary: command.isCompleted ? command.title : nil
+            )
+        }
+        queue.updatedAt = now
+        return queue
+    }
+
     public func nextPending() -> OptimizationItem? {
         let pending = items.filter { $0.status == .pending }
         let pinned = pending

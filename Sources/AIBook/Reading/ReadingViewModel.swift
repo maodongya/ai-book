@@ -85,7 +85,6 @@ final class ReadingViewModel: ObservableObject {
     @Published private(set) var lastSaveMessage: String?
 
     private let llmService = LLMService()
-    private let llmEvolutionAgent = LLMEvolutionAgent()
     private let cursorService = CursorService()
     private let chatSessionStore = ChatSessionStore.shared
     private let readmeNotesStore = ReadmeNotesStore.shared
@@ -201,16 +200,13 @@ final class ReadingViewModel: ObservableObject {
     }
 
     var evolutionContextUsage: CursorContextUsage {
-        let settings = AppSettings.shared
-        let usesLLM = settings.explanationSource == .llm
-            || (settings.explanationSource == .cursor && !settings.isCursorRunnable && settings.isLLMConfigured)
-        return CursorContextCalculator.usage(
+        CursorContextCalculator.usage(
             fileContent: fileContent,
             selectedText: selectedText,
             history: evolutionPromptMessages,
             input: evolutionChatInput,
-            contextPercent: usesLLM ? settings.llmContextPercent : settings.cursorContextPercent,
-            limitCharacters: usesLLM ? LLMContextLimits.maxCharacters : CursorContextLimits.maxCharacters
+            contextPercent: AppSettings.shared.cursorContextPercent,
+            limitCharacters: CursorContextLimits.maxCharacters
         )
     }
 
@@ -225,7 +221,6 @@ final class ReadingViewModel: ObservableObject {
 
     func evolutionTokenBudget(additionalPrompt: String?) -> ModelTokenBudget {
         let settings = AppSettings.shared
-        let usesCursor = settings.explanationSource == .cursor && settings.isCursorRunnable
         return EvolutionTokenCalculator.budget(
             sessionConsumedTokens: evolutionSessionTokensConsumed,
             agentLiveContextTokens: evolutionAgentContextTokens,
@@ -235,11 +230,19 @@ final class ReadingViewModel: ObservableObject {
             streamingResponse: streamingResponse,
             toolSteps: streamingToolSteps,
             additionalPrompt: additionalPrompt,
-            usesCursor: usesCursor,
+            usesCursor: true,
             cursorModel: settings.resolvedCursorModel,
             llmModel: settings.model,
             llmProvider: settings.provider
         )
+    }
+
+    private func ensureEvolutionUsesCursor() {
+        let settings = AppSettings.shared
+        settings.reloadCursorAPIKey()
+        if settings.explanationSource != .cursor {
+            settings.explanationSource = .cursor
+        }
     }
 
     private func guardEvolutionTokenLimit(for prompt: String, action: String) -> Bool {
@@ -284,6 +287,7 @@ final class ReadingViewModel: ObservableObject {
         guard rightPageTab != tab else { return }
         if tab == .aiEvolution {
             ensureEvolutionWelcome()
+            ensureEvolutionUsesCursor()
         }
         rightPageTab = tab
     }
@@ -467,7 +471,6 @@ final class ReadingViewModel: ObservableObject {
         activeTask = nil
         cursorService.cancel()
         llmService.cancel()
-        llmEvolutionAgent.cancel()
         stopExplanationSpeech()
         isLoading = false
         isRunning = false
@@ -521,6 +524,71 @@ final class ReadingViewModel: ObservableObject {
             chatMessages = evolutionPromptMessages
         }
         persistChatSession()
+    }
+
+    /// 将优化队列导出为本地编号命令文本文件。
+    func saveEvolutionCommands() {
+        guard !optimizationQueue.items.isEmpty else {
+            errorMessage = "优化队列为空，无可保存的进化命令。"
+            return
+        }
+        let formatted = NumberedNoteFormatter.format(optimizationQueue)
+        exportEvolutionCommands(
+            formatted,
+            panelTitle: "保存进化命令",
+            panelMessage: "将优化队列导出为编号命令文本（UTF-8）",
+            successPrefix: "已保存进化命令"
+        )
+    }
+
+    /// 从本地编号命令文本文件加载优化队列。
+    func openEvolutionCommands() {
+        guard !isRunning else { return }
+
+        let panel = NSOpenPanel()
+        panel.title = "打开进化命令"
+        panel.message = "选择包含编号命令行的 UTF-8 文本文件"
+        panel.allowedContentTypes = [.plainText]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.directoryURL = DocumentExporter.lastDirectoryURL
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let imported = OptimizationQueue.importFromNotes(text)
+            guard !imported.items.isEmpty else {
+                errorMessage = "文件中未找到有效的编号命令行（如「1、…」）。"
+                return
+            }
+            if optimizationQueue.items.contains(where: { $0.status == .running }) {
+                errorMessage = "当前有进化任务正在执行，请先停止后再打开。"
+                return
+            }
+            if !optimizationQueue.items.isEmpty,
+               !confirmReplaceOptimizationQueue() {
+                return
+            }
+
+            optimizationQueue = imported
+            persistOptimizationQueue()
+            syncLeftPageWithEvolutionCommands(from: url, formatted: NumberedNoteFormatter.format(imported))
+            DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
+            errorMessage = nil
+            let count = imported.items.count
+            showTransientSaveMessage("已打开 \(count) 条进化命令：\(url.lastPathComponent)")
+        } catch {
+            errorMessage = "无法打开进化命令：\(error.localizedDescription)"
+        }
+    }
+
+    var canSaveEvolutionCommands: Bool {
+        !optimizationQueue.items.isEmpty
+    }
+
+    var canOpenEvolutionCommands: Bool {
+        !isRunning
     }
 
     var canClearReadingContext: Bool {
@@ -794,6 +862,92 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
+    private func exportEvolutionCommands(
+        _ content: String,
+        panelTitle: String,
+        panelMessage: String,
+        successPrefix: String
+    ) {
+        guard !content.isEmpty else { return }
+
+        let directory = DocumentExporter.defaultDirectory(currentFileURL: currentFileURL)
+        guard let destination = DocumentExporter.runSavePanel(
+            title: panelTitle,
+            message: panelMessage,
+            suggestedName: DocumentExporter.evolutionCommandsSuggestedName,
+            directory: directory
+        ) else { return }
+
+        if FileManager.default.fileExists(atPath: destination.path),
+           !AppGuard.confirmOverwriteExistingFile(at: destination) {
+            return
+        }
+
+        do {
+            try DocumentExporter.write(content, to: destination)
+            syncLeftPageWithEvolutionCommands(from: destination, formatted: content)
+            errorMessage = nil
+            let count = optimizationQueue.items.count
+            showTransientSaveMessage("\(successPrefix) \(count) 条 → \(destination.lastPathComponent)")
+        } catch {
+            errorMessage = "无法保存进化命令：\(error.localizedDescription)"
+        }
+    }
+
+    private func syncLeftPageWithEvolutionCommands(from url: URL, formatted: String) {
+        fileContent = formatted
+        savedContent = formatted
+        fileName = url.lastPathComponent
+        currentFileURL = url
+        isDocumentOpen = true
+        isDirty = false
+        do {
+            try readmeNotesStore.save(formatted)
+        } catch {
+            errorMessage = "无法同步命令笔记：\(error.localizedDescription)"
+        }
+    }
+
+    /// 将优化队列格式化为左页编号命令（N、…）并同步展示与持久化。
+    private func syncLeftPageFromOptimizationQueue() {
+        guard !optimizationQueue.items.isEmpty else { return }
+        let formatted = NumberedNoteFormatter.format(optimizationQueue)
+        fileContent = formatted
+        savedContent = formatted
+        isDirty = false
+        if !isDocumentOpen {
+            isDocumentOpen = true
+        }
+        do {
+            try readmeNotesStore.save(formatted)
+        } catch {
+            errorMessage = "无法同步命令笔记：\(error.localizedDescription)"
+        }
+        if let url = currentFileURL {
+            try? DocumentExporter.write(formatted, to: url)
+        }
+    }
+
+    /// 左页含编号命令行时回写优化队列，使手动编辑与进化队列保持一致。
+    private func syncOptimizationQueueFromLeftPageIfNeeded() {
+        guard !isRunning else { return }
+        guard !optimizationQueue.items.contains(where: { $0.status == .running }) else { return }
+        let imported = OptimizationQueue.importFromNotes(fileContent)
+        guard !imported.items.isEmpty else { return }
+        optimizationQueue = imported
+        persistOptimizationQueue()
+    }
+
+    private func confirmReplaceOptimizationQueue() -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "替换当前优化队列？"
+        alert.informativeText = "打开文件将覆盖现有 \(optimizationQueue.items.count) 条进化命令。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "替换")
+        alert.addButton(withTitle: "取消")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
     private func assistantOutputFileName(for message: ChatMessage) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmm"
@@ -830,6 +984,7 @@ final class ReadingViewModel: ObservableObject {
             currentFileURL = nil
             isDirty = false
             errorMessage = nil
+            syncOptimizationQueueFromLeftPageIfNeeded()
         } catch {
             errorMessage = "无法保存命令笔记：\(error.localizedDescription)"
         }
@@ -1238,20 +1393,15 @@ final class ReadingViewModel: ObservableObject {
         return "处理中…"
     }
 
-    /// AI 进化页是否展示 Agent 执行轨迹（Cursor 或 LLM 本地工具模式）。
+    /// AI 进化页是否展示 Agent 执行轨迹（Cursor）。
     var showsEvolutionExecutionTrace: Bool {
-        let settings = AppSettings.shared
-        switch settings.explanationSource {
-        case .cursor:
-            return settings.isCursorRunnable
-        case .llm:
-            return settings.isLLMConfigured
-        }
+        AppSettings.shared.isCursorRunnable
     }
 
     func startEvolution() {
         selectRightPageTab(.aiEvolution)
         ensureEvolutionWelcome()
+        ensureEvolutionUsesCursor()
 
         if let running = optimizationQueue.items.first(where: { $0.status == .running }) {
             _ = optimizationQueue.revertRunningToPending(id: running.id)
@@ -1299,6 +1449,7 @@ final class ReadingViewModel: ObservableObject {
     func analyzeOptimizations() {
         selectRightPageTab(.aiEvolution)
         ensureEvolutionWelcome()
+        ensureEvolutionUsesCursor()
         guard !isRunning, !isEvolutionRebuilding else { return }
 
         if let configError = AppGuard.evolutionSourceErrorMessage(for: AppSettings.shared) {
@@ -1600,6 +1751,7 @@ final class ReadingViewModel: ObservableObject {
         let text = evolutionChatInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
+        ensureEvolutionUsesCursor()
         if let configError = AppGuard.evolutionSourceErrorMessage(for: AppSettings.shared) {
             errorMessage = configError
             return
@@ -1809,7 +1961,7 @@ final class ReadingViewModel: ObservableObject {
                     handleAnalysisCompletion(reply: resolvedReply)
                 }
 
-                if runKind == .evolution, shouldUseCursorBridge(settings: settings, isEvolutionTask: true) {
+                if runKind == .evolution {
                     recordEvolutionCursorEstimate(
                         prompt: prompt,
                         history: Array(history),
@@ -1855,7 +2007,7 @@ final class ReadingViewModel: ObservableObject {
                     revertRunningOptimization(number: number)
                 }
                 if !(error is CancellationError) {
-                    let message = LLMServiceErrorPresenter.message(for: error, provider: AppSettings.shared.provider)
+                    let message = message(for: error, isEvolution: runKind != .none)
                     errorMessage = message
                     let failureMessage = ChatMessage(role: .assistant, content: "解析失败：\(message)")
                     appendDisplayedMessage(failureMessage, to: promptContext)
@@ -2026,8 +2178,38 @@ final class ReadingViewModel: ObservableObject {
         let fallbackNotice: String?
     }
 
-    private func shouldUseCursorBridge(settings: AppSettings, isEvolutionTask: Bool) -> Bool {
-        isEvolutionTask && settings.isCursorRunnable && settings.explanationSource == .cursor
+    private func message(for error: Error, isEvolution: Bool) -> String {
+        if isEvolution {
+            if let llmError = error as? LLMServiceError,
+               let description = llmError.errorDescription {
+                return description
+            }
+            if case CursorServiceError.needsAuthentication = error {
+                return """
+                Cursor 需要有效的 API Key（AuthenticationError）。
+                请在「进化设置」填写 Cursor API Key，或创建 ai-book/cursor.local.env。
+                进化功能仅使用 Cursor 本地 Agent，不使用读书助手的大模型 API。
+                """
+            }
+            if let localized = error as? LocalizedError,
+               let description = localized.errorDescription,
+               !description.isEmpty {
+                let lower = description.lowercased()
+                if lower.contains("api key") || lower.contains("authentication") {
+                    return """
+                    \(description)
+
+                    提示：进化功能使用 Cursor 本地 Agent。请在「进化设置」配置 Cursor API Key，勿使用 book 设置中的 DeepSeek 等 API Key。
+                    """
+                }
+                return description
+            }
+            return error.localizedDescription
+        }
+        return LLMServiceErrorPresenter.message(
+            for: error,
+            provider: AppSettings.shared.bookProvider
+        )
     }
 
     private func fetchAssistantReply(
@@ -2047,54 +2229,18 @@ final class ReadingViewModel: ObservableObject {
             resolvedSystemPrompt = llmMode?.systemPrompt ?? ReadingAssistant.systemPrompt
         }
         let isEvolutionTask = evolutionRunKind != .none
-        let wantsCursor = shouldUseCursorBridge(settings: settings, isEvolutionTask: isEvolutionTask)
         let readingConfiguration = settings.bookLLMConfiguration
 
-        if wantsCursor {
-            do {
-                return try await fetchCursorReply(
-                    prompt: prompt,
-                    history: history,
-                    settings: settings,
-                    systemInstruction: resolvedSystemPrompt,
-                    autoAuthorize: evolutionRunKind == .evolution
-                )
-            } catch {
-                guard settings.isLLMConfigured, isCursorAuthenticationFailure(error) else {
-                    throw error
-                }
-                resetStreamingState()
-                if isEvolutionTask {
-                    return try await fetchLLMEvolutionReply(
-                        prompt: prompt,
-                        history: history,
-                        settings: settings,
-                        evolutionRunKind: evolutionRunKind
-                    )
-                }
-                let llmText = try await fetchLLMReply(
-                    prompt: prompt,
-                    history: history,
-                    configuration: readingConfiguration,
-                    systemPrompt: resolvedSystemPrompt
-                )
-                return AssistantReplyOutcome(
-                    text: llmText,
-                    thinking: nil,
-                    fallbackNotice: "Cursor 需要 API Key 才能连接，已自动改用「\(settings.provider.rawValue)」大模型回复。"
-                )
-            }
-        }
-
         if isEvolutionTask {
-            guard settings.isLLMConfigured else {
-                throw LLMServiceError.missingAPIKey(provider: settings.provider)
+            if let configError = AppGuard.evolutionSourceErrorMessage(for: settings) {
+                throw EvolutionServiceError.notConfigured(configError)
             }
-            return try await fetchLLMEvolutionReply(
+            return try await fetchCursorReply(
                 prompt: prompt,
                 history: history,
                 settings: settings,
-                evolutionRunKind: evolutionRunKind
+                systemInstruction: resolvedSystemPrompt,
+                autoAuthorize: evolutionRunKind == .evolution
             )
         }
 
@@ -2109,45 +2255,6 @@ final class ReadingViewModel: ObservableObject {
             systemPrompt: resolvedSystemPrompt
         )
         return AssistantReplyOutcome(text: llmText, thinking: nil, fallbackNotice: nil)
-    }
-
-    private func fetchLLMEvolutionReply(
-        prompt: String,
-        history: [ChatMessage],
-        settings: AppSettings,
-        evolutionRunKind: EvolutionRunKind
-    ) async throws -> AssistantReplyOutcome {
-        guard let projectURL = SelfEvolution.sourceProjectDirectory() else {
-            throw LLMServiceError.apiError(
-                "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。",
-                provider: settings.provider
-            )
-        }
-
-        let result = try await llmEvolutionAgent.run(
-            prompt: prompt,
-            history: history,
-            configuration: settings.llmConfiguration,
-            projectRoot: projectURL,
-            allowMutations: evolutionRunKind == .evolution,
-            maxIterations: evolutionRunKind == .analysis ? 8 : nil,
-            onEvent: { [weak self] event in
-                Task { @MainActor in
-                    self?.handleCursorStreamEvent(event)
-                }
-            },
-            onUsage: { [weak self] usage in
-                Task { @MainActor in
-                    self?.recordEvolutionTokenUsage(usage)
-                }
-            },
-            onContextTokens: { [weak self] tokens in
-                Task { @MainActor in
-                    self?.updateEvolutionAgentContextTokens(tokens)
-                }
-            }
-        )
-        return AssistantReplyOutcome(text: result.text, thinking: result.thinking, fallbackNotice: nil)
     }
 
     private func fetchCursorReply(
@@ -2196,22 +2303,6 @@ final class ReadingViewModel: ObservableObject {
                 }
             }
         )
-    }
-
-    private func isCursorAuthenticationFailure(_ error: Error) -> Bool {
-        if case CursorServiceError.needsAuthentication = error {
-            return true
-        }
-        let message = (
-            (error as? LocalizedError)?.errorDescription
-                ?? error.localizedDescription
-        ).lowercased()
-        return message.contains("authentication")
-            || message.contains("unauthenticated")
-            || message.contains("connecterror")
-            || message.contains("needs_auth")
-            || message.contains("cursor api key")
-            || message.contains("curson_api_key")
     }
 
     private func buildChatPrompt(for question: String) -> String {
@@ -2464,6 +2555,7 @@ final class ReadingViewModel: ObservableObject {
             optimizationQueue.updatedAt = Date()
         }
         persistOptimizationQueue()
+        syncLeftPageFromOptimizationQueue()
     }
 
     private func handleAnalysisCompletion(reply: String) {
@@ -2490,11 +2582,12 @@ final class ReadingViewModel: ObservableObject {
 
         let report = optimizationQueue.merge(drafts: drafts)
         persistOptimizationQueue()
+        syncLeftPageFromOptimizationQueue()
         appendDisplayedMessage(
             ChatMessage(role: .assistant, content: report.summaryChinese),
             to: .evolution
         )
-        UserDefaults.standard.set(EvolutionUtilityTab.queue.rawValue, forKey: "evolutionUtilityTab")
+        UserDefaults.standard.removeObject(forKey: "evolutionUtilityTab")
     }
 
     private func gitWorkingTreeIsClean(at projectPath: String) -> Bool {

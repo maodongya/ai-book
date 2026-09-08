@@ -14,6 +14,13 @@ enum SelfEvolution {
         "ai-book 自我进化：AI 分析优化队列，点「进化」自动改码、打包重启并继续下一条",
     ]
 
+    /// 自我进化两阶段工作流（分析入队 → 进化改码），进化后端固定为 Cursor 本地 Agent。
+    static let workflowSteps: [String] = [
+        "分析优化：Cursor 只读探索源码，找出可改进点并写入优化队列（左页编号命令同步）",
+        "进化改码：取下一条待办，Cursor Agent 改码、swift build 验证，完成后自动 build-and-install 重启",
+        "自动升级（可选）：队列仍有待办时重启后继续下一条，直至全部完成",
+    ]
+
     static func statusLabel(from queue: OptimizationQueue) -> String? {
         let pending = queue.items.filter { $0.status == .pending }
         guard !queue.items.isEmpty else { return nil }

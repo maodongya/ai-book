@@ -40,33 +40,12 @@ public final class OptimizationQueueStore {
         if FileManager.default.fileExists(atPath: fileURL.path) {
             return try load()
         }
-        let parsed = NumberedNoteParser.parse(notes)
-        guard !parsed.isEmpty else {
+        let queue = OptimizationQueue.importFromNotes(notes)
+        guard !queue.items.isEmpty else {
             let empty = OptimizationQueue.empty
             try save(empty)
             return empty
         }
-        let now = Date()
-        var queue = OptimizationQueue.empty
-        queue.items = parsed.map { command in
-            OptimizationItem(
-                id: UUID(),
-                number: command.number,
-                title: command.title,
-                rationale: "",
-                category: .featureGap,
-                priority: .medium,
-                risk: .low,
-                suggestedFiles: [],
-                source: .user,
-                status: command.isCompleted ? .completed : .pending,
-                pinnedAt: nil,
-                createdAt: now,
-                updatedAt: now,
-                completionSummary: command.isCompleted ? command.title : nil
-            )
-        }
-        queue.updatedAt = now
         try save(queue)
         return queue
     }

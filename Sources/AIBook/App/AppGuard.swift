@@ -13,22 +13,11 @@ enum AppGuard {
     }
 
     static func evolutionSourceErrorMessage(for settings: AppSettings) -> String? {
-        switch settings.explanationSource {
-        case .cursor:
-            if settings.isCursorRunnable || settings.isLLMConfigured {
-                return nil
-            }
-            if !settings.isCursorBridgeReady {
-                return settings.cursorBridgeStatusMessage
-            }
-            return "请配置进化用大模型 API，或填写 Cursor API Key 并确保 cursor-bridge 已安装（npm install）。"
-        case .llm:
-            if settings.isLLMConfigured { return nil }
-            if settings.provider == .ollama {
-                return "请确认 Ollama 已启动，并在 AI 进化 Tab 的模型设置中选择本地模型。"
-            }
-            return "请先在 AI 进化 Tab 为「\(settings.provider.rawValue)」配置 API Key。"
+        if settings.isCursorRunnable { return nil }
+        if !settings.isCursorBridgeReady {
+            return settings.cursorBridgeStatusMessage
         }
+        return "请在「进化设置」中配置 Cursor API Key 并确保 cursor-bridge 已安装。"
     }
 
     /// Reading + evolution entry points that previously shared one backend.
@@ -36,12 +25,9 @@ enum AppGuard {
         evolutionSourceErrorMessage(for: settings)
     }
 
-    /// Self-evolution prefers Cursor local bridge; falls back to LLM when bridge is unavailable.
+    /// Self-evolution requires Cursor local bridge.
     static func evolutionErrorMessage(for settings: AppSettings) -> String? {
-        if settings.isCursorRunnable || settings.isLLMConfigured {
-            return nil
-        }
-        return "请配置大模型 API，或填写 Cursor API Key 以使用本地进化。"
+        evolutionSourceErrorMessage(for: settings)
     }
 
     static func confirmDiscardUnsavedChanges() -> Bool {
@@ -62,5 +48,16 @@ enum AppGuard {
         alert.addButton(withTitle: "覆盖")
         alert.addButton(withTitle: "取消")
         return alert.runModal() == .alertFirstButtonReturn
+    }
+}
+
+enum EvolutionServiceError: LocalizedError {
+    case notConfigured(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notConfigured(let message):
+            return message
+        }
     }
 }
