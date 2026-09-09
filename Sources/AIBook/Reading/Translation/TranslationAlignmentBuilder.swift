@@ -104,8 +104,7 @@ enum TranslationAlignmentBuilder {
             return makeAlignment(
                 mode: .paragraph,
                 blocks: anchorParagraphBlocks(items, in: source),
-                sourceHash: sourceHash,
-                markPartialStale: true
+                sourceHash: sourceHash
             )
         case .wordByWord:
             let entries = TranslationLineParser.parseWordByWordLines(text)
@@ -124,8 +123,7 @@ enum TranslationAlignmentBuilder {
             return makeAlignment(
                 mode: .wordByWord,
                 blocks: blocks,
-                sourceHash: sourceHash,
-                markPartialStale: true
+                sourceHash: sourceHash
             )
         }
     }
@@ -137,33 +135,21 @@ enum TranslationAlignmentBuilder {
         in source: String
     ) -> [TranslationBlock] {
         let paragraphs = paragraphRanges(in: source)
-        var paragraphIndex = 0
-        let useSequential = items.count == paragraphs.count && paragraphs.count > 1
-
         return items.enumerated().map { order, item in
-            var matchedRange = NSRange(location: 0, length: 0)
-            var matchedSource = normalized(item.sourceText)
-
-            if useSequential, paragraphs.indices.contains(order) {
+            if paragraphs.indices.contains(order) {
                 let candidate = paragraphs[order]
-                matchedRange = candidate.range
-                matchedSource = candidate.text
-            } else {
-                while paragraphIndex < paragraphs.count {
-                    let candidate = paragraphs[paragraphIndex]
-                    if textsMatch(candidate.text, item.sourceText) {
-                        matchedRange = candidate.range
-                        matchedSource = candidate.text
-                        paragraphIndex += 1
-                        break
-                    }
-                    paragraphIndex += 1
-                }
+                return TranslationBlock(
+                    sourceRange: candidate.range,
+                    sourceText: candidate.text,
+                    translationText: item.translationText,
+                    note: item.note,
+                    level: .paragraph,
+                    order: order
+                )
             }
-
             return TranslationBlock(
-                sourceRange: matchedRange,
-                sourceText: matchedSource.isEmpty ? normalized(item.sourceText) : matchedSource,
+                sourceRange: NSRange(location: 0, length: 0),
+                sourceText: normalized(item.sourceText),
                 translationText: item.translationText,
                 note: item.note,
                 level: .paragraph,
@@ -395,17 +381,14 @@ enum TranslationAlignmentBuilder {
     private static func makeAlignment(
         mode: TranslationAlignmentMode,
         blocks: [TranslationBlock],
-        sourceHash: String,
-        markPartialStale: Bool = false
+        sourceHash: String
     ) -> TranslationAlignment {
-        let anchored = blocks.filter(\.isAnchored).count
-        let stale = markPartialStale || (blocks.isEmpty ? false : anchored < blocks.count)
         return TranslationAlignment(
             mode: mode,
             blocks: blocks,
             sourceContentHash: sourceHash,
             createdAt: Date(),
-            isStale: stale
+            isStale: false
         )
     }
 

@@ -94,8 +94,8 @@ enum TranslationContentFormatter {
     }
 
     static func matchesRenderedContent(_ alignment: TranslationAlignment, content: String) -> Bool {
-        let rendered = render(alignment).trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmed = contentWithoutDisplayTitle(content)
+        let rendered = TranslationSourceHasher.normalize(render(alignment))
+        let trimmed = TranslationSourceHasher.normalize(contentWithoutDisplayTitle(content))
         return rendered == trimmed
     }
 

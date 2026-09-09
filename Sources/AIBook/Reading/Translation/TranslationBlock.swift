@@ -84,11 +84,18 @@ struct TranslationAlignment: Codable, Equatable {
 
 enum TranslationSourceHasher {
     static func hash(_ text: String) -> String {
-        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = normalize(text)
         var hash: UInt64 = 5381
         for byte in normalized.utf8 {
             hash = ((hash << 5) &+ hash) &+ UInt64(byte)
         }
         return String(hash)
+    }
+
+    static func normalize(_ text: String) -> String {
+        text.precomposedStringWithCanonicalMapping
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

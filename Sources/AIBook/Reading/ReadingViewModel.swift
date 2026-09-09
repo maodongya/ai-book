@@ -51,7 +51,9 @@ final class ReadingViewModel: ObservableObject {
         didSet {
             isDirty = fileContent != savedContent
             scheduleAutoSaveIfNotes()
-            refreshTranslationAlignmentStaleState()
+            if !isRestoringSession, !isApplyingAlignment {
+                refreshTranslationAlignmentStaleState()
+            }
         }
     }
     @Published var fileName = "未命名"
@@ -246,6 +248,7 @@ final class ReadingViewModel: ObservableObject {
         ensureEvolutionWelcome()
         restoreChatSession()
         syncDisplayedChatMessages()
+        refreshTranslationAlignmentStaleState()
         persistChatSession()
     }
 
@@ -2516,6 +2519,7 @@ final class ReadingViewModel: ObservableObject {
         var alignment = TranslationAlignmentBuilder.build(from: result, source: source, mode: mode)
         let rendered = TranslationContentFormatter.renderIndexed(alignment, title: title)
         alignment.blocks = rendered.blocks
+        alignment.isStale = false
 
         isApplyingAlignment = true
         translationAlignment = alignment
@@ -2571,6 +2575,7 @@ final class ReadingViewModel: ObservableObject {
 
         var alignment = rebuilt
         alignment.blocks = rendered.blocks
+        alignment.isStale = false
         isApplyingAlignment = true
         translationAlignment = alignment
         lessonPlanContent = rendered.content
@@ -2643,30 +2648,35 @@ final class ReadingViewModel: ObservableObject {
     private func refreshTranslationAlignmentStaleState(fromManualEdit: Bool = false) {
         guard var alignment = translationAlignment else { return }
 
-        let source = lessonPlanSourceText()
-        let currentHash = TranslationSourceHasher.hash(source)
-        if alignment.sourceContentHash != currentHash {
-            guard !alignment.isStale else { return }
-            alignment.isStale = true
-            translationAlignment = alignment
-            if readingComparisonEnabled {
-                readingComparisonEnabled = false
+        if sourceHashMatches(alignment) {
+            if alignment.isStale, !fromManualEdit {
+                alignment.isStale = false
+                translationAlignment = alignment
+            } else if fromManualEdit,
+                      !TranslationContentFormatter.matchesRenderedContent(alignment, content: lessonPlanContent) {
+                guard !alignment.isStale else { return }
+                alignment.isStale = true
+                translationAlignment = alignment
+                if readingComparisonEnabled {
+                    readingComparisonEnabled = false
+                }
+                translationScrollSync.resetAnchors()
             }
-            translationScrollSync.resetAnchors()
             return
         }
 
-        guard fromManualEdit else { return }
-        let matches = TranslationContentFormatter.matchesRenderedContent(alignment, content: lessonPlanContent)
-        if !matches {
-            guard !alignment.isStale else { return }
-            alignment.isStale = true
-            translationAlignment = alignment
-            if readingComparisonEnabled {
-                readingComparisonEnabled = false
-            }
-            translationScrollSync.resetAnchors()
+        guard !alignment.isStale else { return }
+        alignment.isStale = true
+        translationAlignment = alignment
+        if readingComparisonEnabled {
+            readingComparisonEnabled = false
         }
+        translationScrollSync.resetAnchors()
+    }
+
+    private func sourceHashMatches(_ alignment: TranslationAlignment) -> Bool {
+        let candidates = [fileContent, selectedText, lastCommittedSelectionText]
+        return candidates.contains { TranslationSourceHasher.hash($0) == alignment.sourceContentHash }
     }
 
     private func lessonPlanSourceText() -> String {
