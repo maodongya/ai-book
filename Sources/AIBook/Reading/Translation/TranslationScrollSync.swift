@@ -38,7 +38,9 @@ final class TranslationScrollSync: ObservableObject {
         }
         lastSourceAnchorID = block.id
         lastTranslationAnchorID = block.id
-        sourceView?.highlightRange(block.sourceRange)
+        DispatchQueue.main.async { [weak self] in
+            self?.sourceView?.highlightRange(block.sourceRange)
+        }
     }
 
     func translationDidScroll(visibleRange: NSRange, alignment: TranslationAlignment) {

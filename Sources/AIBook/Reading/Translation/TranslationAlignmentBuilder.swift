@@ -177,6 +177,32 @@ enum TranslationAlignmentBuilder {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    // MARK: - Paragraph resegment alignment
+
+    static func sourceParagraphRanges(in source: String) -> [(range: NSRange, text: String)] {
+        paragraphRanges(in: source)
+    }
+
+    static func buildParagraphAlignment(
+        source: String,
+        segments: [TranslationParagraphSegmenter.Segment]
+    ) -> TranslationAlignment {
+        let sourceHash = TranslationSourceHasher.hash(source)
+        let sourceParagraphs = paragraphRanges(in: source)
+        let blocks = segments.enumerated().map { order, segment in
+            let sourceParagraph = sourceParagraphs.indices.contains(order) ? sourceParagraphs[order] : nil
+            return TranslationBlock(
+                sourceRange: sourceParagraph?.range ?? NSRange(location: 0, length: 0),
+                sourceText: sourceParagraph?.text ?? "",
+                translationText: segment.text,
+                note: segment.note,
+                level: .paragraph,
+                order: order
+            )
+        }
+        return makeAlignment(mode: .paragraph, blocks: blocks, sourceHash: sourceHash)
+    }
+
     // MARK: - Plain text fallback
 
     private static func buildFromPlainText(
@@ -436,34 +462,7 @@ enum TranslationAlignmentBuilder {
     }
 
     private static func paragraphRanges(in source: String) -> [(range: NSRange, text: String)] {
-        let ns = source as NSString
-        guard ns.length > 0 else { return [] }
-
-        var results: [(NSRange, String)] = []
-        var location = 0
-        let parts = source.components(separatedBy: "\n\n")
-
-        for (index, part) in parts.enumerated() {
-            let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                location += part.utf16.count + (index < parts.count - 1 ? 2 : 0)
-                continue
-            }
-            let searchRange = NSRange(location: location, length: max(0, ns.length - location))
-            let found = ns.range(of: part, options: [], range: searchRange)
-            if found.location != NSNotFound {
-                results.append((found, trimmed))
-                location = found.location + found.length + 2
-            }
-        }
-
-        if results.isEmpty {
-            let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                results.append((NSRange(location: 0, length: ns.length), trimmed))
-            }
-        }
-        return results
+        TranslationParagraphText.contentParagraphRanges(in: source)
     }
 
     private static func fullSourceRange(_ source: String) -> NSRange {

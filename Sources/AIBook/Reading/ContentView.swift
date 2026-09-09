@@ -604,6 +604,15 @@ struct ContentView: View {
         Button {
             viewModel.selectRightPageTab(.readingAssistant)
             viewModel.selectReadingAssistantPanel(.translation)
+            viewModel.alignTranslationWithSource()
+        } label: {
+            Text("对齐原文")
+        }
+        .disabled(!viewModel.canAlignTranslationWithSource)
+
+        Button {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.selectReadingAssistantPanel(.translation)
             viewModel.saveLessonPlan()
         } label: {
             Text("保存翻译")

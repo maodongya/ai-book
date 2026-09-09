@@ -224,7 +224,7 @@ struct ExplanationChatView: View {
                     .font(BookTheme.captionFont)
                 Text(viewModel.translationScrollSyncEnabled
                      ? "已开：生成带段落/词条锚点的译文，左右可跟着滑。请在生成前打开，生成后生效。"
-                     : "已关：生成通顺全文，不强制逐段对齐。需要对照时请打开后再点「整段翻译」或「逐字翻译」。")
+                     : "已关：生成通顺全文。需要对照时可打开后再生成，或直接点「对齐原文」按段落重分割已有译文。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -236,19 +236,32 @@ struct ExplanationChatView: View {
                     .toggleStyle(.switch)
                     .font(BookTheme.captionFont)
                     .disabled(!viewModel.canUseTranslationTableView)
-                Text("把译文拆成「原文 | 译文 | 说明」三列。点一行，左页会滚到对应原文；左页滚动时表格会跟到那一行。适合查词和按段对照。")
+                Text("按左页段落重新分割译文并建立映射。点一行，左页会滚到对应原文；左页滚动时表格会跟到那一行。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let alignment = viewModel.translationAlignment, !alignment.isStale {
-                Text("\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                    .padding(.top, 4)
+            VStack(alignment: .trailing, spacing: 6) {
+                Button("对齐原文") {
+                    viewModel.alignTranslationWithSource()
+                }
+                .buttonStyle(.bordered)
+                .font(BookTheme.captionFont)
+                .disabled(!viewModel.canAlignTranslationWithSource)
+
+                if let status = viewModel.translationAlignmentStatusText {
+                    Text(status)
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(
+                            viewModel.translationAlignment?.isStale == true
+                                ? Color.orange
+                                : BookTheme.inkMuted
+                        )
+                }
             }
+            .padding(.top, 2)
         }
         .padding(.horizontal, 14)
         .padding(.top, 4)
@@ -259,10 +272,15 @@ struct ExplanationChatView: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-            Text("原文已修改或翻译已手动编辑，对齐失效，请重新翻译后恢复同步。")
+            Text("对齐已失效。可点击「对齐原文」恢复同步，无需重新翻译；仅当译文内容本身也要改时才重新生成。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkSecondary)
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
+            Button("对齐原文") {
+                viewModel.alignTranslationWithSource()
+            }
+            .font(BookTheme.captionFont)
+            .disabled(!viewModel.canAlignTranslationWithSource)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

@@ -347,12 +347,26 @@ final class ReadingViewModel: ObservableObject {
         return alignment.sourceContentHash == TranslationSourceHasher.hash(fileContent)
     }
 
+    var canAlignTranslationWithSource: Bool {
+        !isRunning
+            && !lessonPlanSourceText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var translationAlignmentStatusText: String? {
+        guard let alignment = translationAlignment else { return nil }
+        if alignment.isStale {
+            return "对齐失效"
+        }
+        return "\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定"
+    }
+
     var readingComparisonHelp: String {
         guard let alignment = translationAlignment else {
             return "先生成整段翻译，再对照翻页。"
         }
         if alignment.isStale {
-            return "原文或译文已改动，请重新生成整段翻译后再对照。"
+            return "原文或译文已改动，请点击「对齐原文」恢复；仅改译文内容时才需重新生成。"
         }
         if alignment.mode == .wordByWord {
             return "逐字翻译请用学习模式的「表格对照」；对照翻页仅支持整段翻译。"
@@ -2282,9 +2296,8 @@ final class ReadingViewModel: ObservableObject {
             let text = try String(contentsOf: url, encoding: .utf8)
             isApplyingAlignment = true
             lessonPlanContent = text
-            translationAlignment = rebuildTranslationAlignment(from: text)
             isApplyingAlignment = false
-            repairCollapsedParagraphAlignmentIfNeeded()
+            _ = alignTranslationWithSource(showFeedback: false)
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             errorMessage = nil
             showTransientSaveMessage("已打开翻译 \(url.lastPathComponent)")
@@ -2532,65 +2545,60 @@ final class ReadingViewModel: ObservableObject {
         persistChatSession()
     }
 
-    private func rebuildTranslationAlignment(from content: String) -> TranslationAlignment? {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+    @discardableResult
+    func alignTranslationWithSource(showFeedback: Bool = true) -> Bool {
+        let source = lessonPlanSourceText()
+        let content = lessonPlanContent
+        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            if showFeedback {
+                errorMessage = "请先在左页打开或输入原文，并在右页加载或输入译文。"
+            }
+            return false
+        }
 
+        guard let outcome = TranslationAligner.align(source: source, translation: content) else {
+            if showFeedback {
+                errorMessage = "无法从当前译文建立对齐。请确认译文为整段/逐字格式，或与原文段落数相近。"
+            }
+            return false
+        }
+
+        translationScrollSync.resetAnchors()
+        isApplyingAlignment = true
+        if let rendered = outcome.renderedContent {
+            lessonPlanContent = rendered
+        }
+        translationAlignment = outcome.alignment
+        isApplyingAlignment = false
+        syncTranslationScrollPresentation()
+        persistChatSession()
+        errorMessage = nil
+
+        if showFeedback {
+            let alignment = outcome.alignment
+            let resegmented = outcome.renderedContent != nil ? "，译文已按原文段落重新分割" : ""
+            showTransientSaveMessage(
+                "已对齐 \(alignment.anchoredBlockCount)/\(alignment.blocks.count) 段\(resegmented)"
+            )
+        }
+        return true
+    }
+
+    private func rebuildTranslationAlignment(from content: String) -> TranslationAlignment? {
         let source = lessonPlanSourceText()
         guard !source.isEmpty else { return nil }
-
-        let wordEntries = TranslationLineParser.parseWordByWordLines(trimmed)
-        let mode: TranslationAlignmentMode
-        if trimmed.contains("\"mode\": \"wordByWord\"") || trimmed.contains("\"entries\"") {
-            mode = .wordByWord
-        } else if trimmed.contains("\"mode\": \"paragraph\"")
-                    || trimmed.contains("\"blocks\"")
-                    || trimmed.contains("```json") {
-            mode = .paragraph
-        } else {
-            mode = wordEntries.count >= 2 ? .wordByWord : .paragraph
-        }
-        var alignment = TranslationAlignmentBuilder.build(from: trimmed, source: source, mode: mode)
-        let rendered = TranslationContentFormatter.renderIndexed(alignment)
-        alignment.blocks = rendered.blocks
-        return alignment
+        return TranslationAligner.align(source: source, translation: content)?.alignment
     }
 
     private func refreshTranslationAlignmentAfterSourceChange() {
-        if translationAlignment == nil,
-           !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            translationAlignment = rebuildTranslationAlignment(from: lessonPlanContent)
+        if !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            _ = alignTranslationWithSource(showFeedback: false)
         }
-        repairCollapsedParagraphAlignmentIfNeeded()
     }
 
     private func repairCollapsedParagraphAlignmentIfNeeded() {
-        let source = lessonPlanSourceText()
-        guard !source.isEmpty, !lessonPlanContent.isEmpty else { return }
-
-        let sourceParagraphs = source
-            .components(separatedBy: "\n\n")
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .count
-        let paragraphBlocks = translationAlignment?.blocks.filter { $0.level == .paragraph }.count ?? 0
-        let looksLikeRawJSON = lessonPlanContent.contains("```json")
-            || lessonPlanContent.contains("\"translationText\"")
-        let collapsed = sourceParagraphs > 2 && paragraphBlocks <= 1
-        guard looksLikeRawJSON || collapsed else { return }
-
-        guard let rebuilt = rebuildTranslationAlignment(from: lessonPlanContent) else { return }
-        let rebuiltCount = rebuilt.blocks.filter { $0.level == .paragraph }.count
-        let rendered = TranslationContentFormatter.renderIndexed(rebuilt, title: "生成整段翻译")
-        let cleaned = !rendered.content.contains("```json") && rebuiltCount >= max(paragraphBlocks, 1)
-        guard cleaned, rebuiltCount > paragraphBlocks || looksLikeRawJSON else { return }
-
-        var alignment = rebuilt
-        alignment.blocks = rendered.blocks
-        alignment.isStale = false
-        isApplyingAlignment = true
-        translationAlignment = alignment
-        lessonPlanContent = rendered.content
-        isApplyingAlignment = false
+        _ = alignTranslationWithSource(showFeedback: false)
     }
 
     func handleSourceTextScroll(visibleRange: NSRange) {
@@ -2612,8 +2620,13 @@ final class ReadingViewModel: ObservableObject {
         translationTableHighlightedBlockID = block.id
         let mappedBlock = alignment.blocks.first(where: { $0.id == block.id }) ?? block
         guard mappedBlock.isAnchored else { return }
-        sourceTextScrollProxy.scrollToCharacterRange(mappedBlock.sourceRange, anchor: .top)
-        sourceTextScrollProxy.highlightRange(mappedBlock.sourceRange)
+        let sourceRange = mappedBlock.sourceRange
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if self.sourceTextScrollProxy.scrollToCharacterRange(sourceRange, anchor: .top) {
+                self.sourceTextScrollProxy.highlightRange(sourceRange)
+            }
+        }
     }
 
     var showsTranslationTableView: Bool {
