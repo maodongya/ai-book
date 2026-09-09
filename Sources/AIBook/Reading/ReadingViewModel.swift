@@ -51,6 +51,7 @@ final class ReadingViewModel: ObservableObject {
         didSet {
             isDirty = fileContent != savedContent
             scheduleAutoSaveIfNotes()
+            refreshTranslationAlignmentStaleState()
         }
     }
     @Published var fileName = "未命名"
@@ -92,6 +93,14 @@ final class ReadingViewModel: ObservableObject {
     }
     @Published private(set) var readingAssistantActiveTask: ReadingAssistantPanel?
     @Published var lessonPlanContent = "" {
+        didSet {
+            if !isApplyingAlignment {
+                refreshTranslationAlignmentStaleState(fromManualEdit: true)
+            }
+            persistChatSession()
+        }
+    }
+    @Published var translationAlignment: TranslationAlignment? {
         didSet { persistChatSession() }
     }
     @Published var isLoading = false
@@ -139,6 +148,7 @@ final class ReadingViewModel: ObservableObject {
     private var savedContent = ""
     private var selectedTextRange: NSRange?
     private var isRestoringSession = false
+    private var isApplyingAlignment = false
     private var activeTask: Task<Void, Never>?
     private var autoSaveTask: Task<Void, Never>?
     private var saveMessageTask: Task<Void, Never>?
@@ -1936,6 +1946,7 @@ final class ReadingViewModel: ObservableObject {
         selectReadingAssistantPanel(.translation)
         runLessonPlanTask(
             displayText: "生成逐字翻译",
+            mode: .wordByWord,
             prompt: buildLessonPlanPrompt(source: source, existingPlan: nil, instruction: nil, mode: .wordByWord)
         )
     }
@@ -1952,6 +1963,7 @@ final class ReadingViewModel: ObservableObject {
         let trimmedInstruction = instruction?.trimmingCharacters(in: .whitespacesAndNewlines)
         runLessonPlanTask(
             displayText: "生成整段翻译",
+            mode: .paragraph,
             prompt: buildLessonPlanPrompt(
                 source: source,
                 existingPlan: existing.isEmpty ? nil : existing,
@@ -1963,7 +1975,10 @@ final class ReadingViewModel: ObservableObject {
 
     func clearLessonPlan() {
         guard !isRunning else { return }
+        isApplyingAlignment = true
+        translationAlignment = nil
         lessonPlanContent = ""
+        isApplyingAlignment = false
     }
 
     func saveLessonPlan() {
@@ -1993,7 +2008,10 @@ final class ReadingViewModel: ObservableObject {
 
         do {
             let text = try String(contentsOf: url, encoding: .utf8)
+            isApplyingAlignment = true
             lessonPlanContent = text
+            translationAlignment = rebuildTranslationAlignment(from: text)
+            isApplyingAlignment = false
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             errorMessage = nil
             showTransientSaveMessage("已打开翻译 \(url.lastPathComponent)")
@@ -2179,7 +2197,11 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
-    private func runLessonPlanTask(displayText: String, prompt: String) {
+    private func runLessonPlanTask(
+        displayText: String,
+        mode: TranslationAlignmentMode,
+        prompt: String
+    ) {
         let settings = AppSettings.shared
         if let configError = AppGuard.bookLLMErrorMessage(for: settings) {
             errorMessage = configError
@@ -2203,12 +2225,7 @@ final class ReadingViewModel: ObservableObject {
 
                 guard !Task.isCancelled else { return }
                 let resolvedPlan = outcome.text.isEmpty ? streamingResponse : outcome.text
-                let appendedPlan = appendTranslationResult(
-                    resolvedPlan,
-                    title: displayText,
-                    to: lessonPlanContent
-                )
-                lessonPlanContent = appendedPlan
+                applyTranslationResult(resolvedPlan, title: displayText, mode: mode)
             } catch {
                 guard !Task.isCancelled else { return }
                 if !(error is CancellationError) {
@@ -2223,15 +2240,50 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
-    private func appendTranslationResult(_ result: String, title: String, to existing: String) -> String {
-        let trimmedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedResult.isEmpty else { return existing }
+    private func applyTranslationResult(
+        _ result: String,
+        title: String,
+        mode: TranslationAlignmentMode
+    ) {
+        let source = lessonPlanSourceText()
+        let alignment = TranslationAlignmentBuilder.build(from: result, source: source, mode: mode)
+        let formatted = TranslationContentFormatter.render(alignment, title: title)
 
-        let header = "【\(title)】"
-        let block = "\(header)\n\(trimmedResult)"
-        let trimmedExisting = existing.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedExisting.isEmpty else { return block }
-        return "\(trimmedExisting)\n\n\(block)"
+        isApplyingAlignment = true
+        translationAlignment = alignment
+        lessonPlanContent = formatted
+        isApplyingAlignment = false
+    }
+
+    private func rebuildTranslationAlignment(from content: String) -> TranslationAlignment? {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let source = lessonPlanSourceText()
+        guard !source.isEmpty else { return nil }
+
+        let wordEntries = TranslationLineParser.parseWordByWordLines(trimmed)
+        let mode: TranslationAlignmentMode = wordEntries.count >= 2 ? .wordByWord : .paragraph
+        return TranslationAlignmentBuilder.build(from: trimmed, source: source, mode: mode)
+    }
+
+    private func refreshTranslationAlignmentStaleState(fromManualEdit: Bool = false) {
+        guard var alignment = translationAlignment else { return }
+
+        let source = lessonPlanSourceText()
+        let currentHash = TranslationSourceHasher.hash(source)
+        if alignment.sourceContentHash != currentHash {
+            alignment.isStale = true
+            translationAlignment = alignment
+            return
+        }
+
+        guard fromManualEdit else { return }
+        let matches = TranslationContentFormatter.matchesRenderedContent(alignment, content: lessonPlanContent)
+        if !matches {
+            alignment.isStale = true
+            translationAlignment = alignment
+        }
     }
 
     private func lessonPlanSourceText() -> String {
@@ -2240,16 +2292,11 @@ final class ReadingViewModel: ObservableObject {
         return fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private enum TranslationMode {
-        case wordByWord
-        case paragraph
-    }
-
     private func buildLessonPlanPrompt(
         source: String,
         existingPlan: String?,
         instruction: String?,
-        mode: TranslationMode
+        mode: TranslationAlignmentMode
     ) -> String {
         let taskIntro: String
         let outputFormat: String
@@ -2260,10 +2307,16 @@ final class ReadingViewModel: ObservableObject {
             要求：按原文顺序逐字、逐词、短语拆解；每项给出原文、译文和必要的极简说明；不扩写成教案，不啰嗦，不重复。
             """
             outputFormat = """
-            输出格式：
-            1. 逐字/逐词翻译表（原文 → 译文 → 必要说明）
-            2. 难点词语（只列真正需要解释的）
-            3. 一句话总译
+            请只输出 JSON（可放在 ```json 代码块内），格式如下：
+            {
+              "mode": "wordByWord",
+              "entries": [
+                { "source": "原文词", "translation": "译文", "note": "可选说明" }
+              ],
+              "summary": "一句话总译",
+              "hardPoints": ["难点词语说明"]
+            }
+            要求：entries 顺序必须与原文一致；source 必须是原文中的连续子串。
             """
         case .paragraph:
             taskIntro = """
@@ -2271,9 +2324,18 @@ final class ReadingViewModel: ObservableObject {
             要求：保留段落层次，译文通顺准确；可参考现有翻译内容进行改写；只输出翻译与少量必要注释，不写教案，不冗余。
             """
             outputFormat = """
-            输出格式：
-            1. 整段翻译（按原文段落）
-            2. 必要注释（少量，避免重复）
+            请只输出 JSON（可放在 ```json 代码块内），格式如下：
+            {
+              "mode": "paragraph",
+              "blocks": [
+                {
+                  "sourceText": "第一段原文",
+                  "translationText": "第一段译文",
+                  "notes": "可选注释"
+                }
+              ]
+            }
+            要求：blocks 数量、顺序必须与原文段落一致；sourceText 必须来自原文对应段落。
             """
         }
 
@@ -2713,6 +2775,11 @@ final class ReadingViewModel: ObservableObject {
             rightPageTab = tab
         }
         lessonPlanContent = session.lessonPlanContent ?? ""
+        translationAlignment = session.translationAlignment
+        if translationAlignment == nil,
+           !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            translationAlignment = rebuildTranslationAlignment(from: lessonPlanContent)
+        }
         if let panelName = session.readingAssistantPanel,
            let panel = ReadingAssistantPanel(rawValue: panelName) {
             readingAssistantPanel = panel
@@ -2739,7 +2806,8 @@ final class ReadingViewModel: ObservableObject {
                 rightPageTab: rightPageTab,
                 readingAssistantPanel: readingAssistantPanel,
                 lastOpenedFilePath: currentFileURL?.path,
-                lessonPlanContent: lessonPlanContent
+                lessonPlanContent: lessonPlanContent,
+                translationAlignment: translationAlignment
             )
         } catch {
             errorMessage = "无法保存对话会话：\(error.localizedDescription)"
