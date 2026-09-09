@@ -31,13 +31,14 @@ struct LLMProfilesSettingsView: View {
             HStack(spacing: 10) {
                 Text("当前使用")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Picker("当前提供商", selection: activeProviderBinding) {
                     ForEach(LLMProvider.allCases) { provider in
                         Text(providerPickerLabel(provider)).tag(provider)
                     }
                 }
                 .pickerStyle(.menu)
+                .tint(BookTheme.settingsPrimary)
                 .onChange(of: settings.bookProvider) { _ in
                     guard scope == .book else { return }
                     applyActiveProviderDefaults()
@@ -54,7 +55,7 @@ struct LLMProfilesSettingsView: View {
                 ? "读书讲解、翻译与名著补充使用此处模型；可同时保存多家 API Key，切换不会丢失其他配置。"
                 : "以下可同时保存多家 API Key；切换「当前使用」不会丢失其他提供商配置。")
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsSecondary)
 
             ForEach(LLMProvider.allCases) { provider in
                 providerCard(provider)
@@ -78,14 +79,14 @@ struct LLMProfilesSettingsView: View {
     private var summaryRow: some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
-                .foregroundStyle(configuredProviders.isEmpty ? BookTheme.inkMuted : .green)
+                .foregroundStyle(configuredProviders.isEmpty ? BookTheme.settingsSecondary : .green)
             Text("已配置 \(configuredProviders.count)/\(LLMProvider.allCases.count) 家")
                 .font(BookTheme.labelFont)
-                .foregroundStyle(BookTheme.ink)
+                .foregroundStyle(BookTheme.settingsPrimary)
             if !configuredProviders.isEmpty {
                 Text(configuredProviders.map(\.rawValue).joined(separator: " · "))
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
                     .lineLimit(2)
             }
         }
@@ -118,20 +119,20 @@ struct LLMProfilesSettingsView: View {
                 HStack(spacing: 10) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsSecondary)
                         .frame(width: 14)
 
                     Text(provider.rawValue)
                         .font(BookTheme.labelFont)
-                        .foregroundStyle(BookTheme.ink)
+                        .foregroundStyle(BookTheme.settingsPrimary)
 
                     if isActive {
                         Text("当前")
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leatherShadow)
+                            .foregroundStyle(BookTheme.buttonProminentText)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background { Capsule().fill(BookTheme.gold) }
+                            .background { Capsule().fill(BookTheme.goldGradient) }
                     }
 
                     Spacer()
@@ -144,7 +145,7 @@ struct LLMProfilesSettingsView: View {
                     if let model = draft.model.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty {
                         Text(model)
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.inkMuted)
+                            .foregroundStyle(BookTheme.settingsSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -157,7 +158,7 @@ struct LLMProfilesSettingsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(provider.readingHint)
                         .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsSecondary)
 
                     if provider == .qwen {
                         qwenBailianFields(provider: provider, draft: draft)
@@ -176,7 +177,7 @@ struct LLMProfilesSettingsView: View {
                         if provider == .ollama {
                             Text("本地 ollama serve 通常无需 Key；支持 OLLAMA_HOST / OLLAMA_API_KEY 环境变量与 ollama.local.env。保存后点击「刷新模型」可扫描本机已 pull 的模型。")
                                 .font(BookTheme.captionFont)
-                                .foregroundStyle(BookTheme.inkMuted)
+                                .foregroundStyle(BookTheme.settingsSecondary)
                         }
                     }
 
@@ -190,10 +191,10 @@ struct LLMProfilesSettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .font(BookTheme.labelFont)
-                        .foregroundStyle(BookTheme.leatherShadow)
+                        .foregroundStyle(BookTheme.buttonProminentText)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background { Capsule().fill(BookTheme.gold) }
+                        .background { Capsule().fill(BookTheme.goldGradient) }
 
                         if activeProvider != provider {
                             Button("设为当前") {
@@ -201,7 +202,7 @@ struct LLMProfilesSettingsView: View {
                             }
                             .buttonStyle(.plain)
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leather)
+                            .foregroundStyle(BookTheme.settingsPrimary)
                         }
 
                         Button {
@@ -212,7 +213,7 @@ struct LLMProfilesSettingsView: View {
                                 systemImage: "antenna.radiowaves.left.and.right"
                             )
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leather)
+                            .foregroundStyle(BookTheme.settingsPrimary)
                         }
                         .buttonStyle(.plain)
                         .disabled(testingProvider == provider || !LLMConnector.isConfigured(provider: provider, apiKey: draft.apiKey))
@@ -220,7 +221,7 @@ struct LLMProfilesSettingsView: View {
                         if let result = testResults[provider] {
                             Text(result.message)
                                 .font(BookTheme.captionFont)
-                                .foregroundStyle(result.success ? .green : BookTheme.leather)
+                                .foregroundStyle(result.success ? .green : BookTheme.settingsPrimary)
                                 .lineLimit(2)
                         }
                     }
@@ -249,7 +250,7 @@ struct LLMProfilesSettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("百炼地域")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Picker("百炼地域", selection: Binding(
                     get: { region },
                     set: { applyQwenRegion($0, for: provider) }
@@ -261,7 +262,7 @@ struct LLMProfilesSettingsView: View {
                 .pickerStyle(.segmented)
                 Text(region.consoleHint)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             profileField("API 地址（Base URL）", text: binding(for: provider, keyPath: \.baseURL))
@@ -269,24 +270,26 @@ struct LLMProfilesSettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("模型名称")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Picker("模型", selection: binding(for: provider, keyPath: \.model)) {
                     ForEach(QwenBailianConfig.suggestedModels, id: \.self) { name in
                         Text(name).tag(name)
                     }
                 }
                 .pickerStyle(.menu)
+                .tint(BookTheme.settingsPrimary)
                 TextField("或手动输入模型 ID", text: binding(for: provider, keyPath: \.model))
                     .textFieldStyle(.plain)
                     .font(BookTheme.bodyFont)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.white.opacity(0.65))
+                            .fill(BookTheme.menuItemFill)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                                    .strokeBorder(BookTheme.menuItemBorder, lineWidth: 1)
                             }
                     }
             }
@@ -296,7 +299,7 @@ struct LLMProfilesSettingsView: View {
             }
             .buttonStyle(.plain)
             .font(BookTheme.captionFont)
-            .foregroundStyle(BookTheme.leather)
+            .foregroundStyle(BookTheme.settingsPrimary)
         }
     }
 
@@ -304,9 +307,10 @@ struct LLMProfilesSettingsView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("接口：POST {Base URL}/chat/completions · Authorization: Bearer {API Key}")
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsSecondary)
             Link("打开百炼控制台 API 页", destination: URL(string: QwenBailianConfig.consoleURL)!)
                 .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
         }
     }
 
@@ -369,18 +373,19 @@ struct LLMProfilesSettingsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsPrimary)
             TextField(title, text: text)
                 .textFieldStyle(.plain)
                 .font(BookTheme.bodyFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.65))
+                        .fill(BookTheme.menuItemFill)
                         .overlay {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                                .strokeBorder(BookTheme.menuItemBorder, lineWidth: 1)
                         }
                 }
         }
@@ -390,18 +395,19 @@ struct LLMProfilesSettingsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsPrimary)
             SecureField(title, text: text)
                 .textFieldStyle(.plain)
                 .font(BookTheme.bodyFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.65))
+                        .fill(BookTheme.menuItemFill)
                         .overlay {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                                .strokeBorder(BookTheme.menuItemBorder, lineWidth: 1)
                         }
                 }
         }

@@ -9,7 +9,7 @@ struct ExplanationVoiceSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("使用 macOS 系统语音朗读，无需下载或联网。", systemImage: "speaker.wave.2")
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
+                .foregroundStyle(BookTheme.settingsPrimary)
 
             settingsCard(title: "朗读节奏", icon: "waveform") {
                 Picker("朗读节奏", selection: $settings.speechEngineMode) {
@@ -22,7 +22,7 @@ struct ExplanationVoiceSettingsView: View {
 
                 Text(engineModeDescription)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             settingsCard(title: "语言处理", icon: "textformat.alt") {
@@ -36,7 +36,7 @@ struct ExplanationVoiceSettingsView: View {
 
                 Text(languageModeDescription)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             settingsCard(title: "讲解声音", icon: "person.wave.2") {
@@ -56,10 +56,10 @@ struct ExplanationVoiceSettingsView: View {
                     HStack(spacing: 8) {
                         Label(selected.displayName, systemImage: "speaker.wave.2")
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leather)
+                            .foregroundStyle(BookTheme.settingsPrimary)
                         Text(selected.genderLabel)
                             .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.inkMuted)
+                            .foregroundStyle(BookTheme.settingsSecondary)
                     }
                 }
 
@@ -91,7 +91,7 @@ struct ExplanationVoiceSettingsView: View {
         VStack(alignment: .leading, spacing: 10) {
             Label(title, systemImage: icon)
                 .font(BookTheme.labelFont)
-                .foregroundStyle(BookTheme.ink)
+                .foregroundStyle(BookTheme.settingsPrimary)
             VStack(alignment: .leading, spacing: 10) {
                 content()
             }
@@ -100,7 +100,7 @@ struct ExplanationVoiceSettingsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.42))
+                .fill(BookTheme.menuItemFill)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .strokeBorder(BookTheme.pageEdge.opacity(0.66), lineWidth: 1)

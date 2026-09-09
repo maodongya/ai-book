@@ -22,10 +22,10 @@ struct OllamaSettingsFields: View {
             HStack(spacing: 8) {
                 Text("服务根地址")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Text(OllamaConfig.resolvedHost(baseURL: profile.baseURL))
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(BookTheme.inkSecondary)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                     .lineLimit(1)
                 Spacer()
                 Button("从环境读取") {
@@ -33,7 +33,7 @@ struct OllamaSettingsFields: View {
                 }
                 .buttonStyle(.plain)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
+                .foregroundStyle(BookTheme.settingsPrimary)
             }
 
             modelSection
@@ -41,12 +41,12 @@ struct OllamaSettingsFields: View {
             if let status = catalog.statusMessage {
                 Text(status)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(catalog.models.isEmpty ? BookTheme.leather : BookTheme.inkMuted)
+                    .foregroundStyle(catalog.models.isEmpty ? BookTheme.settingsPrimary : BookTheme.settingsSecondary)
             }
 
             Text(OllamaConfig.pullHint)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsSecondary)
         }
         .task(id: profile.baseURL) {
             await refreshModels()
@@ -73,7 +73,7 @@ struct OllamaSettingsFields: View {
             HStack {
                 Text("本地模型")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Spacer()
                 Button {
                     Task { await refreshModels(force: true) }
@@ -82,7 +82,7 @@ struct OllamaSettingsFields: View {
                         .font(BookTheme.captionFont)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(BookTheme.leather)
+                .foregroundStyle(BookTheme.settingsPrimary)
                 .disabled(catalog.isLoading)
             }
 
@@ -90,6 +90,7 @@ struct OllamaSettingsFields: View {
                 TextField("模型名称（可手动输入）", text: modelBinding)
                     .textFieldStyle(.plain)
                     .font(BookTheme.bodyFont)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .ollamaFieldBackground()
@@ -104,17 +105,25 @@ struct OllamaSettingsFields: View {
                     }
                 }
                 .pickerStyle(.menu)
+                .tint(BookTheme.settingsPrimary)
 
                 if !catalog.models.isEmpty {
-                    Toggle("手动输入模型名", isOn: $useCustomModel)
-                        .font(BookTheme.captionFont)
-                        .tint(BookTheme.gold)
+                    HStack {
+                        Text("手动输入模型名")
+                            .font(BookTheme.captionFont)
+                            .foregroundStyle(BookTheme.settingsPrimary)
+                        Spacer()
+                        Toggle("手动输入模型名", isOn: $useCustomModel)
+                            .labelsHidden()
+                            .tint(BookTheme.gold)
+                    }
                 }
 
                 if useCustomModel || catalog.models.isEmpty {
                     TextField("或手动输入模型 ID", text: modelBinding)
                         .textFieldStyle(.plain)
                         .font(BookTheme.bodyFont)
+                        .foregroundStyle(BookTheme.settingsPrimary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                         .ollamaFieldBackground()
@@ -134,10 +143,11 @@ struct OllamaSettingsFields: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsPrimary)
             TextField(title, text: text)
                 .textFieldStyle(.plain)
                 .font(BookTheme.bodyFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .ollamaFieldBackground()
@@ -180,10 +190,10 @@ private extension View {
     func ollamaFieldBackground() -> some View {
         background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.white.opacity(0.65))
+                .fill(BookTheme.menuItemFill)
                 .overlay {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                        .strokeBorder(BookTheme.menuItemBorder, lineWidth: 1)
                 }
         }
     }

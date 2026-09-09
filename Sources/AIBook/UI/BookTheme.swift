@@ -63,6 +63,15 @@ enum BookTheme {
     static var showHeaderOrnament: Bool { tokens.ornaments.showHeaderOrnament }
     static var showPaperTexture: Bool { tokens.ornaments.showPaperTexture }
     static var paperTextureOpacity: Double { tokens.colors.paperTextureOpacity }
+    static var settingsPrimary: Color { tokens.colors.ink }
+    static var settingsSecondary: Color { tokens.colors.inkSecondary }
+}
+
+/// Fixed settings chrome. Sized to fit an 11-inch iPad landscape (~1194×834)
+/// and stay within iPad mini landscape height (~744) after sheet chrome.
+enum BookSettingsWindowMetrics {
+    static let width: CGFloat = 720
+    static let height: CGFloat = 600
 }
 
 struct BookPageStyle: ViewModifier {

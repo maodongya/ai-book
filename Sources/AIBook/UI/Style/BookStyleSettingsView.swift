@@ -4,16 +4,17 @@ struct BookStyleSettingsView: View {
     @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(BookStylePresetID.allCases) { preset in
-                        BookStylePreviewCard(
-                            preset: preset,
-                            isSelected: styleManager.presetID == preset
-                        ) {
-                            styleManager.selectPreset(preset)
-                        }
+        VStack(alignment: .leading, spacing: 16) {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4),
+                spacing: 12
+            ) {
+                ForEach(BookStylePresetID.allCases) { preset in
+                    BookStylePreviewCard(
+                        preset: preset,
+                        isSelected: styleManager.presetID == preset
+                    ) {
+                        styleManager.selectPreset(preset)
                     }
                 }
             }
@@ -21,16 +22,16 @@ struct BookStyleSettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(styleManager.presetID.displayName)
                     .font(BookTheme.labelFont)
-                    .foregroundStyle(BookTheme.ink)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Text(styleManager.presetID.summary)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("装饰细节")
                     .font(BookTheme.labelFont)
-                    .foregroundStyle(BookTheme.ink)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 ornamentToggle("书脊丝带", current: styleManager.tokens.ornaments.showBookmarkRibbon) {
                     styleManager.setShowBookmarkRibbon($0)
                 }
@@ -40,7 +41,7 @@ struct BookStyleSettingsView: View {
                 ornamentToggle("纸纹", current: styleManager.tokens.ornaments.showPaperTexture) {
                     styleManager.setShowPaperTexture($0)
                 }
-                ornamentToggle("页眉金线", current: styleManager.tokens.ornaments.showHeaderOrnament) {
+                ornamentToggle("页眉饰线", current: styleManager.tokens.ornaments.showHeaderOrnament) {
                     styleManager.setShowHeaderOrnament($0)
                 }
             }
@@ -48,7 +49,7 @@ struct BookStyleSettingsView: View {
             HStack {
                 Text("左页字号")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsPrimary)
                 Spacer()
                 Picker("左页字号", selection: readingSizeBinding) {
                     Text("跟随主题").tag(Optional<Double>.none)
@@ -58,7 +59,7 @@ struct BookStyleSettingsView: View {
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .tint(BookTheme.leather)
+                .tint(BookTheme.settingsPrimary)
             }
         }
     }
@@ -71,13 +72,18 @@ struct BookStyleSettingsView: View {
     }
 
     private func ornamentToggle(_ title: String, current: Bool, set: @escaping (Bool) -> Void) -> some View {
-        Toggle(title, isOn: Binding(
-            get: { current },
-            set: set
-        ))
-        .font(BookTheme.captionFont)
-        .foregroundStyle(BookTheme.ink)
-        .tint(BookTheme.gold)
+        HStack {
+            Text(title)
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
+            Spacer()
+            Toggle(title, isOn: Binding(
+                get: { current },
+                set: set
+            ))
+            .labelsHidden()
+            .tint(BookTheme.gold)
+        }
     }
 }
 
@@ -89,45 +95,65 @@ struct BookStylePreviewCard: View {
     var body: some View {
         let tokens = BookStyleCatalog.baseTokens(for: preset)
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                VStack(spacing: 0) {
-                    tokens.bindingGradient
-                        .frame(height: 28)
-                    HStack(spacing: 0) {
-                        tokens.colors.pageLeft
-                        tokens.colors.pageRight
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .topTrailing) {
+                    VStack(spacing: 0) {
+                        tokens.bindingGradient
+                            .frame(height: 22)
+                        HStack(spacing: 0) {
+                            tokens.colors.pageLeft
+                            tokens.colors.pageRight
+                        }
+                        .frame(height: 34)
+                        HStack(spacing: 6) {
+                            Capsule().fill(tokens.accentGradient).frame(height: 7)
+                            Capsule().fill(tokens.colors.buttonFillHover).frame(height: 7)
+                        }
+                        .padding(7)
+                        .background(tokens.colors.deskBottom)
                     }
-                    .frame(height: 44)
-                    HStack(spacing: 6) {
-                        Capsule().fill(tokens.accentGradient).frame(height: 8)
-                        Capsule().fill(tokens.colors.buttonFillHover).frame(height: 8)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 82)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? tokens.colors.chromeAccent : tokens.colors.pageEdge.opacity(0.7),
+                                lineWidth: isSelected ? 2 : 1
+                            )
                     }
-                    .padding(8)
-                    .background(tokens.colors.deskBottom)
-                }
-                .frame(width: 160, height: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(
-                            isSelected ? BookTheme.gold : BookTheme.pageEdge.opacity(0.7),
-                            lineWidth: isSelected ? 2 : 1
-                        )
-                }
 
-                HStack {
-                    Text(preset.displayName)
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.ink)
                     if isSelected {
                         Text("当前")
-                            .font(BookTheme.captionFont)
-                            .foregroundStyle(BookTheme.leatherShadow)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background { Capsule().fill(BookTheme.gold.opacity(0.85)) }
+                            .font(BookTheme.captionFont.weight(.semibold))
+                            .foregroundStyle(tokens.colors.buttonProminentText)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background {
+                                Capsule().fill(tokens.accentGradient)
+                            }
+                            .padding(6)
                     }
                 }
+
+                Text(preset.displayName)
+                    .font(BookTheme.captionFont.weight(.medium))
+                    .foregroundStyle(isSelected ? BookTheme.buttonProminentText : BookTheme.menuItemText)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 5)
+                    .background {
+                        Capsule()
+                            .fill(isSelected ? AnyShapeStyle(BookTheme.goldGradient) : AnyShapeStyle(BookTheme.menuItemFill))
+                            .overlay {
+                                Capsule()
+                                    .strokeBorder(
+                                        isSelected ? BookTheme.menuItemBorderHover : BookTheme.menuItemBorder,
+                                        lineWidth: 1
+                                    )
+                            }
+                    }
             }
         }
         .buttonStyle(.plain)

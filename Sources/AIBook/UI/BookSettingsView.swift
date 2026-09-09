@@ -68,7 +68,7 @@ struct BookSettingsView: View {
             }
             .padding(24)
         }
-        .frame(minWidth: 680, minHeight: 560)
+        .frame(width: BookSettingsWindowMetrics.width, height: BookSettingsWindowMetrics.height)
         .id(styleManager.revision)
     }
 
@@ -89,12 +89,12 @@ struct BookSettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
                 Text(selectedTab.subtitle)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.chromeMuted)
+                    .foregroundStyle(BookTheme.goldSoft)
             }
 
             Spacer()
 
-            BookStatusPill(title: selectedTab.rawValue, icon: selectedTab.icon, tint: BookTheme.chromeMuted)
+            BookStatusPill(title: selectedTab.rawValue, icon: selectedTab.icon)
 
             BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
                 dismiss()
@@ -122,10 +122,10 @@ struct BookSettingsView: View {
         .padding(6)
         .background {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(BookTheme.chromeOverlay.opacity(0.08))
+                .fill(BookTheme.menuPanelFill)
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(BookTheme.chromeOverlay.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(BookTheme.menuPanelBorder, lineWidth: 1.2)
                 }
         }
     }
@@ -138,20 +138,24 @@ struct BookSettingsView: View {
             }
         } label: {
             Label(tab.rawValue, systemImage: tab.icon)
-                .font(BookTheme.labelFont)
-                .foregroundStyle(isSelected ? BookTheme.buttonProminentText : BookTheme.goldSoft.opacity(0.78))
+                .font(BookTheme.labelFont.weight(.semibold))
+                .foregroundStyle(isSelected ? BookTheme.buttonProminentText : BookTheme.menuItemText)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .background {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .fill(isSelected ? AnyShapeStyle(BookTheme.goldGradient) : AnyShapeStyle(BookTheme.chromeOverlay.opacity(0.04)))
+                        .fill(
+                            isSelected
+                                ? AnyShapeStyle(BookTheme.goldGradient)
+                                : AnyShapeStyle(BookTheme.menuItemFill)
+                        )
                         .overlay {
                             RoundedRectangle(cornerRadius: 13, style: .continuous)
                                 .strokeBorder(
-                                    isSelected ? BookTheme.goldSoft.opacity(0.55) : BookTheme.chromeOverlay.opacity(0.08),
-                                    lineWidth: 1
+                                    isSelected ? BookTheme.menuItemBorderHover : BookTheme.menuItemBorder,
+                                    lineWidth: 1.2
                                 )
                         }
                 }
@@ -169,11 +173,11 @@ struct BookSettingsView: View {
                 HStack {
                     Text("讲解与追问时附带给模型的左页节选占比")
                         .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()
                     Text("\(Int(settings.bookContextPercent))%")
                         .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.leather)
+                        .foregroundStyle(BookTheme.settingsPrimary)
                 }
                 Slider(value: $settings.bookContextPercent, in: 10 ... 100, step: 5)
                     .tint(BookTheme.gold)
@@ -182,10 +186,10 @@ struct BookSettingsView: View {
             settingsSection(title: "说明", icon: "info.circle") {
                 Text("读书助手、讲解、翻译与名著补充均使用此处配置的模型，与 AI 进化互不影响。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsSecondary)
                 Text("大模型 API 支持 \(LLMConnector.supportedSummary) 等 OpenAI 兼容接口；Ollama 本地默认可不填 Key。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsSecondary)
             }
         }
     }
@@ -199,10 +203,10 @@ struct BookSettingsView: View {
             settingsSection(title: "关于语音", icon: "music.note") {
                 Text("在本页可切换朗读节奏、语言处理策略和讲解声音。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsSecondary)
                 Text("建议：快速浏览使用「快速 + 高效」，细读讲解使用「舒缓 + 深度」。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                        .foregroundStyle(BookTheme.settingsSecondary)
             }
         }
     }
@@ -211,7 +215,7 @@ struct BookSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: icon)
                 .font(BookTheme.labelFont)
-                .foregroundStyle(BookTheme.ink)
+                .foregroundStyle(BookTheme.settingsPrimary)
 
             VStack(alignment: .leading, spacing: 12) {
                 content()

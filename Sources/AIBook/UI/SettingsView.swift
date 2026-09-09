@@ -30,7 +30,7 @@ struct SettingsView: View {
             }
             .padding(24)
         }
-        .frame(minWidth: 680, minHeight: 520)
+        .frame(width: BookSettingsWindowMetrics.width, height: BookSettingsWindowMetrics.height)
         .id(styleManager.revision)
     }
 
@@ -51,7 +51,7 @@ struct SettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
                 Text("Cursor 本地、自动升级链；读书模型与语音请使用顶栏「book设置」")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.chromeMuted)
+                    .foregroundStyle(BookTheme.goldSoft)
             }
 
             Spacer()
@@ -108,30 +108,37 @@ struct SettingsView: View {
 
                 Text("也可创建 ai-book/cursor.local.env，内容：CURSOR_API_KEY=你的密钥")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
                 Text("或运行：./scripts/setup-cursor-key.sh")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             settingsSection(title: "ai-book 自我进化", icon: "arrow.triangle.2.circlepath") {
-                Toggle("自动升级（有待办时自动进化并重启）", isOn: $settings.autoEvolutionEnabled)
-                    .font(BookTheme.bodyFont)
+                HStack {
+                    Text("自动升级（有待办时自动进化并重启）")
+                        .font(BookTheme.bodyFont)
+                        .foregroundStyle(BookTheme.settingsPrimary)
+                    Spacer()
+                    Toggle("自动升级（有待办时自动进化并重启）", isOn: $settings.autoEvolutionEnabled)
+                        .labelsHidden()
+                        .tint(BookTheme.gold)
+                }
                 Text("开启后，在本次会话中点击过「进化」且队列仍有待办时，将自动执行进化、打包安装并继续下一条。冷启动不会自动开始。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
                 Text("模型在 AI 进化页顶栏选择；Cursor Key 与桥接见上方「Cursor 本地对话」。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             settingsSection(title: "说明", icon: "info.circle") {
                 Text("左页「\(ClassicLiteratureSupplement.capabilityLabel)」可识别名著节选并由大模型补全为完整篇章，自动保存。")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
+                    .foregroundStyle(BookTheme.settingsSecondary)
                 Text("读书讲解、翻译与朗读声音在顶栏「book设置」中配置，与进化互不影响。")
                     .font(BookTheme.bodyFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
+                    .foregroundStyle(BookTheme.settingsSecondary)
             }
         }
     }
@@ -140,7 +147,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: icon)
                 .font(BookTheme.labelFont)
-                .foregroundStyle(BookTheme.ink)
+                .foregroundStyle(BookTheme.settingsPrimary)
 
             VStack(alignment: .leading, spacing: 12) {
                 content()
@@ -163,15 +170,16 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsPrimary)
             TextField(title, text: text)
                 .textFieldStyle(.plain)
                 .font(BookTheme.bodyFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.65))
+                        .fill(BookTheme.menuItemFill)
                         .overlay {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .strokeBorder(BookTheme.pageEdge.opacity(0.85), lineWidth: 1)
@@ -184,15 +192,16 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
+                .foregroundStyle(BookTheme.settingsPrimary)
             SecureField(title, text: text)
                 .textFieldStyle(.plain)
                 .font(BookTheme.bodyFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.65))
+                        .fill(BookTheme.menuItemFill)
                         .overlay {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .strokeBorder(BookTheme.pageEdge.opacity(0.85), lineWidth: 1)
