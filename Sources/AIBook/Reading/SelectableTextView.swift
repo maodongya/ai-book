@@ -55,12 +55,19 @@ struct SelectableTextView: NSViewRepresentable {
 
     @Binding var text: String
     var onSelectionChange: (String, NSRange?) -> Void
+    var onVisibleRangeChange: ((NSRange, CGFloat) -> Void)? = nil
+    var scrollProxy: SelectableTextViewProxy? = nil
     var appearance: Appearance = .reading
     var isEditable: Bool = true
     var selectAllSignal: UUID?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, onSelectionChange: onSelectionChange)
+        Coordinator(
+            text: $text,
+            onSelectionChange: onSelectionChange,
+            onVisibleRangeChange: onVisibleRangeChange,
+            scrollProxy: scrollProxy
+        )
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -108,7 +115,16 @@ struct SelectableTextView: NSViewRepresentable {
         )
 
         context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
         context.coordinator.appearance = appearance
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.boundsDidChange(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView
+        )
+        scrollProxy?.attach(textView: textView, scrollView: scrollView)
         return scrollView
     }
 
@@ -141,6 +157,8 @@ struct SelectableTextView: NSViewRepresentable {
         textView.isEditable = isEditable
         applyAppearance(to: textView)
         coordinator.appearance = appearance
+        coordinator.onVisibleRangeChange = onVisibleRangeChange
+        scrollProxy?.attach(textView: textView, scrollView: scrollView)
 
         if coordinator.lastSelectAllSignal != selectAllSignal, selectAllSignal != nil {
             coordinator.lastSelectAllSignal = selectAllSignal
@@ -151,6 +169,7 @@ struct SelectableTextView: NSViewRepresentable {
         if coordinator.isUpdatingFromView || coordinator.isComposingText || textView.hasMarkedText() { return }
         guard textView.string != text else { return }
 
+        scrollProxy?.clearHighlight()
         coordinator.isUpdatingFromBinding = true
         defer { coordinator.isUpdatingFromBinding = false }
 
@@ -164,15 +183,20 @@ struct SelectableTextView: NSViewRepresentable {
 
     static func dismantleNSView(_ scrollView: NSScrollView, coordinator: Coordinator) {
         NotificationCenter.default.removeObserver(coordinator)
+        coordinator.scrollProxy?.clearHighlight()
         coordinator.textView = nil
+        coordinator.scrollView = nil
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var textView: NSTextView?
+        var scrollView: NSScrollView?
         var appearance: Appearance = .reading
         var lastSelectAllSignal: UUID?
         @Binding var text: String
         let onSelectionChange: (String, NSRange?) -> Void
+        var onVisibleRangeChange: ((NSRange, CGFloat) -> Void)?
+        weak var scrollProxy: SelectableTextViewProxy?
 
         /// True while `textDidChange` is syncing NSTextView → SwiftUI binding.
         var isUpdatingFromView = false
@@ -181,9 +205,34 @@ struct SelectableTextView: NSViewRepresentable {
         /// True while the user is composing CJK text with an input method.
         var isComposingText = false
 
-        init(text: Binding<String>, onSelectionChange: @escaping (String, NSRange?) -> Void) {
+        init(
+            text: Binding<String>,
+            onSelectionChange: @escaping (String, NSRange?) -> Void,
+            onVisibleRangeChange: ((NSRange, CGFloat) -> Void)?,
+            scrollProxy: SelectableTextViewProxy?
+        ) {
             _text = text
             self.onSelectionChange = onSelectionChange
+            self.onVisibleRangeChange = onVisibleRangeChange
+            self.scrollProxy = scrollProxy
+        }
+
+        @objc func boundsDidChange(_ notification: Notification) {
+            guard let textView, !textView.hasMarkedText(), !isComposingText else { return }
+            let range = scrollProxy?.visibleCharacterRange()
+                ?? visibleCharacterRange(in: textView)
+            let offset = scrollView?.contentView.bounds.origin.y ?? 0
+            onVisibleRangeChange?(range, offset)
+        }
+
+        private func visibleCharacterRange(in textView: NSTextView) -> NSRange {
+            guard let layoutManager = textView.layoutManager,
+                  let textContainer = textView.textContainer else {
+                return NSRange(location: 0, length: 0)
+            }
+            let visibleRect = textView.visibleRect
+            let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
+            return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
         }
 
         func textDidChange(_ notification: Notification) {

@@ -150,7 +150,57 @@ struct ExplanationChatView: View {
     }
 
     private var translationPanel: some View {
-        lessonPlanEditor
+        VStack(spacing: 0) {
+            translationSyncControls
+            lessonPlanEditor
+        }
+    }
+
+    @ViewBuilder
+    private var translationSyncControls: some View {
+        if viewModel.translationAlignment?.isStale == true {
+            translationStaleBanner
+                .padding(.horizontal, 14)
+                .padding(.top, 4)
+        }
+
+        HStack(spacing: 12) {
+            Toggle("同步滚动", isOn: $viewModel.translationScrollSyncEnabled)
+                .toggleStyle(.switch)
+                .font(BookTheme.captionFont)
+                .disabled(
+                    viewModel.translationAlignment == nil
+                        || viewModel.translationAlignment?.isStale == true
+                )
+
+            if let alignment = viewModel.translationAlignment, !alignment.isStale {
+                Text("\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+    }
+
+    private var translationStaleBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text("原文已修改或翻译已手动编辑，对齐失效，请重新翻译后恢复同步。")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.orange.opacity(0.12))
+        }
     }
 
     private var explanationPlaceholder: some View {
@@ -258,6 +308,10 @@ struct ExplanationChatView: View {
                 onSelectionChange: { selection, _ in
                     viewModel.updateLessonPlanSelection(selection)
                 },
+                onVisibleRangeChange: { range, _ in
+                    viewModel.handleTranslationTextScroll(visibleRange: range)
+                },
+                scrollProxy: viewModel.translationTextScrollProxy,
                 appearance: .editor,
                 isEditable: !viewModel.isRunning,
                 selectAllSignal: viewModel.rightSelectAllSignal

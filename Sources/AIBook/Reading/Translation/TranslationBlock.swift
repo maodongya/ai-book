@@ -16,13 +16,23 @@ struct TranslationBlock: Identifiable, Codable, Equatable {
     var note: String?
     var level: TranslationBlockLevel
     var order: Int
+    var translationLocation: Int = 0
+    var translationLength: Int = 0
 
     var sourceRange: NSRange {
         NSRange(location: sourceLocation, length: sourceLength)
     }
 
+    var translationRange: NSRange {
+        NSRange(location: translationLocation, length: translationLength)
+    }
+
     var isAnchored: Bool {
         sourceLength > 0
+    }
+
+    var hasTranslationRange: Bool {
+        translationLength > 0
     }
 
     init(

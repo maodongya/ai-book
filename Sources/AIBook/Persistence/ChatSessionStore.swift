@@ -6,6 +6,7 @@ struct PersistedChatSession: Codable {
     var lastOpenedFilePath: String?
     var lessonPlanContent: String?
     var translationAlignment: TranslationAlignment?
+    var scrollSyncEnabled: Bool?
     var readingMessages: [ChatMessage]?
     var evolutionMessages: [ChatMessage]?
     var readingChatInput: String?
@@ -41,7 +42,8 @@ final class ChatSessionStore {
         readingAssistantPanel: ReadingAssistantPanel,
         lastOpenedFilePath: String?,
         lessonPlanContent: String,
-        translationAlignment: TranslationAlignment?
+        translationAlignment: TranslationAlignment?,
+        scrollSyncEnabled: Bool
     ) throws {
         let session = PersistedChatSession(
             messages: readingMessages,
@@ -49,6 +51,7 @@ final class ChatSessionStore {
             lastOpenedFilePath: lastOpenedFilePath,
             lessonPlanContent: lessonPlanContent,
             translationAlignment: translationAlignment,
+            scrollSyncEnabled: scrollSyncEnabled,
             readingMessages: readingMessages,
             evolutionMessages: evolutionMessages,
             readingChatInput: readingChatInput,

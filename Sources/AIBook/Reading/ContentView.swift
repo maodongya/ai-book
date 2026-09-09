@@ -1246,6 +1246,10 @@ struct ContentView: View {
                     onSelectionChange: { selection, range in
                         viewModel.updateSelection(selection, range: range)
                     },
+                    onVisibleRangeChange: { range, _ in
+                        viewModel.handleSourceTextScroll(visibleRange: range)
+                    },
+                    scrollProxy: viewModel.sourceTextScrollProxy,
                     selectAllSignal: viewModel.leftSelectAllSignal
                 )
                 .id("leftPageTextView")

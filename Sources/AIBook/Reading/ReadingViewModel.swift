@@ -101,8 +101,21 @@ final class ReadingViewModel: ObservableObject {
         }
     }
     @Published var translationAlignment: TranslationAlignment? {
-        didSet { persistChatSession() }
+        didSet {
+            translationScrollSync.resetAnchors()
+            persistChatSession()
+        }
     }
+    @Published var translationScrollSyncEnabled = true {
+        didSet {
+            translationScrollSync.isEnabled = translationScrollSyncEnabled
+            persistChatSession()
+        }
+    }
+
+    let sourceTextScrollProxy = SelectableTextViewProxy()
+    let translationTextScrollProxy = SelectableTextViewProxy()
+    let translationScrollSync = TranslationScrollSync()
     @Published var isLoading = false
     @Published var isRunning = false
     @Published var streamingThinking = ""
@@ -169,6 +182,9 @@ final class ReadingViewModel: ObservableObject {
     )
 
     init() {
+        translationScrollSync.sourceView = sourceTextScrollProxy
+        translationScrollSync.translationView = translationTextScrollProxy
+        translationScrollSync.isEnabled = translationScrollSyncEnabled
         ExplanationSpeechReader.shared.onSpeakingStateChange = { [weak self] in
             self?.syncExplanationSpeechState()
         }
@@ -2246,12 +2262,13 @@ final class ReadingViewModel: ObservableObject {
         mode: TranslationAlignmentMode
     ) {
         let source = lessonPlanSourceText()
-        let alignment = TranslationAlignmentBuilder.build(from: result, source: source, mode: mode)
-        let formatted = TranslationContentFormatter.render(alignment, title: title)
+        var alignment = TranslationAlignmentBuilder.build(from: result, source: source, mode: mode)
+        let rendered = TranslationContentFormatter.renderIndexed(alignment, title: title)
+        alignment.blocks = rendered.blocks
 
         isApplyingAlignment = true
         translationAlignment = alignment
-        lessonPlanContent = formatted
+        lessonPlanContent = rendered.content
         isApplyingAlignment = false
     }
 
@@ -2264,7 +2281,34 @@ final class ReadingViewModel: ObservableObject {
 
         let wordEntries = TranslationLineParser.parseWordByWordLines(trimmed)
         let mode: TranslationAlignmentMode = wordEntries.count >= 2 ? .wordByWord : .paragraph
-        return TranslationAlignmentBuilder.build(from: trimmed, source: source, mode: mode)
+        var alignment = TranslationAlignmentBuilder.build(from: trimmed, source: source, mode: mode)
+        alignment.blocks = TranslationContentFormatter.indexTranslationRanges(
+            in: trimmed,
+            blocks: alignment.blocks,
+            mode: mode
+        )
+        return alignment
+    }
+
+    func handleSourceTextScroll(visibleRange: NSRange) {
+        guard shouldSyncTranslationScroll,
+              let alignment = translationAlignment else { return }
+        translationScrollSync.sourceDidScroll(visibleRange: visibleRange, alignment: alignment)
+    }
+
+    func handleTranslationTextScroll(visibleRange: NSRange) {
+        guard shouldSyncTranslationScroll,
+              let alignment = translationAlignment else { return }
+        translationScrollSync.translationDidScroll(visibleRange: visibleRange, alignment: alignment)
+    }
+
+    private var shouldSyncTranslationScroll: Bool {
+        experienceMode == .learning
+            && rightPageTab == .readingAssistant
+            && readingAssistantPanel == .translation
+            && translationScrollSyncEnabled
+            && translationAlignment != nil
+            && translationAlignment?.isStale == false
     }
 
     private func refreshTranslationAlignmentStaleState(fromManualEdit: Bool = false) {
@@ -2275,6 +2319,7 @@ final class ReadingViewModel: ObservableObject {
         if alignment.sourceContentHash != currentHash {
             alignment.isStale = true
             translationAlignment = alignment
+            translationScrollSync.resetAnchors()
             return
         }
 
@@ -2283,6 +2328,7 @@ final class ReadingViewModel: ObservableObject {
         if !matches {
             alignment.isStale = true
             translationAlignment = alignment
+            translationScrollSync.resetAnchors()
         }
     }
 
@@ -2776,6 +2822,9 @@ final class ReadingViewModel: ObservableObject {
         }
         lessonPlanContent = session.lessonPlanContent ?? ""
         translationAlignment = session.translationAlignment
+        if let scrollSyncEnabled = session.scrollSyncEnabled {
+            translationScrollSyncEnabled = scrollSyncEnabled
+        }
         if translationAlignment == nil,
            !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             translationAlignment = rebuildTranslationAlignment(from: lessonPlanContent)
@@ -2807,7 +2856,8 @@ final class ReadingViewModel: ObservableObject {
                 readingAssistantPanel: readingAssistantPanel,
                 lastOpenedFilePath: currentFileURL?.path,
                 lessonPlanContent: lessonPlanContent,
-                translationAlignment: translationAlignment
+                translationAlignment: translationAlignment,
+                scrollSyncEnabled: translationScrollSyncEnabled
             )
         } catch {
             errorMessage = "无法保存对话会话：\(error.localizedDescription)"
