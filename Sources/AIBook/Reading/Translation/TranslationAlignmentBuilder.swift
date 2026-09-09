@@ -12,8 +12,8 @@ enum TranslationAlignmentBuilder {
             return .empty(mode: mode, sourceHash: sourceHash)
         }
 
-        if let jsonText = extractJSONText(from: trimmed),
-           let alignment = parseJSON(jsonText, source: source, mode: mode, sourceHash: sourceHash) {
+        if looksLikeJSON(trimmed) || extractJSONText(from: trimmed) != nil,
+           let alignment = parseJSON(trimmed, source: source, mode: mode, sourceHash: sourceHash) {
             return alignment
         }
 
@@ -52,15 +52,18 @@ enum TranslationAlignmentBuilder {
         mode: TranslationAlignmentMode,
         sourceHash: String
     ) -> TranslationAlignment? {
-        let data = Data(jsonText.utf8)
         switch mode {
         case .paragraph:
-            guard let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: data),
+            guard let payload = decodeParagraphJSON(from: jsonText),
                   let blocks = payload.blocks,
                   !blocks.isEmpty else { return nil }
             let items = normalizeParagraphItems(
                 blocks.map {
-                    (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.notes)
+                    (
+                        sourceText: $0.sourceText,
+                        translationText: $0.translationText,
+                        note: nonemptyNote($0.notes)
+                    )
                 },
                 source: source
             )
@@ -71,7 +74,10 @@ enum TranslationAlignmentBuilder {
                 sourceHash: sourceHash
             )
         case .wordByWord:
-            guard let payload = try? JSONDecoder().decode(WordByWordJSON.self, from: data) else { return nil }
+            guard let jsonBlob = extractJSONText(from: jsonText) ?? (looksLikeJSON(jsonText) ? stripJSONFences(jsonText) : nil),
+                  let payload = try? JSONDecoder().decode(WordByWordJSON.self, from: Data(jsonBlob.utf8)) else {
+                return nil
+            }
             var blocks = anchorWordBlocks(payload.entries ?? [], in: source)
             appendSummaryBlocks(
                 summary: payload.summary,
@@ -82,6 +88,93 @@ enum TranslationAlignmentBuilder {
             guard !blocks.isEmpty else { return nil }
             return makeAlignment(mode: .wordByWord, blocks: blocks, sourceHash: sourceHash)
         }
+    }
+
+    private static func decodeParagraphJSON(from text: String) -> ParagraphJSON? {
+        var seen = Set<String>()
+        var candidates: [String] = []
+        if let extracted = extractJSONText(from: text) {
+            candidates.append(extracted)
+        }
+        candidates.append(text)
+        if let repairedFromFull = repairTruncatedParagraphJSON(text) {
+            candidates.append(repairedFromFull)
+        }
+
+        for candidate in candidates {
+            guard seen.insert(candidate).inserted else { continue }
+            if let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: Data(candidate.utf8)),
+               let blocks = payload.blocks,
+               !blocks.isEmpty {
+                return payload
+            }
+            if let repaired = repairTruncatedParagraphJSON(candidate),
+               let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: Data(repaired.utf8)),
+               let blocks = payload.blocks,
+               !blocks.isEmpty {
+                return payload
+            }
+        }
+        return nil
+    }
+
+    /// Keep complete `blocks` objects when the LLM/file JSON is truncated mid-document.
+    private static func repairTruncatedParagraphJSON(_ jsonText: String) -> String? {
+        guard jsonText.contains("\"blocks\""), jsonText.contains("\"sourceText\"") else { return nil }
+        let objects = extractCompleteJSONObjects(from: jsonText, afterKey: "\"blocks\"")
+        guard !objects.isEmpty else { return nil }
+        return #"{"mode":"paragraph","blocks":[\#(objects.joined(separator: ","))]}"#
+    }
+
+    private static func extractCompleteJSONObjects(from text: String, afterKey key: String) -> [String] {
+        guard let keyRange = text.range(of: key),
+              let arrayStart = text[keyRange.upperBound...].firstIndex(of: "[") else {
+            return []
+        }
+
+        var objects: [String] = []
+        var index = text.index(after: arrayStart)
+        var depth = 0
+        var objectStart: String.Index?
+        var inString = false
+        var escaping = false
+
+        while index < text.endIndex {
+            let character = text[index]
+            if inString {
+                if escaping {
+                    escaping = false
+                } else if character == "\\" {
+                    escaping = true
+                } else if character == "\"" {
+                    inString = false
+                }
+                index = text.index(after: index)
+                continue
+            }
+
+            if character == "\"" {
+                inString = true
+            } else if character == "{" {
+                if depth == 0 {
+                    objectStart = index
+                }
+                depth += 1
+            } else if character == "}" {
+                depth -= 1
+                if depth == 0, let start = objectStart {
+                    objects.append(String(text[start...index]))
+                    objectStart = nil
+                }
+            }
+            index = text.index(after: index)
+        }
+        return objects
+    }
+
+    private static func nonemptyNote(_ note: String?) -> String? {
+        let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     // MARK: - Plain text fallback
@@ -218,14 +311,13 @@ enum TranslationAlignmentBuilder {
     private static func decodeParagraphItems(
         from text: String
     ) -> [(sourceText: String, translationText: String, note: String?)]? {
-        guard let jsonText = extractJSONText(from: text) ?? (looksLikeJSON(text) ? stripJSONFences(text) : nil),
-              let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: Data(jsonText.utf8)),
+        guard let payload = decodeParagraphJSON(from: text),
               let blocks = payload.blocks,
               blocks.count > 1 else {
             return nil
         }
         return blocks.map {
-            (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.notes)
+            (sourceText: $0.sourceText, translationText: $0.translationText, note: nonemptyNote($0.notes))
         }
     }
 

@@ -57,9 +57,8 @@ enum TranslationContentFormatter {
         blocks: [TranslationBlock],
         mode: TranslationAlignmentMode
     ) -> [TranslationBlock] {
-        let text = contentWithoutDisplayTitle(content)
-        let ns = text as NSString
-        var searchStart = 0
+        let ns = content as NSString
+        var searchStart = bodyStartLocation(in: content)
         var updated = blocks.sorted { $0.order < $1.order }
 
         for index in updated.indices {
@@ -107,6 +106,13 @@ enum TranslationContentFormatter {
         guard let index = blocks.firstIndex(where: { $0.id == blockID }) else { return }
         blocks[index].translationLocation = range.location
         blocks[index].translationLength = range.length
+    }
+
+    private static func bodyStartLocation(in content: String) -> Int {
+        let body = contentWithoutDisplayTitle(content)
+        guard !body.isEmpty else { return 0 }
+        let found = (content as NSString).range(of: body)
+        return found.location == NSNotFound ? 0 : found.location
     }
 
     private static func contentWithoutDisplayTitle(_ content: String) -> String {

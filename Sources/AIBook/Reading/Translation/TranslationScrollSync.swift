@@ -28,15 +28,17 @@ final class TranslationScrollSync: ObservableObject {
         guard block.id != lastSourceAnchorID else { return }
 
         isPropagating = true
-        lastSourceAnchorID = block.id
-        lastTranslationAnchorID = block.id
+        defer { isPropagating = false }
         if usesTableView {
             onScrollTranslationToBlock?(block.id)
         } else {
-            translationView?.scrollToCharacterRange(block.translationRange, anchor: .top)
+            guard translationView?.scrollToCharacterRange(block.translationRange, anchor: .top) == true else {
+                return
+            }
         }
+        lastSourceAnchorID = block.id
+        lastTranslationAnchorID = block.id
         sourceView?.highlightRange(block.sourceRange)
-        isPropagating = false
     }
 
     func translationDidScroll(visibleRange: NSRange, alignment: TranslationAlignment) {
@@ -49,11 +51,13 @@ final class TranslationScrollSync: ObservableObject {
         guard block.id != lastTranslationAnchorID else { return }
 
         isPropagating = true
+        defer { isPropagating = false }
+        guard sourceView?.scrollToCharacterRange(block.sourceRange, anchor: .top) == true else {
+            return
+        }
         lastTranslationAnchorID = block.id
         lastSourceAnchorID = block.id
-        sourceView?.scrollToCharacterRange(block.sourceRange, anchor: .top)
         sourceView?.highlightRange(block.sourceRange)
-        isPropagating = false
     }
 
     func translationDidScrollToBlock(_ block: TranslationBlock, alignment: TranslationAlignment) {
@@ -62,10 +66,12 @@ final class TranslationScrollSync: ObservableObject {
         guard block.id != lastTranslationAnchorID else { return }
 
         isPropagating = true
+        defer { isPropagating = false }
+        guard sourceView?.scrollToCharacterRange(block.sourceRange, anchor: .top) == true else {
+            return
+        }
         lastTranslationAnchorID = block.id
         lastSourceAnchorID = block.id
-        sourceView?.scrollToCharacterRange(block.sourceRange, anchor: .top)
         sourceView?.highlightRange(block.sourceRange)
-        isPropagating = false
     }
 }

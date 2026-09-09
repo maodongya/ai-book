@@ -1118,6 +1118,7 @@ final class ReadingViewModel: ObservableObject {
             }
             errorMessage = nil
             persistChatSession()
+            refreshTranslationAlignmentAfterSourceChange()
         } catch {
             errorMessage = "无法读取文件：\(error.localizedDescription)"
         }
@@ -2282,6 +2283,7 @@ final class ReadingViewModel: ObservableObject {
             lessonPlanContent = text
             translationAlignment = rebuildTranslationAlignment(from: text)
             isApplyingAlignment = false
+            repairCollapsedParagraphAlignmentIfNeeded()
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             errorMessage = nil
             showTransientSaveMessage("已打开翻译 \(url.lastPathComponent)")
@@ -2553,6 +2555,14 @@ final class ReadingViewModel: ObservableObject {
         return alignment
     }
 
+    private func refreshTranslationAlignmentAfterSourceChange() {
+        if translationAlignment == nil,
+           !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            translationAlignment = rebuildTranslationAlignment(from: lessonPlanContent)
+        }
+        repairCollapsedParagraphAlignmentIfNeeded()
+    }
+
     private func repairCollapsedParagraphAlignmentIfNeeded() {
         let source = lessonPlanSourceText()
         guard !source.isEmpty, !lessonPlanContent.isEmpty else { return }
@@ -2584,23 +2594,24 @@ final class ReadingViewModel: ObservableObject {
 
     func handleSourceTextScroll(visibleRange: NSRange) {
         guard shouldSyncTranslationScroll,
-              let alignment = translationAlignment else { return }
+              let alignment = alignmentForScrollSync() else { return }
         translationScrollSync.sourceDidScroll(visibleRange: visibleRange, alignment: alignment)
     }
 
     func handleTranslationTextScroll(visibleRange: NSRange) {
         guard shouldSyncTranslationScroll,
               !showsTranslationTableView,
-              let alignment = translationAlignment else { return }
+              let alignment = alignmentForScrollSync() else { return }
         translationScrollSync.translationDidScroll(visibleRange: visibleRange, alignment: alignment)
     }
 
     func handleTranslationTableVisibleBlock(_ block: TranslationBlock) {
         guard shouldSyncTranslationScroll,
               showsTranslationTableView,
-              let alignment = translationAlignment else { return }
+              let alignment = alignmentForScrollSync() else { return }
         translationTableHighlightedBlockID = block.id
-        translationScrollSync.translationDidScrollToBlock(block, alignment: alignment)
+        let mappedBlock = alignment.blocks.first(where: { $0.id == block.id }) ?? block
+        translationScrollSync.translationDidScrollToBlock(mappedBlock, alignment: alignment)
     }
 
     var showsTranslationTableView: Bool {
@@ -2634,6 +2645,55 @@ final class ReadingViewModel: ObservableObject {
             translationTableScrollTargetID = nil
             translationTableHighlightedBlockID = nil
         }
+    }
+
+    private func alignmentForScrollSync() -> TranslationAlignment? {
+        guard var alignment = translationAlignment, !alignment.isStale else { return nil }
+        let offset = sourceRangeOffsetInFileContent()
+        if offset != 0 {
+            for index in alignment.blocks.indices where alignment.blocks[index].sourceLength > 0 {
+                alignment.blocks[index].sourceLocation += offset
+            }
+        }
+        alignment.blocks = TranslationContentFormatter.indexTranslationRanges(
+            in: lessonPlanContent,
+            blocks: alignment.blocks,
+            mode: alignment.mode
+        )
+        return alignment
+    }
+
+    private func sourceRangeOffsetInFileContent() -> Int {
+        guard let hash = translationAlignment?.sourceContentHash else { return 0 }
+        let fileNS = fileContent as NSString
+
+        func offset(of source: String, preferring range: NSRange?) -> Int {
+            let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return 0 }
+            if let range,
+               range.location != NSNotFound,
+               range.length > 0,
+               NSMaxRange(range) <= fileNS.length {
+                let slice = fileNS.substring(with: range) as NSString
+                let local = slice.range(of: trimmed)
+                if local.location != NSNotFound {
+                    return range.location + local.location
+                }
+            }
+            let found = fileNS.range(of: trimmed)
+            return found.location == NSNotFound ? 0 : found.location
+        }
+
+        if TranslationSourceHasher.hash(selectedText) == hash {
+            return offset(of: selectedText, preferring: selectedTextRange ?? lastCommittedSelectionRange)
+        }
+        if TranslationSourceHasher.hash(lastCommittedSelectionText) == hash {
+            return offset(of: lastCommittedSelectionText, preferring: lastCommittedSelectionRange)
+        }
+        if TranslationSourceHasher.hash(fileContent) == hash {
+            return offset(of: fileContent, preferring: nil)
+        }
+        return offset(of: lessonPlanSourceText(), preferring: lastCommittedSelectionRange)
     }
 
     private var shouldSyncTranslationScroll: Bool {

@@ -6,9 +6,16 @@ private final class ReadingScrollView: NSScrollView {
     override var acceptsFirstResponder: Bool { false }
 }
 
-/// NSTextView tuned for CJK IME: plain text, no smart substitutions, scroll view stays non-responder.
 private final class ReadingTextView: NSTextView {
     override var acceptsFirstResponder: Bool { true }
+
+    override init(frame frameRect: NSRect, textContainer container: NSTextContainer?) {
+        super.init(frame: frameRect, textContainer: container)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
 
     override func becomeFirstResponder() -> Bool {
         let became = super.becomeFirstResponder()
@@ -17,6 +24,22 @@ private final class ReadingTextView: NSTextView {
         }
         return became
     }
+}
+
+private func makeReadingTextView() -> ReadingTextView {
+    let textStorage = NSTextStorage()
+    let layoutManager = NSLayoutManager()
+    textStorage.addLayoutManager(layoutManager)
+    let textContainer = NSTextContainer(size: NSSize(
+        width: 0,
+        height: CGFloat.greatestFiniteMagnitude
+    ))
+    textContainer.widthTracksTextView = true
+    textContainer.lineFragmentPadding = 0
+    layoutManager.addTextContainer(textContainer)
+    let textView = ReadingTextView(frame: .zero, textContainer: textContainer)
+    textView.isRichText = false
+    return textView
 }
 
 struct SelectableTextView: NSViewRepresentable {
@@ -72,7 +95,7 @@ struct SelectableTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = ReadingScrollView()
-        let textView = ReadingTextView(frame: .zero)
+        let textView = makeReadingTextView()
 
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
@@ -85,14 +108,13 @@ struct SelectableTextView: NSViewRepresentable {
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
         textView.textContainer?.widthTracksTextView = true
-        textView.textContainer?.containerSize = NSSize(
+        textView.textContainer?.size = NSSize(
             width: 0,
             height: CGFloat.greatestFiniteMagnitude
         )
 
         textView.isEditable = isEditable
         textView.isSelectable = true
-        textView.isRichText = false
         textView.allowsUndo = true
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
@@ -124,7 +146,16 @@ struct SelectableTextView: NSViewRepresentable {
             name: NSView.boundsDidChangeNotification,
             object: scrollView.contentView
         )
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.boundsDidChange(_:)),
+            name: NSScrollView.didLiveScrollNotification,
+            object: scrollView
+        )
         scrollProxy?.attach(textView: textView, scrollView: scrollView)
+        DispatchQueue.main.async { [weak coordinator = context.coordinator] in
+            coordinator?.emitVisibleRange()
+        }
         return scrollView
     }
 
@@ -179,6 +210,9 @@ struct SelectableTextView: NSViewRepresentable {
         let location = min(selectedRange.location, length)
         let selectionLength = min(selectedRange.length, length - location)
         textView.setSelectedRange(NSRange(location: location, length: selectionLength))
+        DispatchQueue.main.async { [weak coordinator] in
+            coordinator?.emitVisibleRange()
+        }
     }
 
     static func dismantleNSView(_ scrollView: NSScrollView, coordinator: Coordinator) {
@@ -218,6 +252,10 @@ struct SelectableTextView: NSViewRepresentable {
         }
 
         @objc func boundsDidChange(_ notification: Notification) {
+            emitVisibleRange()
+        }
+
+        func emitVisibleRange() {
             guard let textView, !textView.hasMarkedText(), !isComposingText else { return }
             let range = scrollProxy?.visibleCharacterRange()
                 ?? visibleCharacterRange(in: textView)
@@ -230,7 +268,10 @@ struct SelectableTextView: NSViewRepresentable {
                   let textContainer = textView.textContainer else {
                 return NSRange(location: 0, length: 0)
             }
-            let visibleRect = textView.visibleRect
+            var visibleRect = textView.visibleRect
+            let origin = textView.textContainerOrigin
+            visibleRect.origin.x -= origin.x
+            visibleRect.origin.y -= origin.y
             let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
             return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
         }

@@ -24,7 +24,11 @@ final class SelectableTextViewProxy {
             return NSRange(location: 0, length: 0)
         }
         let visibleRect = textView.visibleRect
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
+        var containerRect = visibleRect
+        let origin = textView.textContainerOrigin
+        containerRect.origin.x -= origin.x
+        containerRect.origin.y -= origin.y
+        let glyphRange = layoutManager.glyphRange(forBoundingRect: containerRect, in: textContainer)
         return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
     }
 
