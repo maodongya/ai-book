@@ -38,6 +38,27 @@ struct ContentView: View {
         .onAppear {
             viewModel.onAppear()
         }
+        .background(learningModeKeyboardShortcuts)
+        .overlay {
+            if viewModel.experienceMode == .reading {
+                ReadingSpreadView()
+                    .bookStyleEnvironment(styleManager)
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
+        }
+    }
+
+    private var learningModeKeyboardShortcuts: some View {
+        Group {
+            if viewModel.canEnterReadingMode, viewModel.experienceMode == .learning {
+                Button("") {
+                    viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+                }
+                .keyboardShortcut(BookKeyboardShortcuts.readingMode)
+                .hidden()
+            }
+        }
     }
 
     private var bookHeader: some View {
@@ -236,6 +257,7 @@ struct ContentView: View {
     private var documentActionBarFull: some View {
         HStack(spacing: 8) {
             readingAssistantTabButton
+            readingModeToolbarButton
             if isReadingToolbarContext {
                 bookSettingsToolbarButton
             }
@@ -288,6 +310,18 @@ struct ContentView: View {
         .help("切换到读书助手：讲解、朗读与文章翻译")
     }
 
+    private var readingModeToolbarButton: some View {
+        BookActionButton(
+            title: "阅读模式",
+            isProminent: false,
+            isCompact: true
+        ) {
+            viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+        }
+        .disabled(!viewModel.canEnterReadingMode || viewModel.isRunning)
+        .help("进入全屏阅读：左右双页翻页 · \(BookKeyboardShortcuts.readingModeHint)")
+    }
+
     private var bookSettingsToolbarButton: some View {
         BookActionButton(
             title: "book设置",
@@ -318,6 +352,14 @@ struct ContentView: View {
         }
         .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
         .disabled(viewModel.isRunning)
+
+        Button {
+            viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+        } label: {
+            Text("阅读模式")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.readingMode)
+        .disabled(!viewModel.canEnterReadingMode || viewModel.isRunning)
 
         BookToolbarMenuDivider()
 

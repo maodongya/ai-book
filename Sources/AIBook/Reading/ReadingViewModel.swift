@@ -118,6 +118,16 @@ final class ReadingViewModel: ObservableObject {
     @Published private(set) var currentSpeechSource: SpeechSource?
     @Published private(set) var lastSaveMessage: String?
 
+    @Published var experienceMode: ReadingExperienceMode = .learning
+    @Published private(set) var readingPageTexts: [String] = []
+    @Published var readingSpreadIndex: Int = 0 {
+        didSet {
+            guard readingSpreadIndex != oldValue else { return }
+            persistReadingSpreadIndex()
+        }
+    }
+
+    private let readingPositionKeyPrefix = "aiBook.reading.spread."
     private let llmService = LLMService()
     private let cursorService = CursorService()
     private let chatSessionStore = ChatSessionStore.shared
@@ -192,6 +202,113 @@ final class ReadingViewModel: ObservableObject {
 
     var isEditingNotes: Bool {
         currentFileURL == nil
+    }
+
+    var canEnterReadingMode: Bool {
+        !fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var readingSpreadCount: Int {
+        max(1, (readingPageTexts.count + 1) / 2)
+    }
+
+    var readingPageCount: Int {
+        readingPageTexts.count
+    }
+
+    func readingPageText(at index: Int) -> String {
+        guard readingPageTexts.indices.contains(index) else { return "" }
+        return readingPageTexts[index]
+    }
+
+    func leftPageIndex(forSpread spreadIndex: Int) -> Int {
+        spreadIndex * 2
+    }
+
+    func rightPageIndex(forSpread spreadIndex: Int) -> Int? {
+        let index = spreadIndex * 2 + 1
+        return readingPageTexts.indices.contains(index) ? index : nil
+    }
+
+    func readingProgressLabel(spreadIndex: Int) -> String {
+        let left = leftPageIndex(forSpread: spreadIndex) + 1
+        let total = max(readingPageCount, 1)
+        if let rightIndex = rightPageIndex(forSpread: spreadIndex) {
+            return "第 \(left)–\(rightIndex + 1) 页 / 共 \(total) 页"
+        }
+        return "第 \(left) 页 / 共 \(total) 页"
+    }
+
+    func repaginateForReading(pageContentSize: CGSize) {
+        readingPageTexts = BookPaginator.paginate(text: fileContent, pageSize: pageContentSize)
+        let maxSpread = max(0, readingSpreadCount - 1)
+        if readingSpreadIndex > maxSpread {
+            readingSpreadIndex = maxSpread
+        }
+        if readingSpreadIndex < 0 {
+            readingSpreadIndex = 0
+        }
+    }
+
+    func enterReadingMode(pageContentSize: CGSize) {
+        guard canEnterReadingMode else { return }
+        restoreReadingSpreadIndex()
+        repaginateForReading(pageContentSize: pageContentSize)
+        experienceMode = .reading
+    }
+
+    func exitReadingMode() {
+        experienceMode = .learning
+        persistReadingSpreadIndex()
+    }
+
+    func toggleReadingMode(pageContentSize: CGSize) {
+        if experienceMode == .reading {
+            exitReadingMode()
+        } else {
+            enterReadingMode(pageContentSize: pageContentSize)
+        }
+    }
+
+    func canTurnReadingSpreadForward(from spreadIndex: Int) -> Bool {
+        spreadIndex < readingSpreadCount - 1
+    }
+
+    func canTurnReadingSpreadBackward(from spreadIndex: Int) -> Bool {
+        spreadIndex > 0
+    }
+
+    func turnReadingSpreadForward() {
+        guard canTurnReadingSpreadForward(from: readingSpreadIndex) else { return }
+        readingSpreadIndex += 1
+    }
+
+    func turnReadingSpreadBackward() {
+        guard canTurnReadingSpreadBackward(from: readingSpreadIndex) else { return }
+        readingSpreadIndex -= 1
+    }
+
+    private func readingPositionStorageKey() -> String? {
+        if let path = currentFileURL?.path {
+            return readingPositionKeyPrefix + path
+        }
+        if isDocumentOpen, fileName != "未命名" {
+            return readingPositionKeyPrefix + "draft:" + fileName
+        }
+        return nil
+    }
+
+    private func restoreReadingSpreadIndex() {
+        guard let key = readingPositionStorageKey() else { return }
+        let saved = UserDefaults.standard.integer(forKey: key)
+        if saved >= 0 {
+            readingSpreadIndex = saved
+        }
+    }
+
+    private func persistReadingSpreadIndex() {
+        guard let key = readingPositionStorageKey() else { return }
+        UserDefaults.standard.set(readingSpreadIndex, forKey: key)
     }
 
     var cursorContextUsage: CursorContextUsage {
@@ -654,6 +771,9 @@ final class ReadingViewModel: ObservableObject {
         currentFileURL = nil
         isDocumentOpen = true
         isDirty = false
+        readingPageTexts = []
+        readingSpreadIndex = 0
+        experienceMode = .learning
         selectedText = ""
         lastCommittedSelectionText = ""
         lastCommittedSelectionRange = nil

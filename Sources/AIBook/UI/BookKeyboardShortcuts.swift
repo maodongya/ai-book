@@ -29,6 +29,7 @@ enum BookKeyboardShortcuts {
 
     static let classicSupplement = KeyboardShortcut("c", modifiers: [.command, .shift])
     static let evolution = KeyboardShortcut("e")
+    static let readingMode = KeyboardShortcut("p", modifiers: [.command, .shift])
 
     // MARK: - Display hints
 
@@ -45,6 +46,7 @@ enum BookKeyboardShortcuts {
     static let readTranslationFullHint = "⌘⌥T"
     static let classicSupplementHint = "⌘⇧C"
     static let evolutionHint = "⌘E"
+    static let readingModeHint = "⌘⇧P"
 
     static let documentMenuSummary =
         "\(newDocumentHint) 新建 · \(openDocumentHint) 打开 · \(saveHint) 保存 · \(saveAsHint) 另存为 · \(selectAllLeftPageHint) 全选 · \(classicSupplementHint) 名著补充"
