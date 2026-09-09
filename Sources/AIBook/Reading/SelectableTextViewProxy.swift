@@ -28,24 +28,43 @@ final class SelectableTextViewProxy {
         return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
     }
 
-    func scrollToCharacterRange(_ range: NSRange, anchor: TextScrollAnchor = .top) {
-        guard let textView else { return }
-        let clamped = Self.clampRange(range, in: textView.string)
-        guard clamped.location != NSNotFound else { return }
-
-        textView.scrollRangeToVisible(clamped)
-
-        guard anchor == .top,
+    @discardableResult
+    func scrollToCharacterRange(_ range: NSRange, anchor: TextScrollAnchor = .top) -> Bool {
+        guard let textView,
+              textView.window != nil,
               let scrollView,
               let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else { return }
+              let textContainer = textView.textContainer else {
+            return false
+        }
 
+        let length = textView.textStorage?.length ?? (textView.string as NSString).length
+        guard length > 0 else { return false }
+
+        let clamped = Self.clampRange(range, length: length)
+        guard clamped.length > 0, NSMaxRange(clamped) <= length else { return false }
+
+        layoutManager.ensureLayout(for: textContainer)
         let glyphRange = layoutManager.glyphRange(forCharacterRange: clamped, actualCharacterRange: nil)
+        guard glyphRange.length > 0 else { return false }
+
         var rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
         rect.origin.x += textView.textContainerInset.width
         rect.origin.y += textView.textContainerInset.height
-        scrollView.contentView.scroll(to: NSPoint(x: 0, y: rect.origin.y))
+
+        let maxY = max(0, textView.bounds.height - scrollView.contentView.bounds.height)
+        let targetY: CGFloat
+        switch anchor {
+        case .top:
+            targetY = rect.minY
+        case .center:
+            targetY = rect.midY - scrollView.contentView.bounds.height / 2
+        case .bottom:
+            targetY = rect.maxY - scrollView.contentView.bounds.height
+        }
+        scrollView.contentView.scroll(to: NSPoint(x: 0, y: min(max(0, targetY), maxY)))
         scrollView.reflectScrolledClipView(scrollView.contentView)
+        return true
     }
 
     func highlightRange(_ range: NSRange?, color: NSColor? = nil) {
@@ -55,7 +74,8 @@ final class SelectableTextViewProxy {
         guard clamped.length > 0 else { return }
 
         let fill = color ?? NSColor(BookTheme.selection).withAlphaComponent(0.35)
-        textView.textStorage?.addAttribute(.backgroundColor, value: fill, range: clamped)
+        guard let storage = textView.textStorage, NSMaxRange(clamped) <= storage.length else { return }
+        storage.addAttribute(.backgroundColor, value: fill, range: clamped)
         highlightedRange = clamped
     }
 
@@ -79,10 +99,13 @@ final class SelectableTextViewProxy {
     }
 
     private static func clampRange(_ range: NSRange, in text: String) -> NSRange {
-        let length = (text as NSString).length
+        clampRange(range, length: (text as NSString).length)
+    }
+
+    private static func clampRange(_ range: NSRange, length: Int) -> NSRange {
         guard length > 0 else { return NSRange(location: 0, length: 0) }
         let location = min(max(range.location, 0), length)
-        let end = min(max(range.location + range.length, location), length)
+        let end = min(max(range.location + max(range.length, 0), location), length)
         return NSRange(location: location, length: end - location)
     }
 }

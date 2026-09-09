@@ -13,6 +13,7 @@ struct ReadingSpreadView: View {
     @State private var flipDirection: BookPageTurnDirection?
     @State private var targetSpreadIndex: Int?
     @State private var isDraggingTurn = false
+    @State private var isRepaginating = false
 
     private let commitThreshold: CGFloat = 0.34
 
@@ -25,11 +26,12 @@ struct ReadingSpreadView: View {
 
             VStack(spacing: 14) {
                 readingHeader
+                    .zIndex(2)
                 spreadBody
+                    .zIndex(0)
             }
             .padding(24)
         }
-        .focusable()
         .background(readingKeyboardShortcuts)
         .onAppear {
             displayedSpreadIndex = viewModel.readingSpreadIndex
@@ -52,11 +54,19 @@ struct ReadingSpreadView: View {
     }
 
     private var readingHeader: some View {
-        HStack(spacing: 14) {
-            BookActionButton(title: "学习模式", isProminent: false) {
-                viewModel.exitReadingMode()
+        HStack(spacing: 12) {
+            Button(action: { viewModel.exitReadingMode() }) {
+                BookToolbarCapsuleLabel(
+                    title: "学习模式",
+                    isProminent: true,
+                    isCompact: false,
+                    isHovering: false
+                )
             }
+            .buttonStyle(.plain)
+            .fixedSize()
             .help("返回学习模式：讲解、翻译与 AI 助手")
+            .keyboardShortcut(.escape, modifiers: [])
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("阅读模式")
@@ -67,20 +77,25 @@ struct ReadingSpreadView: View {
                     .foregroundStyle(BookTheme.chromeMuted)
                     .lineLimit(1)
             }
+            .layoutPriority(-1)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if viewModel.canUseReadingComparison {
+            if viewModel.showsReadingComparisonToggle {
                 Toggle("对照翻页", isOn: $viewModel.readingComparisonEnabled)
                     .toggleStyle(.switch)
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.chromeMuted)
+                    .disabled(!viewModel.canUseReadingComparison)
+                    .help(viewModel.readingComparisonHelp)
+                    .fixedSize()
             }
 
             BookStatusPill(
                 title: viewModel.readingProgressLabel(spreadIndex: activeSpreadIndex),
                 icon: "book.pages"
             )
+            .layoutPriority(-1)
 
             turnButton(systemImage: "chevron.left", enabled: canGoBackward) {
                 turnPage(.backward)
@@ -240,16 +255,17 @@ struct ReadingSpreadView: View {
 
     private var readingKeyboardShortcuts: some View {
         Group {
-            Button("") { turnPage(.backward) }
+            Button("上一页") { turnPage(.backward) }
                 .keyboardShortcut(.leftArrow, modifiers: [])
-                .hidden()
-            Button("") { turnPage(.forward) }
+            Button("下一页") { turnPage(.forward) }
                 .keyboardShortcut(.rightArrow, modifiers: [])
-                .hidden()
-            Button("") { viewModel.exitReadingMode() }
+            Button("学习模式") { viewModel.exitReadingMode() }
                 .keyboardShortcut(.escape, modifiers: [])
-                .hidden()
         }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private func pageSwipeGesture(pageWidth: CGFloat) -> some Gesture {
@@ -453,21 +469,20 @@ struct ReadingSpreadView: View {
             width: width,
             height: max(120, height - footerHeight - headerHeight)
         )
-        guard abs(newSize.width - pageContentSize.width) > 1
-            || abs(newSize.height - pageContentSize.height) > 1 else { return }
+        guard abs(newSize.width - pageContentSize.width) > 2
+            || abs(newSize.height - pageContentSize.height) > 2 else { return }
         pageContentSize = newSize
         repaginateIfNeeded()
     }
 
     private func repaginateIfNeeded() {
+        guard !isRepaginating else { return }
         guard pageContentSize.width > 0, pageContentSize.height > 0 else { return }
-        let previousLeftPage = viewModel.leftPageIndex(forSpread: displayedSpreadIndex)
+        isRepaginating = true
         viewModel.repaginateForReading(pageContentSize: pageContentSize)
-        let maxSpread = max(0, viewModel.readingSpreadCount - 1)
-        let targetSpread = min(maxSpread, previousLeftPage / 2)
-        displayedSpreadIndex = targetSpread
-        if viewModel.readingSpreadIndex != targetSpread {
-            viewModel.readingSpreadIndex = targetSpread
+        displayedSpreadIndex = viewModel.readingSpreadIndex
+        DispatchQueue.main.async {
+            isRepaginating = false
         }
     }
 

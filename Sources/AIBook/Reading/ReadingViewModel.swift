@@ -103,16 +103,17 @@ final class ReadingViewModel: ObservableObject {
     @Published var translationAlignment: TranslationAlignment? {
         didSet {
             translationScrollSync.resetAnchors()
-            if translationAlignment?.mode != .wordByWord {
+            if isApplyingAlignment { return }
+            if translationAlignment?.mode != .wordByWord, translationTableViewEnabled {
                 translationTableViewEnabled = false
             }
-            if translationAlignment == nil || translationAlignment?.isStale == true {
+            if readingComparisonEnabled,
+               (translationAlignment == nil
+                || translationAlignment?.isStale == true
+                || translationAlignment?.mode != .paragraph) {
                 readingComparisonEnabled = false
             }
             syncTranslationScrollPresentation()
-            if let pageContentSize = lastReadingPageContentSize {
-                rebuildTranslationReadingLayout(pageContentSize: pageContentSize)
-            }
             persistChatSession()
         }
     }
@@ -162,16 +163,24 @@ final class ReadingViewModel: ObservableObject {
     @Published private(set) var readingPageTexts: [String] = []
     @Published private(set) var readingSourcePageRanges: [NSRange] = []
     @Published private(set) var readingTranslationPageTexts: [String] = []
-    @Published private(set) var sourcePageToTranslationPage: [Int: Int] = [:]
     @Published var readingComparisonEnabled = false {
         didSet {
+            guard !isUpdatingComparisonEnabled else { return }
+            guard readingComparisonEnabled != oldValue else { return }
+
             if readingComparisonEnabled && !canUseReadingComparison {
+                isUpdatingComparisonEnabled = true
                 readingComparisonEnabled = false
+                isUpdatingComparisonEnabled = false
+                persistChatSession()
                 return
             }
-            if let pageContentSize = lastReadingPageContentSize {
-                rebuildTranslationReadingLayout(pageContentSize: pageContentSize)
-            }
+
+            pendingReadingSourcePage = oldValue
+                ? (comparisonSpreads.indices.contains(readingSpreadIndex)
+                    ? comparisonSpreads[readingSpreadIndex].sourcePageIndex
+                    : readingSpreadIndex * 2)
+                : readingSpreadIndex * 2
             persistChatSession()
         }
     }
@@ -182,8 +191,16 @@ final class ReadingViewModel: ObservableObject {
         }
     }
 
+    private struct ComparisonSpread: Equatable {
+        var sourcePageIndex: Int
+        var translationPageIndex: Int?
+    }
+
+    private var comparisonSpreads: [ComparisonSpread] = []
+    private var pendingReadingSourcePage: Int?
     private var lastReadingPageContentSize: CGSize?
     private let readingPositionKeyPrefix = "aiBook.reading.spread."
+    private let readingSourcePageKeyPrefix = "aiBook.reading.sourcePage."
     private let llmService = LLMService()
     private let cursorService = CursorService()
     private let chatSessionStore = ChatSessionStore.shared
@@ -196,6 +213,7 @@ final class ReadingViewModel: ObservableObject {
     private var selectedTextRange: NSRange?
     private var isRestoringSession = false
     private var isApplyingAlignment = false
+    private var isUpdatingComparisonEnabled = false
     private var activeTask: Task<Void, Never>?
     private var autoSaveTask: Task<Void, Never>?
     private var saveMessageTask: Task<Void, Never>?
@@ -228,6 +246,7 @@ final class ReadingViewModel: ObservableObject {
         ensureEvolutionWelcome()
         restoreChatSession()
         syncDisplayedChatMessages()
+        persistChatSession()
     }
 
     func onAppear() {
@@ -270,7 +289,10 @@ final class ReadingViewModel: ObservableObject {
     }
 
     var readingSpreadCount: Int {
-        max(1, (readingPageTexts.count + 1) / 2)
+        if readingComparisonEnabled {
+            return max(1, comparisonSpreads.count)
+        }
+        return max(1, (readingPageTexts.count + 1) / 2)
     }
 
     var readingPageCount: Int {
@@ -283,43 +305,69 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func leftPageIndex(forSpread spreadIndex: Int) -> Int {
-        spreadIndex * 2
+        if readingComparisonEnabled, comparisonSpreads.indices.contains(spreadIndex) {
+            return comparisonSpreads[spreadIndex].sourcePageIndex
+        }
+        return spreadIndex * 2
     }
 
     func rightPageIndex(forSpread spreadIndex: Int) -> Int? {
+        if readingComparisonEnabled { return nil }
         let index = spreadIndex * 2 + 1
         return readingPageTexts.indices.contains(index) ? index : nil
     }
 
+    func currentVisibleSourcePageIndex() -> Int {
+        leftPageIndex(forSpread: readingSpreadIndex)
+    }
+
     func readingProgressLabel(spreadIndex: Int) -> String {
+        if readingComparisonEnabled {
+            return comparisonProgressLabel(spreadIndex: spreadIndex)
+        }
         let left = leftPageIndex(forSpread: spreadIndex) + 1
         let total = max(readingPageCount, 1)
-        if readingComparisonEnabled, !readingTranslationPageTexts.isEmpty {
-            let translationPage = comparisonTranslationPageIndex(forSpread: spreadIndex) + 1
-            let translationTotal = max(readingTranslationPageTexts.count, 1)
-            if let rightIndex = rightPageIndex(forSpread: spreadIndex) {
-                return "原文 \(left)–\(rightIndex + 1)/\(total) · 译文 \(translationPage)/\(translationTotal)"
-            }
-            return "原文 \(left)/\(total) · 译文 \(translationPage)/\(translationTotal)"
-        }
         if let rightIndex = rightPageIndex(forSpread: spreadIndex) {
             return "第 \(left)–\(rightIndex + 1) 页 / 共 \(total) 页"
         }
         return "第 \(left) 页 / 共 \(total) 页"
     }
 
+    var showsReadingComparisonToggle: Bool {
+        translationAlignment != nil
+    }
+
     var canUseReadingComparison: Bool {
         guard let alignment = translationAlignment,
+              alignment.mode == .paragraph,
               !alignment.isStale,
               !alignment.blocks.isEmpty else {
             return false
         }
-        return true
+        return alignment.sourceContentHash == TranslationSourceHasher.hash(fileContent)
+    }
+
+    var readingComparisonHelp: String {
+        guard let alignment = translationAlignment else {
+            return "先生成整段翻译，再对照翻页。"
+        }
+        if alignment.isStale {
+            return "原文或译文已改动，请重新生成整段翻译后再对照。"
+        }
+        if alignment.mode == .wordByWord {
+            return "逐字翻译请用学习模式的「表格对照」；对照翻页仅支持整段翻译。"
+        }
+        if alignment.sourceContentHash != TranslationSourceHasher.hash(fileContent) {
+            return "对照翻页需要针对全文的整段翻译。"
+        }
+        return "左页原文、右页译文；一次翻一页。译文较长时，同一原文页会连翻多页译文。"
     }
 
     func comparisonTranslationPageText(forSpread spreadIndex: Int) -> String {
-        let translationIndex = comparisonTranslationPageIndex(forSpread: spreadIndex)
-        guard readingTranslationPageTexts.indices.contains(translationIndex) else {
+        guard readingComparisonEnabled,
+              comparisonSpreads.indices.contains(spreadIndex),
+              let translationIndex = comparisonSpreads[spreadIndex].translationPageIndex,
+              readingTranslationPageTexts.indices.contains(translationIndex) else {
             return "本页暂无译文"
         }
         let text = readingTranslationPageTexts[translationIndex]
@@ -328,33 +376,31 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func comparisonTranslationPageNumber(forSpread spreadIndex: Int) -> Int? {
-        guard readingComparisonEnabled, !readingTranslationPageTexts.isEmpty else { return nil }
-        let index = comparisonTranslationPageIndex(forSpread: spreadIndex)
-        guard readingTranslationPageTexts.indices.contains(index) else { return nil }
-        return index + 1
+        guard readingComparisonEnabled,
+              comparisonSpreads.indices.contains(spreadIndex),
+              let translationIndex = comparisonSpreads[spreadIndex].translationPageIndex,
+              readingTranslationPageTexts.indices.contains(translationIndex) else {
+            return nil
+        }
+        return translationIndex + 1
     }
 
     func repaginateForReading(pageContentSize: CGSize) {
+        let keepSourcePage = pendingReadingSourcePage ?? currentVisibleSourcePageIndex()
+        pendingReadingSourcePage = nil
         lastReadingPageContentSize = pageContentSize
         let pages = BookPaginator.paginateWithRanges(text: fileContent, pageSize: pageContentSize)
         readingPageTexts = pages.map(\.text)
         readingSourcePageRanges = pages.map(\.range)
         rebuildTranslationReadingLayout(pageContentSize: pageContentSize)
-        let maxSpread = max(0, readingSpreadCount - 1)
-        if readingSpreadIndex > maxSpread {
-            readingSpreadIndex = maxSpread
-        }
-        if readingSpreadIndex < 0 {
-            readingSpreadIndex = 0
-        }
+        applyReadingSpread(forSourcePage: keepSourcePage)
     }
 
     private func rebuildTranslationReadingLayout(pageContentSize: CGSize) {
-        guard readingComparisonEnabled,
-              let alignment = translationAlignment,
-              !alignment.isStale else {
+        guard readingComparisonEnabled, canUseReadingComparison,
+              let alignment = translationAlignment else {
             readingTranslationPageTexts = []
-            sourcePageToTranslationPage = [:]
+            comparisonSpreads = []
             return
         }
 
@@ -364,27 +410,94 @@ final class ReadingViewModel: ObservableObject {
             pageSize: pageContentSize
         )
         readingTranslationPageTexts = layout.translationPageTexts
-        sourcePageToTranslationPage = layout.sourcePageToTranslationPage
+        comparisonSpreads = makeComparisonSpreads(
+            sourcePageCount: readingPageTexts.count,
+            mapping: layout.sourcePageToTranslationPages
+        )
     }
 
-    private func comparisonTranslationPageIndex(forSpread spreadIndex: Int) -> Int {
-        let preferredSourcePage = rightPageIndex(forSpread: spreadIndex)
-            ?? leftPageIndex(forSpread: spreadIndex)
-        if let mapped = sourcePageToTranslationPage[preferredSourcePage] {
-            return mapped
+    private func makeComparisonSpreads(
+        sourcePageCount: Int,
+        mapping: [Int: [Int]]
+    ) -> [ComparisonSpread] {
+        guard sourcePageCount > 0 else {
+            return [ComparisonSpread(sourcePageIndex: 0, translationPageIndex: nil)]
         }
-        if let mapped = sourcePageToTranslationPage[leftPageIndex(forSpread: spreadIndex)] {
-            return mapped
+        var spreads: [ComparisonSpread] = []
+        for sourcePage in 0..<sourcePageCount {
+            let translationPages = mapping[sourcePage] ?? []
+            if translationPages.isEmpty {
+                spreads.append(ComparisonSpread(sourcePageIndex: sourcePage, translationPageIndex: nil))
+            } else {
+                for translationPage in translationPages {
+                    spreads.append(
+                        ComparisonSpread(
+                            sourcePageIndex: sourcePage,
+                            translationPageIndex: translationPage
+                        )
+                    )
+                }
+            }
         }
-        return 0
+        return spreads
+    }
+
+    private func applyReadingSpread(forSourcePage sourcePage: Int) {
+        let clampedSource = min(max(0, sourcePage), max(0, readingPageTexts.count - 1))
+        let target: Int
+        if readingComparisonEnabled {
+            target = comparisonSpreads.firstIndex { $0.sourcePageIndex == clampedSource } ?? 0
+        } else {
+            target = clampedSource / 2
+        }
+        let maxSpread = max(0, readingSpreadCount - 1)
+        readingSpreadIndex = min(max(0, target), maxSpread)
+    }
+
+    private func comparisonProgressLabel(spreadIndex: Int) -> String {
+        let source = leftPageIndex(forSpread: spreadIndex) + 1
+        let sourceTotal = max(readingPageCount, 1)
+        guard comparisonSpreads.indices.contains(spreadIndex) else {
+            return "原文 \(source)/\(sourceTotal)"
+        }
+        let item = comparisonSpreads[spreadIndex]
+        guard let translationIndex = item.translationPageIndex else {
+            return "原文 \(source)/\(sourceTotal) · 暂无译文"
+        }
+        let translationTotal = max(readingTranslationPageTexts.count, 1)
+        let sameSource = comparisonSpreads.indices.filter {
+            comparisonSpreads[$0].sourcePageIndex == item.sourcePageIndex
+        }
+        if sameSource.count > 1, let step = sameSource.firstIndex(of: spreadIndex) {
+            return "原文 \(source)/\(sourceTotal) · 译文 \(translationIndex + 1)/\(translationTotal)（续 \(step + 1)/\(sameSource.count)）"
+        }
+        return "原文 \(source)/\(sourceTotal) · 译文 \(translationIndex + 1)/\(translationTotal)"
     }
 
     private func restoreLearningScrollPositionFromReadingSpread() {
-        let sourcePage = leftPageIndex(forSpread: readingSpreadIndex)
+        let sourcePage = currentVisibleSourcePageIndex()
         guard readingSourcePageRanges.indices.contains(sourcePage) else { return }
-        let range = readingSourcePageRanges[sourcePage]
-        guard range.length > 0 else { return }
-        sourceTextScrollProxy.scrollToCharacterRange(range, anchor: .top)
+        let trimmedRange = readingSourcePageRanges[sourcePage]
+        guard trimmedRange.length > 0,
+              let range = fileContentRange(fromTrimmedRange: trimmedRange) else { return }
+        guard experienceMode == .learning else { return }
+        if sourceTextScrollProxy.scrollToCharacterRange(range, anchor: .top) { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+            guard let self, self.experienceMode == .learning else { return }
+            _ = self.sourceTextScrollProxy.scrollToCharacterRange(range, anchor: .top)
+        }
+    }
+
+    private func fileContentRange(fromTrimmedRange range: NSRange) -> NSRange? {
+        let ns = fileContent as NSString
+        let trimmed = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let found = ns.range(of: trimmed)
+        guard found.location != NSNotFound else { return nil }
+        let location = found.location + range.location
+        guard location < ns.length else { return nil }
+        let length = min(range.length, ns.length - location)
+        return NSRange(location: location, length: max(0, length))
     }
 
     func enterReadingMode(pageContentSize: CGSize) {
@@ -395,9 +508,12 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func exitReadingMode() {
-        restoreLearningScrollPositionFromReadingSpread()
+        guard experienceMode == .reading else { return }
         experienceMode = .learning
         persistReadingSpreadIndex()
+        DispatchQueue.main.async { [weak self] in
+            self?.restoreLearningScrollPositionFromReadingSpread()
+        }
     }
 
     func toggleReadingMode(pageContentSize: CGSize) {
@@ -436,17 +552,37 @@ final class ReadingViewModel: ObservableObject {
         return nil
     }
 
+    private func readingSourcePageStorageKey() -> String? {
+        if let path = currentFileURL?.path {
+            return readingSourcePageKeyPrefix + path
+        }
+        if isDocumentOpen, fileName != "未命名" {
+            return readingSourcePageKeyPrefix + "draft:" + fileName
+        }
+        return nil
+    }
+
     private func restoreReadingSpreadIndex() {
-        guard let key = readingPositionStorageKey() else { return }
-        let saved = UserDefaults.standard.integer(forKey: key)
-        if saved >= 0 {
-            readingSpreadIndex = saved
+        if let sourceKey = readingSourcePageStorageKey(),
+           UserDefaults.standard.object(forKey: sourceKey) != nil {
+            pendingReadingSourcePage = max(0, UserDefaults.standard.integer(forKey: sourceKey))
+        } else if let spreadKey = readingPositionStorageKey() {
+            let saved = UserDefaults.standard.integer(forKey: spreadKey)
+            pendingReadingSourcePage = max(0, saved) * 2
+        }
+        if let sourcePage = pendingReadingSourcePage, !readingComparisonEnabled {
+            readingSpreadIndex = sourcePage / 2
         }
     }
 
     private func persistReadingSpreadIndex() {
-        guard let key = readingPositionStorageKey() else { return }
-        UserDefaults.standard.set(readingSpreadIndex, forKey: key)
+        let sourcePage = currentVisibleSourcePageIndex()
+        if let sourceKey = readingSourcePageStorageKey() {
+            UserDefaults.standard.set(sourcePage, forKey: sourceKey)
+        }
+        if let spreadKey = readingPositionStorageKey() {
+            UserDefaults.standard.set(sourcePage / 2, forKey: spreadKey)
+        }
     }
 
     var cursorContextUsage: CursorContextUsage {
@@ -910,6 +1046,9 @@ final class ReadingViewModel: ObservableObject {
         isDocumentOpen = true
         isDirty = false
         readingPageTexts = []
+        readingSourcePageRanges = []
+        readingTranslationPageTexts = []
+        comparisonSpreads = []
         readingSpreadIndex = 0
         experienceMode = .learning
         selectedText = ""
@@ -2382,6 +2521,8 @@ final class ReadingViewModel: ObservableObject {
         translationAlignment = alignment
         lessonPlanContent = rendered.content
         isApplyingAlignment = false
+        syncTranslationScrollPresentation()
+        persistChatSession()
     }
 
     private func rebuildTranslationAlignment(from content: String) -> TranslationAlignment? {
@@ -2392,14 +2533,48 @@ final class ReadingViewModel: ObservableObject {
         guard !source.isEmpty else { return nil }
 
         let wordEntries = TranslationLineParser.parseWordByWordLines(trimmed)
-        let mode: TranslationAlignmentMode = wordEntries.count >= 2 ? .wordByWord : .paragraph
+        let mode: TranslationAlignmentMode
+        if trimmed.contains("\"mode\": \"wordByWord\"") || trimmed.contains("\"entries\"") {
+            mode = .wordByWord
+        } else if trimmed.contains("\"mode\": \"paragraph\"")
+                    || trimmed.contains("\"blocks\"")
+                    || trimmed.contains("```json") {
+            mode = .paragraph
+        } else {
+            mode = wordEntries.count >= 2 ? .wordByWord : .paragraph
+        }
         var alignment = TranslationAlignmentBuilder.build(from: trimmed, source: source, mode: mode)
-        alignment.blocks = TranslationContentFormatter.indexTranslationRanges(
-            in: trimmed,
-            blocks: alignment.blocks,
-            mode: mode
-        )
+        let rendered = TranslationContentFormatter.renderIndexed(alignment)
+        alignment.blocks = rendered.blocks
         return alignment
+    }
+
+    private func repairCollapsedParagraphAlignmentIfNeeded() {
+        let source = lessonPlanSourceText()
+        guard !source.isEmpty, !lessonPlanContent.isEmpty else { return }
+
+        let sourceParagraphs = source
+            .components(separatedBy: "\n\n")
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .count
+        let paragraphBlocks = translationAlignment?.blocks.filter { $0.level == .paragraph }.count ?? 0
+        let looksLikeRawJSON = lessonPlanContent.contains("```json")
+            || lessonPlanContent.contains("\"translationText\"")
+        let collapsed = sourceParagraphs > 2 && paragraphBlocks <= 1
+        guard looksLikeRawJSON || collapsed else { return }
+
+        guard let rebuilt = rebuildTranslationAlignment(from: lessonPlanContent) else { return }
+        let rebuiltCount = rebuilt.blocks.filter { $0.level == .paragraph }.count
+        let rendered = TranslationContentFormatter.renderIndexed(rebuilt, title: "生成整段翻译")
+        let cleaned = !rendered.content.contains("```json") && rebuiltCount >= max(paragraphBlocks, 1)
+        guard cleaned, rebuiltCount > paragraphBlocks || looksLikeRawJSON else { return }
+
+        var alignment = rebuilt
+        alignment.blocks = rendered.blocks
+        isApplyingAlignment = true
+        translationAlignment = alignment
+        lessonPlanContent = rendered.content
+        isApplyingAlignment = false
     }
 
     func handleSourceTextScroll(visibleRange: NSRange) {
@@ -2471,9 +2646,12 @@ final class ReadingViewModel: ObservableObject {
         let source = lessonPlanSourceText()
         let currentHash = TranslationSourceHasher.hash(source)
         if alignment.sourceContentHash != currentHash {
+            guard !alignment.isStale else { return }
             alignment.isStale = true
             translationAlignment = alignment
-            readingComparisonEnabled = false
+            if readingComparisonEnabled {
+                readingComparisonEnabled = false
+            }
             translationScrollSync.resetAnchors()
             return
         }
@@ -2481,9 +2659,12 @@ final class ReadingViewModel: ObservableObject {
         guard fromManualEdit else { return }
         let matches = TranslationContentFormatter.matchesRenderedContent(alignment, content: lessonPlanContent)
         if !matches {
+            guard !alignment.isStale else { return }
             alignment.isStale = true
             translationAlignment = alignment
-            readingComparisonEnabled = false
+            if readingComparisonEnabled {
+                readingComparisonEnabled = false
+            }
             translationScrollSync.resetAnchors()
         }
     }
@@ -2978,20 +3159,19 @@ final class ReadingViewModel: ObservableObject {
         }
         lessonPlanContent = session.lessonPlanContent ?? ""
         translationAlignment = session.translationAlignment
+        if translationAlignment == nil,
+           !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            translationAlignment = rebuildTranslationAlignment(from: lessonPlanContent)
+        }
+        repairCollapsedParagraphAlignmentIfNeeded()
         if let scrollSyncEnabled = session.scrollSyncEnabled {
             translationScrollSyncEnabled = scrollSyncEnabled
         }
         if let tableViewEnabled = session.translationTableViewEnabled, tableViewEnabled {
             translationTableViewEnabled = canUseTranslationTableView
         }
-        if let comparisonEnabled = session.readingComparisonEnabled, comparisonEnabled {
-            readingComparisonEnabled = canUseReadingComparison
-        }
+        let shouldRestoreComparison = session.readingComparisonEnabled == true
         syncTranslationScrollPresentation()
-        if translationAlignment == nil,
-           !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            translationAlignment = rebuildTranslationAlignment(from: lessonPlanContent)
-        }
         if let panelName = session.readingAssistantPanel,
            let panel = ReadingAssistantPanel(rawValue: panelName) {
             readingAssistantPanel = panel
@@ -3004,6 +3184,10 @@ final class ReadingViewModel: ObservableObject {
             if FileManager.default.fileExists(atPath: url.path) {
                 loadFile(at: url, resetChat: false)
             }
+        }
+        repairCollapsedParagraphAlignmentIfNeeded()
+        if shouldRestoreComparison {
+            readingComparisonEnabled = canUseReadingComparison
         }
     }
 

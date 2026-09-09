@@ -58,9 +58,13 @@ enum TranslationAlignmentBuilder {
             guard let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: data),
                   let blocks = payload.blocks,
                   !blocks.isEmpty else { return nil }
-            let items = blocks.map {
-                (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.notes)
-            }
+            let items = normalizeParagraphItems(
+                blocks.map {
+                    (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.notes)
+                },
+                source: source
+            )
+            guard !items.isEmpty else { return nil }
             return makeAlignment(
                 mode: .paragraph,
                 blocks: anchorParagraphBlocks(items, in: source),
@@ -90,10 +94,13 @@ enum TranslationAlignmentBuilder {
     ) -> TranslationAlignment {
         switch mode {
         case .paragraph:
-            let entries = TranslationLineParser.parseParagraphSections(text)
-            let items = entries.map {
-                (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.note)
-            }
+            let entries = TranslationLineParser.parseParagraphSections(stripDisplayChrome(text))
+            let items = normalizeParagraphItems(
+                entries.map {
+                    (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.note)
+                },
+                source: source
+            )
             return makeAlignment(
                 mode: .paragraph,
                 blocks: anchorParagraphBlocks(items, in: source),
@@ -131,20 +138,27 @@ enum TranslationAlignmentBuilder {
     ) -> [TranslationBlock] {
         let paragraphs = paragraphRanges(in: source)
         var paragraphIndex = 0
+        let useSequential = items.count == paragraphs.count && paragraphs.count > 1
 
         return items.enumerated().map { order, item in
             var matchedRange = NSRange(location: 0, length: 0)
             var matchedSource = normalized(item.sourceText)
 
-            while paragraphIndex < paragraphs.count {
-                let candidate = paragraphs[paragraphIndex]
-                if textsMatch(candidate.text, item.sourceText) || textsMatch(candidate.text, item.translationText) {
-                    matchedRange = candidate.range
-                    matchedSource = candidate.text
+            if useSequential, paragraphs.indices.contains(order) {
+                let candidate = paragraphs[order]
+                matchedRange = candidate.range
+                matchedSource = candidate.text
+            } else {
+                while paragraphIndex < paragraphs.count {
+                    let candidate = paragraphs[paragraphIndex]
+                    if textsMatch(candidate.text, item.sourceText) {
+                        matchedRange = candidate.range
+                        matchedSource = candidate.text
+                        paragraphIndex += 1
+                        break
+                    }
                     paragraphIndex += 1
-                    break
                 }
-                paragraphIndex += 1
             }
 
             return TranslationBlock(
@@ -156,6 +170,108 @@ enum TranslationAlignmentBuilder {
                 order: order
             )
         }
+    }
+
+    private static func normalizeParagraphItems(
+        _ items: [(sourceText: String, translationText: String, note: String?)],
+        source: String
+    ) -> [(sourceText: String, translationText: String, note: String?)] {
+        let paragraphs = paragraphRanges(in: source)
+        var resolved: [(sourceText: String, translationText: String, note: String?)] = []
+
+        for item in items {
+            if looksLikeJSON(item.translationText),
+               let nested = decodeParagraphItems(from: item.translationText),
+               nested.count > 1 {
+                resolved.append(contentsOf: nested)
+            } else {
+                resolved.append(
+                    (
+                        sourceText: item.sourceText,
+                        translationText: stripJSONFences(item.translationText),
+                        note: item.note
+                    )
+                )
+            }
+        }
+
+        if resolved.count <= 1, paragraphs.count > 1 {
+            let blob = resolved.first.map(\.translationText) ?? items.first?.translationText ?? ""
+            if looksLikeJSON(blob), let nested = decodeParagraphItems(from: blob), nested.count > 1 {
+                resolved = nested
+            } else {
+                let translationParagraphs = paragraphRanges(in: stripJSONFences(blob)).map(\.text)
+                if translationParagraphs.count > 1 {
+                    resolved = zipParagraphs(paragraphs.map(\.text), translationParagraphs)
+                }
+            }
+        }
+
+        return resolved.filter {
+            !$0.translationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    private static func zipParagraphs(
+        _ sources: [String],
+        _ translations: [String]
+    ) -> [(sourceText: String, translationText: String, note: String?)] {
+        let paired = min(sources.count, translations.count)
+        guard paired > 0 else { return [] }
+
+        var items: [(sourceText: String, translationText: String, note: String?)] = (0..<paired).map { index in
+            (sourceText: sources[index], translationText: translations[index], note: nil)
+        }
+        if translations.count > paired {
+            let extra = translations[paired...].joined(separator: "\n\n")
+            items[paired - 1].translationText += "\n\n\(extra)"
+        }
+        return items
+    }
+
+    private static func decodeParagraphItems(
+        from text: String
+    ) -> [(sourceText: String, translationText: String, note: String?)]? {
+        guard let jsonText = extractJSONText(from: text) ?? (looksLikeJSON(text) ? stripJSONFences(text) : nil),
+              let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: Data(jsonText.utf8)),
+              let blocks = payload.blocks,
+              blocks.count > 1 else {
+            return nil
+        }
+        return blocks.map {
+            (sourceText: $0.sourceText, translationText: $0.translationText, note: $0.notes)
+        }
+    }
+
+    private static func looksLikeJSON(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.contains("```json")
+            || trimmed.contains("\"blocks\"")
+            || trimmed.contains("\"mode\"")
+            || (trimmed.hasPrefix("{") && trimmed.contains("translationText"))
+    }
+
+    private static func stripJSONFences(_ text: String) -> String {
+        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if result.hasPrefix("```json") {
+            result.removeFirst("```json".count)
+        } else if result.hasPrefix("```") {
+            result.removeFirst(3)
+        }
+        result = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        if result.hasSuffix("```") {
+            result.removeLast(3)
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func stripDisplayChrome(_ text: String) -> String {
+        var lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        if let first = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+           first.hasPrefix("【"), first.hasSuffix("】") {
+            lines.removeFirst()
+        }
+        return stripJSONFences(lines.joined(separator: "\n"))
     }
 
     private static func anchorWordBlocks(
@@ -322,7 +438,10 @@ enum TranslationAlignmentBuilder {
         let b = normalized(rhs)
         if a.isEmpty || b.isEmpty { return false }
         if a == b { return true }
-        if a.contains(b) || b.contains(a) { return true }
-        return false
+        let shorter = a.count < b.count ? a : b
+        let longer = a.count < b.count ? b : a
+        guard shorter.count >= 12 else { return false }
+        let ratio = Double(shorter.count) / Double(max(longer.count, 1))
+        return ratio >= 0.45 && longer.contains(shorter)
     }
 }

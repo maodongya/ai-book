@@ -3,7 +3,7 @@ import Foundation
 enum TranslationReadingMapper {
     struct Layout: Equatable {
         var translationPageTexts: [String]
-        var sourcePageToTranslationPage: [Int: Int]
+        var sourcePageToTranslationPages: [Int: [Int]]
     }
 
     static func buildLayout(
@@ -12,40 +12,43 @@ enum TranslationReadingMapper {
         pageSize: CGSize
     ) -> Layout {
         let rendered = TranslationContentFormatter.renderIndexed(alignment, title: nil)
-        let plainText = rendered.content
-        let blocks = rendered.blocks
-        let translationPages = BookPaginator.paginateWithRanges(text: plainText, pageSize: pageSize)
+        let translationPages = BookPaginator.paginateWithRanges(
+            text: rendered.content,
+            pageSize: pageSize
+        )
 
         guard !translationPages.isEmpty else {
-            return Layout(translationPageTexts: [], sourcePageToTranslationPage: [:])
+            return Layout(translationPageTexts: [], sourcePageToTranslationPages: [:])
         }
 
-        let blockToTranslationPage = mapBlocksToTranslationPages(
-            blocks: blocks,
+        let blockToTranslationPages = mapBlocksToTranslationPages(
+            blocks: rendered.blocks,
             translationPages: translationPages
         )
-        let sourcePageToTranslationPage = mapSourcePagesToTranslationPages(
+        let sourcePageToTranslationPages = mapSourcePagesToTranslationPages(
             alignment: alignment,
             sourcePageRanges: sourcePageRanges,
-            blockToTranslationPage: blockToTranslationPage
+            blockToTranslationPages: blockToTranslationPages
         )
 
         return Layout(
             translationPageTexts: translationPages.map(\.text),
-            sourcePageToTranslationPage: sourcePageToTranslationPage
+            sourcePageToTranslationPages: sourcePageToTranslationPages
         )
     }
 
     private static func mapBlocksToTranslationPages(
         blocks: [TranslationBlock],
         translationPages: [BookPaginator.PaginatedPage]
-    ) -> [UUID: Int] {
-        var result: [UUID: Int] = [:]
+    ) -> [UUID: [Int]] {
+        var result: [UUID: [Int]] = [:]
         for block in blocks where block.hasTranslationRange {
-            guard let pageIndex = translationPages.firstIndex(where: { page in
-                rangesIntersect(block.translationRange, page.range)
-            }) else { continue }
-            result[block.id] = pageIndex
+            let pages = translationPages.indices.filter { index in
+                rangesIntersect(block.translationRange, translationPages[index].range)
+            }
+            if !pages.isEmpty {
+                result[block.id] = pages
+            }
         }
         return result
     }
@@ -53,17 +56,20 @@ enum TranslationReadingMapper {
     private static func mapSourcePagesToTranslationPages(
         alignment: TranslationAlignment,
         sourcePageRanges: [NSRange],
-        blockToTranslationPage: [UUID: Int]
-    ) -> [Int: Int] {
-        var result: [Int: Int] = [:]
+        blockToTranslationPages: [UUID: [Int]]
+    ) -> [Int: [Int]] {
+        var result: [Int: [Int]] = [:]
         let blocks = alignment.blocks.filter(\.isAnchored)
 
         for (sourceIndex, sourceRange) in sourcePageRanges.enumerated() {
-            let matchedPages = blocks
-                .filter { rangesIntersect($0.sourceRange, sourceRange) }
-                .compactMap { blockToTranslationPage[$0.id] }
-            if let first = matchedPages.min() {
-                result[sourceIndex] = first
+            var pages = Set<Int>()
+            for block in blocks where rangesIntersect(block.sourceRange, sourceRange) {
+                if let mapped = blockToTranslationPages[block.id] {
+                    pages.formUnion(mapped)
+                }
+            }
+            if !pages.isEmpty {
+                result[sourceIndex] = pages.sorted()
             }
         }
         return result

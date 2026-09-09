@@ -52,13 +52,26 @@ struct ContentView: View {
     private var learningModeKeyboardShortcuts: some View {
         Group {
             if viewModel.canEnterReadingMode, viewModel.experienceMode == .learning {
-                Button("") {
+                Button("阅读模式") {
                     viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
                 }
                 .keyboardShortcut(BookKeyboardShortcuts.readingMode)
-                .hidden()
+            }
+            if viewModel.experienceMode == .reading {
+                Button("学习模式") {
+                    viewModel.exitReadingMode()
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+                Button("退出阅读模式") {
+                    viewModel.exitReadingMode()
+                }
+                .keyboardShortcut(BookKeyboardShortcuts.readingMode)
             }
         }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var bookHeader: some View {
