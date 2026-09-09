@@ -152,8 +152,61 @@ struct ExplanationChatView: View {
     private var translationPanel: some View {
         VStack(spacing: 0) {
             translationSyncControls
-            lessonPlanEditor
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if viewModel.showsTranslationTableView, let alignment = viewModel.translationAlignment {
+                        TranslationTableView(
+                            alignment: alignment,
+                            highlightedBlockID: viewModel.translationTableHighlightedBlockID,
+                            scrollTargetBlockID: viewModel.translationTableScrollTargetID,
+                            onVisibleBlockChange: { block in
+                                viewModel.handleTranslationTableVisibleBlock(block)
+                            }
+                        )
+                    } else {
+                        lessonPlanEditor
+                    }
+                }
+
+                if !viewModel.showsTranslationTableView {
+                    VStack {
+                        HStack(spacing: 8) {
+                            Spacer()
+                            lessonPlanSelectAllButton
+                            lessonPlanReadAloudButton
+                        }
+                        Spacer()
+                    }
+                    .padding(10)
+                }
+
+                if viewModel.isLoading && viewModel.readingAssistantActiveTask == .translation {
+                    translationLoadingBadge
+                }
+            }
         }
+    }
+
+    private var translationLoadingBadge: some View {
+        HStack(spacing: 8) {
+            ProgressView().controlSize(.small)
+            Text("正在生成翻译…")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.leather)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background {
+            Capsule()
+                .fill(Color.white.opacity(0.88))
+                .overlay {
+                    Capsule()
+                        .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+                }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
@@ -172,6 +225,11 @@ struct ExplanationChatView: View {
                     viewModel.translationAlignment == nil
                         || viewModel.translationAlignment?.isStale == true
                 )
+
+            Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
+                .toggleStyle(.switch)
+                .font(BookTheme.captionFont)
+                .disabled(!viewModel.canUseTranslationTableView)
 
             if let alignment = viewModel.translationAlignment, !alignment.isStale {
                 Text("\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定")
@@ -317,38 +375,6 @@ struct ExplanationChatView: View {
                 selectAllSignal: viewModel.rightSelectAllSignal
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            VStack {
-                HStack(spacing: 8) {
-                    Spacer()
-                    lessonPlanSelectAllButton
-                    lessonPlanReadAloudButton
-                }
-                Spacer()
-            }
-            .padding(10)
-
-            if viewModel.isLoading && viewModel.readingAssistantActiveTask == .translation {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("正在生成翻译…")
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.leather)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background {
-                    Capsule()
-                        .fill(Color.white.opacity(0.88))
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
-                        }
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .allowsHitTesting(false)
-            }
         }
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)

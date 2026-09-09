@@ -45,6 +45,9 @@ struct ReadingSpreadView: View {
         .onChange(of: styleManager.revision) { _ in
             repaginateIfNeeded()
         }
+        .onChange(of: viewModel.readingComparisonEnabled) { _ in
+            repaginateIfNeeded()
+        }
         .id(styleManager.revision)
     }
 
@@ -66,6 +69,13 @@ struct ReadingSpreadView: View {
             }
 
             Spacer()
+
+            if viewModel.canUseReadingComparison {
+                Toggle("对照翻页", isOn: $viewModel.readingComparisonEnabled)
+                    .toggleStyle(.switch)
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.chromeMuted)
+            }
 
             BookStatusPill(
                 title: viewModel.readingProgressLabel(spreadIndex: activeSpreadIndex),
@@ -154,6 +164,7 @@ struct ReadingSpreadView: View {
             pagePanel(
                 text: pageText(spreadIndex: spreadIndex, side: .leading),
                 pageNumber: pageNumber(spreadIndex: spreadIndex, side: .leading),
+                pageCaption: viewModel.readingComparisonEnabled ? "原文" : nil,
                 side: .leading,
                 width: pageWidth,
                 height: spreadHeight
@@ -168,6 +179,7 @@ struct ReadingSpreadView: View {
             pagePanel(
                 text: pageText(spreadIndex: spreadIndex, side: .trailing),
                 pageNumber: pageNumber(spreadIndex: spreadIndex, side: .trailing),
+                pageCaption: viewModel.readingComparisonEnabled ? "译文" : nil,
                 side: .trailing,
                 width: pageWidth,
                 height: spreadHeight
@@ -297,17 +309,29 @@ struct ReadingSpreadView: View {
     private func pagePanel(
         text: String,
         pageNumber: Int?,
+        pageCaption: String? = nil,
         side: HorizontalEdge,
         width: CGFloat,
         height: CGFloat
     ) -> some View {
         VStack(spacing: 0) {
+            HStack {
+                if let pageCaption {
+                    Text(pageCaption)
+                        .font(BookTheme.captionFont.weight(.semibold))
+                        .foregroundStyle(BookTheme.leather)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 36)
+            .padding(.top, 10)
+
             BookInterface.HeaderOrnament()
-                .padding(.top, 8)
+                .padding(.top, pageCaption == nil ? 8 : 2)
 
             Text(text)
                 .font(readingFont)
-                .foregroundStyle(BookTheme.ink)
+                .foregroundStyle(pageCaption == "译文" && text == "本页暂无译文" ? BookTheme.inkMuted : BookTheme.ink)
                 .lineSpacing(BookTheme.tokens.typography.readingLineSpacing)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -398,6 +422,9 @@ struct ReadingSpreadView: View {
         case .leading:
             return viewModel.readingPageText(at: viewModel.leftPageIndex(forSpread: spreadIndex))
         case .trailing:
+            if viewModel.readingComparisonEnabled {
+                return viewModel.comparisonTranslationPageText(forSpread: spreadIndex)
+            }
             if let index = viewModel.rightPageIndex(forSpread: spreadIndex) {
                 return viewModel.readingPageText(at: index)
             }
@@ -411,6 +438,9 @@ struct ReadingSpreadView: View {
         case .leading:
             return viewModel.leftPageIndex(forSpread: spreadIndex) + 1
         case .trailing:
+            if viewModel.readingComparisonEnabled {
+                return viewModel.comparisonTranslationPageNumber(forSpread: spreadIndex)
+            }
             guard let index = viewModel.rightPageIndex(forSpread: spreadIndex) else { return nil }
             return index + 1
         }

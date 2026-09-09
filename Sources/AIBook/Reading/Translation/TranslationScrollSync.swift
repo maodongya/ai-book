@@ -6,6 +6,9 @@ final class TranslationScrollSync: ObservableObject {
     weak var sourceView: SelectableTextViewProxy?
     weak var translationView: SelectableTextViewProxy?
 
+    var usesTableView = false
+    var onScrollTranslationToBlock: ((UUID) -> Void)?
+
     private var isPropagating = false
     private var lastSourceAnchorID: UUID?
     private var lastTranslationAnchorID: UUID?
@@ -27,17 +30,35 @@ final class TranslationScrollSync: ObservableObject {
         isPropagating = true
         lastSourceAnchorID = block.id
         lastTranslationAnchorID = block.id
-        translationView?.scrollToCharacterRange(block.translationRange, anchor: .top)
+        if usesTableView {
+            onScrollTranslationToBlock?(block.id)
+        } else {
+            translationView?.scrollToCharacterRange(block.translationRange, anchor: .top)
+        }
         sourceView?.highlightRange(block.sourceRange)
         isPropagating = false
     }
 
     func translationDidScroll(visibleRange: NSRange, alignment: TranslationAlignment) {
+        guard !usesTableView else { return }
         guard isEnabled, !isPropagating, !alignment.isStale else { return }
         guard let block = TranslationAnchorResolver.anchorBlock(
             forTranslationVisibleRange: visibleRange,
             in: alignment
         ), block.isAnchored else { return }
+        guard block.id != lastTranslationAnchorID else { return }
+
+        isPropagating = true
+        lastTranslationAnchorID = block.id
+        lastSourceAnchorID = block.id
+        sourceView?.scrollToCharacterRange(block.sourceRange, anchor: .top)
+        sourceView?.highlightRange(block.sourceRange)
+        isPropagating = false
+    }
+
+    func translationDidScrollToBlock(_ block: TranslationBlock, alignment: TranslationAlignment) {
+        guard usesTableView else { return }
+        guard isEnabled, !isPropagating, !alignment.isStale, block.isAnchored else { return }
         guard block.id != lastTranslationAnchorID else { return }
 
         isPropagating = true

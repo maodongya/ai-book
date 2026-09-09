@@ -3,6 +3,11 @@ import Foundation
 
 /// Splits book text into fixed-size pages using the same typography as the left-page reader.
 enum BookPaginator {
+    struct PaginatedPage: Equatable {
+        let text: String
+        let range: NSRange
+    }
+
     static let textContainerInset = NSSize(width: 36, height: 32)
     static let paragraphSpacing: CGFloat = 14
 
@@ -11,6 +16,14 @@ enum BookPaginator {
         pageSize: CGSize,
         typography: BookStyleTypography = BookTheme.tokens.typography
     ) -> [String] {
+        paginateWithRanges(text: text, pageSize: pageSize, typography: typography).map(\.text)
+    }
+
+    static func paginateWithRanges(
+        text: String,
+        pageSize: CGSize,
+        typography: BookStyleTypography = BookTheme.tokens.typography
+    ) -> [PaginatedPage] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
@@ -32,7 +45,7 @@ enum BookPaginator {
         let layoutManager = NSLayoutManager()
         storage.addLayoutManager(layoutManager)
 
-        var pages: [String] = []
+        var pages: [PaginatedPage] = []
         var glyphIndex = 0
         let totalGlyphs = layoutManager.numberOfGlyphs
 
@@ -50,12 +63,16 @@ enum BookPaginator {
                 actualGlyphRange: nil
             )
             let page = (trimmed as NSString).substring(with: characterRange)
-            pages.append(page)
+            pages.append(PaginatedPage(text: page, range: characterRange))
 
             glyphIndex = NSMaxRange(glyphRange)
             if glyphRange.length == 0 { break }
         }
 
-        return pages.isEmpty ? [trimmed] : pages
+        if pages.isEmpty {
+            let range = NSRange(location: 0, length: (trimmed as NSString).length)
+            return [PaginatedPage(text: trimmed, range: range)]
+        }
+        return pages
     }
 }
