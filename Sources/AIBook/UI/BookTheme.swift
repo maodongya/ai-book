@@ -2,89 +2,67 @@ import AppKit
 import SwiftUI
 
 enum BookTheme {
-    static let deskTop = Color(red: 0.18, green: 0.13, blue: 0.09)
-    static let deskBottom = Color(red: 0.08, green: 0.055, blue: 0.04)
-
-    static let leather = Color(red: 0.38, green: 0.23, blue: 0.15)
-    static let leatherHighlight = Color(red: 0.54, green: 0.34, blue: 0.20)
-    static let leatherShadow = Color(red: 0.18, green: 0.10, blue: 0.065)
-
-    static let pageLeft = Color(red: 0.99, green: 0.96, blue: 0.89)
-    static let pageRight = Color(red: 0.97, green: 0.94, blue: 0.87)
-    static let pageEdge = Color(red: 0.86, green: 0.78, blue: 0.66)
-
-    static let ink = Color(red: 0.18, green: 0.14, blue: 0.10)
-    static let inkSecondary = Color(red: 0.40, green: 0.34, blue: 0.26)
-    static let inkMuted = Color(red: 0.55, green: 0.48, blue: 0.38)
-
-    static let gold = Color(red: 0.82, green: 0.64, blue: 0.30)
-    static let goldSoft = Color(red: 0.95, green: 0.86, blue: 0.64)
-    static let selection = Color(red: 0.95, green: 0.86, blue: 0.55)
-    static let vermilion = Color(red: 0.64, green: 0.16, blue: 0.12)
-    static let jade = Color(red: 0.24, green: 0.43, blue: 0.34)
-
-    static let spineLight = Color(red: 0.72, green: 0.62, blue: 0.48)
-    static let spineDark = Color(red: 0.48, green: 0.38, blue: 0.26)
-
-    static var deskGradient: LinearGradient {
-        LinearGradient(
-            colors: [deskTop, deskBottom],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    static var tokens: BookStyleTokens {
+        MainActor.assumeIsolated { BookStyleManager.shared.tokens }
     }
 
-    static var leatherGradient: LinearGradient {
-        LinearGradient(
-            colors: [leatherHighlight, leather, leatherShadow],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
+    static var deskTop: Color { tokens.colors.deskTop }
+    static var deskBottom: Color { tokens.colors.deskBottom }
 
-    static var goldGradient: LinearGradient {
-        LinearGradient(
-            colors: [goldSoft, gold, Color(red: 0.68, green: 0.48, blue: 0.20)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
+    static var leather: Color { tokens.colors.bindingBase }
+    static var leatherHighlight: Color { tokens.colors.bindingHighlight }
+    static var leatherShadow: Color { tokens.colors.bindingShadow }
 
-    static var readingFont: NSFont {
-        NSFont(name: "Songti SC", size: 17)
-            ?? NSFont(name: "STSong", size: 17)
-            ?? NSFont(name: "Georgia", size: 17)
-            ?? NSFont.systemFont(ofSize: 17)
-    }
+    static var pageLeft: Color { tokens.colors.pageLeft }
+    static var pageRight: Color { tokens.colors.pageRight }
+    static var pageEdge: Color { tokens.colors.pageEdge }
 
-    static var titleFont: Font {
-        .custom("Songti SC", size: 22).weight(.semibold)
-    }
+    static var ink: Color { tokens.colors.ink }
+    static var inkSecondary: Color { tokens.colors.inkSecondary }
+    static var inkMuted: Color { tokens.colors.inkMuted }
 
-    static var labelFont: Font {
-        .custom("Songti SC", size: 13).weight(.medium)
-    }
+    static var gold: Color { tokens.colors.chromeAccent }
+    static var goldSoft: Color { tokens.colors.chromeText }
+    static var selection: Color { tokens.colors.selection }
+    static var vermilion: Color { tokens.colors.destructive }
+    static var jade: Color { tokens.colors.success }
 
-    static var bodyFont: Font {
-        .custom("Songti SC", size: 16)
-    }
+    static var spineLight: Color { tokens.colors.spineLight }
+    static var spineDark: Color { tokens.colors.spineDark }
 
-    static var captionFont: Font {
-        .custom("Songti SC", size: 12)
-    }
+    static var chromeMuted: Color { tokens.colors.chromeMuted }
+    static var chromeOverlay: Color { tokens.colors.chromeOverlay }
+    static var buttonFill: Color { tokens.colors.buttonFill }
+    static var buttonFillHover: Color { tokens.colors.buttonFillHover }
+    static var buttonBorder: Color { tokens.colors.buttonBorder }
+    static var buttonBorderHover: Color { tokens.colors.buttonBorderHover }
+    static var buttonProminentText: Color { tokens.colors.buttonProminentText }
+    static var menuPanelFill: Color { tokens.colors.menuPanelFill }
+    static var menuPanelBorder: Color { tokens.colors.menuPanelBorder }
+    static var menuItemFill: Color { tokens.colors.menuItemFill }
+    static var menuItemFillHover: Color { tokens.colors.menuItemFillHover }
+    static var menuItemBorder: Color { tokens.colors.menuItemBorder }
+    static var menuItemBorderHover: Color { tokens.colors.menuItemBorderHover }
+    static var menuItemText: Color { tokens.colors.menuItemText }
+    static var menuDivider: Color { tokens.colors.menuDivider }
 
-    /// 台灯暖光，铺在书桌背景上。
-    static var deskLampGlow: RadialGradient {
-        RadialGradient(
-            colors: [
-                Color(red: 0.42, green: 0.32, blue: 0.18).opacity(0.35),
-                Color.clear,
-            ],
-            center: .top,
-            startRadius: 40,
-            endRadius: 420
-        )
-    }
+    static var deskGradient: LinearGradient { tokens.deskGradient }
+    static var leatherGradient: LinearGradient { tokens.bindingGradient }
+    static var goldGradient: LinearGradient { tokens.accentGradient }
+
+    static var readingFont: NSFont { tokens.typography.readingNSFont }
+    static var titleFont: Font { tokens.typography.titleFont }
+    static var labelFont: Font { tokens.typography.labelFont }
+    static var bodyFont: Font { tokens.typography.bodyFont }
+    static var captionFont: Font { tokens.typography.captionFont }
+
+    static var deskLampGlow: RadialGradient { tokens.deskLampGlow }
+
+    static var showBookmarkRibbon: Bool { tokens.ornaments.showBookmarkRibbon }
+    static var showPageCornerFold: Bool { tokens.ornaments.showPageCornerFold }
+    static var showHeaderOrnament: Bool { tokens.ornaments.showHeaderOrnament }
+    static var showPaperTexture: Bool { tokens.ornaments.showPaperTexture }
+    static var paperTextureOpacity: Double { tokens.colors.paperTextureOpacity }
 }
 
 struct BookPageStyle: ViewModifier {
@@ -120,8 +98,8 @@ struct BookPageStyle: ViewModifier {
 }
 
 extension View {
-    func bookPage(_ tint: Color = BookTheme.pageLeft) -> some View {
-        modifier(BookPageStyle(tint: tint))
+    func bookPage(_ tint: Color? = nil) -> some View {
+        modifier(BookPageStyle(tint: tint ?? BookTheme.pageLeft))
     }
 }
 
@@ -129,6 +107,7 @@ struct BookToolbarMenuButton<MenuContent: View>: View {
     var title: String = "更多"
     var isDisabled: Bool = false
     @ViewBuilder let menuContent: () -> MenuContent
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var isHovering = false
     @State private var isPresented = false
 
@@ -153,7 +132,9 @@ struct BookToolbarMenuButton<MenuContent: View>: View {
             BookToolbarMenuPanel(isPresented: $isPresented) {
                 menuContent()
             }
+            .bookStyleEnvironment(styleManager)
         }
+        .id("menu-\(title)-\(styleManager.revision)")
     }
 }
 
@@ -164,6 +145,7 @@ struct BookActionButton: View {
     var isCompact: Bool = false
     var isDisabled: Bool = false
     let action: () -> Void
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var isHovering = false
 
     var body: some View {
@@ -171,6 +153,13 @@ struct BookActionButton: View {
             Group {
                 if let icon {
                     Label(title, systemImage: icon)
+                        .font(isCompact ? styleManager.tokens.typography.captionFont : styleManager.tokens.typography.labelFont)
+                        .foregroundStyle(isProminent ? styleManager.tokens.colors.buttonProminentText : styleManager.tokens.colors.chromeText)
+                        .padding(.horizontal, isCompact ? 10 : 13)
+                        .padding(.vertical, isCompact ? 5 : 8)
+                        .background {
+                            BookToolbarCapsuleBackground(isProminent: isProminent, isHovering: isHovering)
+                        }
                 } else {
                     BookToolbarCapsuleLabel(
                         title: title,
@@ -186,6 +175,7 @@ struct BookActionButton: View {
         .opacity(isDisabled ? 0.45 : 1)
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.16), value: isHovering)
+        .id("action-\(title)-\(isProminent)-\(styleManager.revision)")
     }
 }
 
@@ -209,13 +199,15 @@ struct BookPageActionButton: View {
 struct BookPageButtonStyle: ViewModifier {
     var isProminent: Bool = false
     @Environment(\.isEnabled) private var isEnabled
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var isHovering = false
 
     func body(content: Content) -> some View {
+        let tokens = styleManager.tokens
         content
             .buttonStyle(.plain)
-            .font(BookTheme.labelFont)
-            .foregroundStyle(isProminent ? BookTheme.leatherShadow : BookTheme.leather)
+            .font(tokens.typography.labelFont)
+            .foregroundStyle(isProminent ? tokens.colors.buttonProminentText : tokens.colors.bindingBase)
             .lineLimit(1)
             .padding(.horizontal, isProminent ? 14 : 12)
             .padding(.vertical, 7)
@@ -223,21 +215,21 @@ struct BookPageButtonStyle: ViewModifier {
                 Capsule()
                     .fill(
                         isProminent
-                            ? AnyShapeStyle(BookTheme.goldGradient)
-                            : AnyShapeStyle(Color.white.opacity(isHovering ? 0.78 : 0.62))
+                            ? AnyShapeStyle(tokens.accentGradient)
+                            : AnyShapeStyle(tokens.colors.pageLeft.opacity(isHovering ? 0.95 : 0.82))
                     )
                     .overlay {
                         Capsule()
                             .strokeBorder(
                                 isProminent
-                                    ? BookTheme.goldSoft.opacity(0.70)
-                                    : BookTheme.pageEdge.opacity(isHovering ? 0.85 : 0.68),
+                                    ? tokens.colors.chromeText.opacity(0.70)
+                                    : tokens.colors.pageEdge.opacity(isHovering ? 0.95 : 0.80),
                                 lineWidth: 1
                             )
                     }
                     .shadow(
                         color: isProminent
-                            ? BookTheme.gold.opacity(0.22)
+                            ? tokens.colors.chromeAccent.opacity(0.22)
                             : .black.opacity(isHovering ? 0.10 : 0.05),
                         radius: isHovering ? 6 : 3,
                         y: isHovering ? 3 : 1
@@ -246,6 +238,7 @@ struct BookPageButtonStyle: ViewModifier {
             .opacity(isEnabled ? 1 : 0.45)
             .onHover { isHovering = $0 }
             .animation(.easeOut(duration: 0.16), value: isHovering)
+            .id(styleManager.revision)
     }
 }
 
@@ -258,9 +251,11 @@ extension View {
 struct BookStatusPill: View {
     let title: String
     var icon: String?
-    var tint: Color = BookTheme.goldSoft
+    var tint: Color? = nil
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
+        let colors = styleManager.tokens.colors
         HStack(spacing: 5) {
             if let icon {
                 Image(systemName: icon)
@@ -268,18 +263,19 @@ struct BookStatusPill: View {
             }
             Text(title)
         }
-        .font(BookTheme.captionFont)
-        .foregroundStyle(tint)
+        .font(styleManager.tokens.typography.captionFont)
+        .foregroundStyle(tint ?? colors.chromeText)
         .lineLimit(1)
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .background {
             Capsule()
-                .fill(Color.white.opacity(0.075))
+                .fill(colors.chromeOverlay.opacity(0.075))
                 .overlay {
                     Capsule()
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(colors.chromeOverlay.opacity(0.10), lineWidth: 1)
                 }
         }
+        .id(styleManager.revision)
     }
 }

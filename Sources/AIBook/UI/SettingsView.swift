@@ -3,6 +3,7 @@ import SwiftUI
 /// Evolution-focused system settings (Cursor, auto-upgrade).
 struct SettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -30,13 +31,14 @@ struct SettingsView: View {
             .padding(24)
         }
         .frame(minWidth: 680, minHeight: 520)
+        .id(styleManager.revision)
     }
 
     private var settingsHeader: some View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.08))
+                    .fill(BookTheme.chromeOverlay.opacity(0.08))
                     .frame(width: 46, height: 46)
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 21, weight: .semibold))
@@ -49,7 +51,7 @@ struct SettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
                 Text("Cursor 本地、自动升级链；读书模型与语音请使用顶栏「book设置」")
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(Color.white.opacity(0.66))
+                    .foregroundStyle(BookTheme.chromeMuted)
             }
 
             Spacer()
@@ -65,7 +67,7 @@ struct SettingsView: View {
                 .fill(BookTheme.leatherGradient)
                 .overlay {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(BookTheme.chromeOverlay.opacity(0.10), lineWidth: 1)
                 }
                 .shadow(color: .black.opacity(0.32), radius: 16, y: 8)
         }

@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
         ZStack {
@@ -14,6 +15,7 @@ struct ContentView: View {
 
             VStack(spacing: 0) {
                 bookHeader
+                    .bookStyleRefreshing()
                 openBook
             }
             .padding(24)
@@ -25,11 +27,14 @@ struct ContentView: View {
         }
         .sheet(isPresented: $viewModel.showSettings) {
             SettingsView()
+                .bookStyleEnvironment(styleManager)
         }
         .sheet(isPresented: $viewModel.showBookSettings) {
             BookSettingsView()
+                .bookStyleEnvironment(styleManager)
         }
         .frame(minWidth: 960, minHeight: 640)
+        .animation(.easeOut(duration: 0.2), value: styleManager.presetID)
         .onAppear {
             viewModel.onAppear()
         }
@@ -51,7 +56,7 @@ struct ContentView: View {
                 .fill(BookTheme.leatherGradient)
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(BookTheme.chromeOverlay.opacity(0.10), lineWidth: 1)
                 }
                 .shadow(color: .black.opacity(0.36), radius: 14, y: 8)
         }
@@ -62,7 +67,7 @@ struct ContentView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.08))
+                    .fill(BookTheme.chromeOverlay.opacity(0.08))
                     .frame(width: 34, height: 34)
                 Image(systemName: "book.closed.fill")
                     .font(.system(size: 18))
@@ -108,7 +113,7 @@ struct ContentView: View {
 
                 Text(viewModel.displayFileName)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(Color.white.opacity(0.74))
+                    .foregroundStyle(BookTheme.chromeMuted)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,7 +218,7 @@ struct ContentView: View {
 
     private var toolbarSectionDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.14))
+            .fill(BookTheme.chromeOverlay.opacity(0.14))
             .frame(width: 1, height: 20)
             .padding(.horizontal, 10)
     }

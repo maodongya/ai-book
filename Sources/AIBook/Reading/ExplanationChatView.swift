@@ -4,6 +4,7 @@ import SwiftUI
 struct ExplanationChatView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var editingMessageIDs: Set<UUID> = []
 
     var body: some View {
@@ -130,6 +131,7 @@ struct ExplanationChatView: View {
             }
             .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
         }
+        .id(styleManager.revision)
     }
 
     private func explanationToolbarButton(
@@ -138,8 +140,8 @@ struct ExplanationChatView: View {
     ) -> some View {
         Button(action: action) {
             Text(title)
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
+                .font(styleManager.tokens.typography.captionFont)
+                .foregroundStyle(styleManager.tokens.colors.ink)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background { lessonPlanToolbarCapsule }
@@ -341,8 +343,8 @@ struct ExplanationChatView: View {
                         viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
                         systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
                     )
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.leather)
+                    .font(styleManager.tokens.typography.captionFont)
+                    .foregroundStyle(styleManager.tokens.colors.ink)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background { lessonPlanToolbarCapsule }
@@ -358,8 +360,8 @@ struct ExplanationChatView: View {
                     viewModel.isSpeakingExplanation ? "停止" : "朗读",
                     systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
                 )
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
+                .font(styleManager.tokens.typography.captionFont)
+                .foregroundStyle(styleManager.tokens.colors.ink)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background { lessonPlanToolbarCapsule }
@@ -368,14 +370,16 @@ struct ExplanationChatView: View {
             .disabled(viewModel.isRunning || (isEmpty && !viewModel.isSpeakingExplanation))
             .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（\(BookKeyboardShortcuts.readTranslationFullHint)）")
         }
+        .id(styleManager.revision)
     }
 
     private var lessonPlanToolbarCapsule: some View {
-        Capsule()
-            .fill(Color.white.opacity(0.88))
+        let colors = styleManager.tokens.colors
+        return Capsule()
+            .fill(colors.menuItemFill)
             .overlay {
                 Capsule()
-                    .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+                    .strokeBorder(colors.menuItemBorder, lineWidth: 1)
             }
     }
 

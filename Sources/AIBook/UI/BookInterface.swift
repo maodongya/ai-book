@@ -42,50 +42,54 @@ enum BookInterface {
     /// 书脊上的丝带书签。
     struct BookmarkRibbon: View {
         var body: some View {
-            VStack(spacing: 0) {
-                Image(systemName: "bookmark.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.82, green: 0.18, blue: 0.14),
-                                Color(red: 0.58, green: 0.10, blue: 0.08),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+            if BookTheme.showBookmarkRibbon {
+                VStack(spacing: 0) {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    BookTheme.tokens.ornaments.bookmarkTop,
+                                    BookTheme.tokens.ornaments.bookmarkBottom,
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-                    .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+                        .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
 
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.75, green: 0.14, blue: 0.10),
-                                Color(red: 0.45, green: 0.08, blue: 0.06),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    BookTheme.tokens.ornaments.bookmarkTop.opacity(0.92),
+                                    BookTheme.tokens.ornaments.bookmarkBottom,
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-                    .frame(width: 10, height: 72)
-                    .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                        .frame(width: 10, height: 72)
+                        .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                }
+                .offset(y: -8)
             }
-            .offset(y: -8)
         }
     }
 
     /// 页眉装饰线（金线 + 菱形）。
     struct HeaderOrnament: View {
         var body: some View {
-            HStack(spacing: 8) {
-                ornamentLine
-                Image(systemName: "diamond.fill")
-                    .font(.system(size: 5))
-                    .foregroundStyle(BookTheme.gold.opacity(0.85))
-                ornamentLine
+            if BookTheme.showHeaderOrnament {
+                HStack(spacing: 8) {
+                    ornamentLine
+                    Image(systemName: "diamond.fill")
+                        .font(.system(size: 5))
+                        .foregroundStyle(BookTheme.gold.opacity(0.85))
+                    ornamentLine
+                }
+                .padding(.horizontal, 28)
             }
-            .padding(.horizontal, 28)
         }
 
         private var ornamentLine: some View {
@@ -117,41 +121,46 @@ enum BookInterface {
     /// 纸张纹理与内缘阴影。
     struct PaperTexture: ViewModifier {
         func body(content: Content) -> some View {
-            content
-                .overlay {
-                    Canvas { context, size in
-                        let step: CGFloat = 28
-                        var y: CGFloat = 0
-                        while y < size.height {
-                            let rect = CGRect(x: 0, y: y, width: size.width, height: 1)
-                            context.fill(
-                                Path(rect),
-                                with: .color(Color.black.opacity(0.018))
-                            )
-                            y += step
+            if BookTheme.showPaperTexture, BookTheme.paperTextureOpacity > 0 {
+                content
+                    .overlay {
+                        Canvas { context, size in
+                            let step: CGFloat = 28
+                            var y: CGFloat = 0
+                            while y < size.height {
+                                let rect = CGRect(x: 0, y: y, width: size.width, height: 1)
+                                context.fill(
+                                    Path(rect),
+                                    with: .color(Color.black.opacity(BookTheme.paperTextureOpacity))
+                                )
+                                y += step
+                            }
                         }
+                        .allowsHitTesting(false)
                     }
-                    .allowsHitTesting(false)
-                }
-                .overlay {
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.04),
-                            Color.clear,
-                            Color.black.opacity(0.03),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .allowsHitTesting(false)
-                }
+                    .overlay {
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.04),
+                                Color.clear,
+                                Color.black.opacity(0.03),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .allowsHitTesting(false)
+                    }
+            } else {
+                content
+            }
         }
     }
 
     /// 右下角折页装饰。
     struct PageCornerFold: View {
         var body: some View {
-            GeometryReader { geo in
+            if BookTheme.showPageCornerFold {
+                GeometryReader { geo in
                 Path { path in
                     let w: CGFloat = 36
                     let h: CGFloat = 36
@@ -179,6 +188,7 @@ enum BookInterface {
             }
             .frame(width: 36, height: 36)
             .allowsHitTesting(false)
+            }
         }
     }
 

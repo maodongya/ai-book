@@ -4,12 +4,11 @@ import SwiftUI
 struct AIBookApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var viewModel = ReadingViewModel()
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(viewModel)
-                .preferredColorScheme(.light)
+            AIBookRootView(viewModel: viewModel, styleManager: styleManager)
                 .onAppear {
                     appDelegate.readingViewModel = viewModel
                 }
@@ -127,5 +126,16 @@ struct AIBookApp: App {
                 .bookMenuShortcut(BookKeyboardShortcuts.evolution)
             }
         }
+    }
+}
+
+private struct AIBookRootView: View {
+    @ObservedObject var viewModel: ReadingViewModel
+    @ObservedObject var styleManager: BookStyleManager
+
+    var body: some View {
+        ContentView()
+            .environmentObject(viewModel)
+            .bookStyleEnvironment(styleManager)
     }
 }

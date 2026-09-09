@@ -3,12 +3,14 @@ import SwiftUI
 /// Reading (book) settings: LLM profiles for讲解/翻译 and voice for朗读.
 struct BookSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: BookSettingsTab = .ai
 
     private enum BookSettingsTab: String, CaseIterable, Identifiable {
         case ai = "AI模型设置"
         case voice = "语音设置"
+        case appearance = "外观风格"
 
         var id: String { rawValue }
 
@@ -16,6 +18,7 @@ struct BookSettingsView: View {
             switch self {
             case .ai: return "cpu"
             case .voice: return "speaker.wave.2.fill"
+            case .appearance: return "paintpalette"
             }
         }
 
@@ -25,6 +28,8 @@ struct BookSettingsView: View {
                 return "读书讲解、翻译与名著补充使用的大模型（推荐本机 Ollama）"
             case .voice:
                 return "朗读节奏、语言处理与讲解声音"
+            case .appearance:
+                return "切换书桌、纸页与按钮的视觉主题"
             }
         }
     }
@@ -40,10 +45,15 @@ struct BookSettingsView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        if selectedTab == .ai {
+                        switch selectedTab {
+                        case .ai:
                             aiSettingsContent
-                        } else {
+                        case .voice:
                             voiceSettingsContent
+                        case .appearance:
+                            settingsSection(title: "预设主题", icon: "paintpalette") {
+                                BookStyleSettingsView()
+                            }
                         }
                     }
                     .padding(24)
@@ -59,13 +69,14 @@ struct BookSettingsView: View {
             .padding(24)
         }
         .frame(minWidth: 680, minHeight: 560)
+        .id(styleManager.revision)
     }
 
     private var header: some View {
         HStack(spacing: 14) {
             ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.08))
+                    Circle()
+                    .fill(BookTheme.chromeOverlay.opacity(0.08))
                     .frame(width: 46, height: 46)
                 Image(systemName: selectedTab.icon)
                     .font(.system(size: 21, weight: .semibold))
@@ -78,12 +89,12 @@ struct BookSettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
                 Text(selectedTab.subtitle)
                     .font(BookTheme.captionFont)
-                    .foregroundStyle(Color.white.opacity(0.66))
+                    .foregroundStyle(BookTheme.chromeMuted)
             }
 
             Spacer()
 
-            BookStatusPill(title: selectedTab.rawValue, icon: selectedTab.icon, tint: Color.white.opacity(0.66))
+            BookStatusPill(title: selectedTab.rawValue, icon: selectedTab.icon, tint: BookTheme.chromeMuted)
 
             BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
                 dismiss()
@@ -96,7 +107,7 @@ struct BookSettingsView: View {
                 .fill(BookTheme.leatherGradient)
                 .overlay {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(BookTheme.chromeOverlay.opacity(0.10), lineWidth: 1)
                 }
                 .shadow(color: .black.opacity(0.32), radius: 16, y: 8)
         }
@@ -111,10 +122,10 @@ struct BookSettingsView: View {
         .padding(6)
         .background {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.08))
+                .fill(BookTheme.chromeOverlay.opacity(0.08))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(BookTheme.chromeOverlay.opacity(0.10), lineWidth: 1)
                 }
         }
     }
@@ -128,18 +139,18 @@ struct BookSettingsView: View {
         } label: {
             Label(tab.rawValue, systemImage: tab.icon)
                 .font(BookTheme.labelFont)
-                .foregroundStyle(isSelected ? BookTheme.leatherShadow : BookTheme.goldSoft.opacity(0.78))
+                .foregroundStyle(isSelected ? BookTheme.buttonProminentText : BookTheme.goldSoft.opacity(0.78))
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .background {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(isSelected ? AnyShapeStyle(BookTheme.goldGradient) : AnyShapeStyle(Color.white.opacity(0.04)))
+                                .fill(isSelected ? AnyShapeStyle(BookTheme.goldGradient) : AnyShapeStyle(BookTheme.chromeOverlay.opacity(0.04)))
                         .overlay {
                             RoundedRectangle(cornerRadius: 13, style: .continuous)
                                 .strokeBorder(
-                                    isSelected ? BookTheme.goldSoft.opacity(0.55) : Color.white.opacity(0.08),
+                                    isSelected ? BookTheme.goldSoft.opacity(0.55) : BookTheme.chromeOverlay.opacity(0.08),
                                     lineWidth: 1
                                 )
                         }

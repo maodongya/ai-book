@@ -40,7 +40,7 @@ struct SelectableTextView: NSViewRepresentable {
 
         var lineSpacing: CGFloat {
             switch self {
-            case .reading: return 9
+            case .reading: return BookTheme.tokens.typography.readingLineSpacing
             case .editor: return 7
             }
         }
@@ -91,25 +91,7 @@ struct SelectableTextView: NSViewRepresentable {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.drawsBackground = false
-        textView.font = appearance.font
-        textView.textColor = NSColor(BookTheme.ink)
-        textView.insertionPointColor = NSColor(BookTheme.leather)
-        textView.selectedTextAttributes = [
-            .backgroundColor: NSColor(BookTheme.selection),
-            .foregroundColor: NSColor(BookTheme.ink),
-        ]
-        textView.textContainerInset = appearance.textContainerInset
-        textView.textContainer?.lineFragmentPadding = 0
-
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineSpacing = appearance.lineSpacing
-        paragraphStyle.paragraphSpacing = appearance.paragraphSpacing
-        textView.defaultParagraphStyle = paragraphStyle
-        textView.typingAttributes = [
-            .font: appearance.font,
-            .foregroundColor: NSColor(BookTheme.ink),
-            .paragraphStyle: paragraphStyle,
-        ]
+        applyAppearance(to: textView)
 
         textView.isEditable = isEditable
 
@@ -130,11 +112,35 @@ struct SelectableTextView: NSViewRepresentable {
         return scrollView
     }
 
+    private func applyAppearance(to textView: NSTextView) {
+        textView.font = appearance.font
+        textView.textColor = NSColor(BookTheme.ink)
+        textView.insertionPointColor = NSColor(BookTheme.leather)
+        textView.selectedTextAttributes = [
+            .backgroundColor: NSColor(BookTheme.selection),
+            .foregroundColor: NSColor(BookTheme.ink),
+        ]
+        textView.textContainerInset = appearance.textContainerInset
+        textView.textContainer?.lineFragmentPadding = 0
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = appearance.lineSpacing
+        paragraphStyle.paragraphSpacing = appearance.paragraphSpacing
+        textView.defaultParagraphStyle = paragraphStyle
+        var typing = textView.typingAttributes
+        typing[.font] = appearance.font
+        typing[.foregroundColor] = NSColor(BookTheme.ink)
+        typing[.paragraphStyle] = paragraphStyle
+        textView.typingAttributes = typing
+    }
+
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         let coordinator = context.coordinator
 
         textView.isEditable = isEditable
+        applyAppearance(to: textView)
+        coordinator.appearance = appearance
 
         if coordinator.lastSelectAllSignal != selectAllSignal, selectAllSignal != nil {
             coordinator.lastSelectAllSignal = selectAllSignal

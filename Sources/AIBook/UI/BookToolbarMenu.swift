@@ -5,26 +5,28 @@ import SwiftUI
 struct BookToolbarCapsuleBackground: View {
     var isProminent: Bool = false
     var isHovering: Bool = false
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
+        let colors = styleManager.tokens.colors
         Capsule()
             .fill(
                 isProminent
-                    ? AnyShapeStyle(BookTheme.goldGradient)
-                    : AnyShapeStyle(Color.white.opacity(isHovering ? 0.14 : 0.08))
+                    ? AnyShapeStyle(styleManager.tokens.accentGradient)
+                    : AnyShapeStyle(isHovering ? colors.buttonFillHover : colors.buttonFill)
             )
             .overlay {
                 Capsule()
                     .strokeBorder(
                         isProminent
-                            ? BookTheme.goldSoft.opacity(0.75)
-                            : Color.white.opacity(isHovering ? 0.22 : 0.12),
-                        lineWidth: 1
+                            ? colors.chromeText.opacity(0.85)
+                            : (isHovering ? colors.buttonBorderHover : colors.buttonBorder),
+                        lineWidth: 1.2
                     )
             }
             .shadow(
                 color: isProminent
-                    ? BookTheme.gold.opacity(0.25)
+                    ? colors.chromeAccent.opacity(0.25)
                     : .black.opacity(isHovering ? 0.18 : 0.08),
                 radius: isHovering ? 8 : 4,
                 y: isHovering ? 4 : 2
@@ -37,11 +39,13 @@ struct BookToolbarCapsuleLabel: View {
     var isProminent: Bool = false
     var isCompact: Bool = true
     var isHovering: Bool = false
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
+        let tokens = styleManager.tokens
         Text(title)
-            .font(isCompact ? BookTheme.captionFont : BookTheme.labelFont)
-            .foregroundStyle(isProminent ? BookTheme.leatherShadow : BookTheme.goldSoft)
+            .font(isCompact ? tokens.typography.captionFont : tokens.typography.labelFont)
+            .foregroundStyle(isProminent ? tokens.colors.buttonProminentText : tokens.colors.chromeText)
             .lineLimit(1)
             .padding(.horizontal, isCompact ? (isProminent ? 12 : 10) : (isProminent ? 16 : 13))
             .padding(.vertical, isCompact ? 5 : 8)
@@ -67,78 +71,114 @@ extension EnvironmentValues {
 struct BookToolbarMenuPanel<Content: View>: View {
     @Binding var isPresented: Bool
     @ViewBuilder var content: () -> Content
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
+        let colors = styleManager.tokens.colors
         VStack(alignment: .leading, spacing: 6) {
             content()
         }
         .padding(10)
-        .frame(minWidth: 168)
+        .frame(minWidth: 188)
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(BookTheme.leatherGradient)
+                .fill(colors.menuPanelFill)
                 .overlay {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .strokeBorder(colors.menuPanelBorder, lineWidth: 1.2)
                 }
                 .shadow(color: .black.opacity(0.28), radius: 12, y: 6)
         }
         .buttonStyle(BookToolbarMenuItemButtonStyle())
         .environment(\.bookToolbarMenuDismiss, { isPresented = false })
+        .preferredColorScheme(styleManager.colorScheme)
+        .id(styleManager.revision)
+    }
+}
+
+struct BookMenuItemCapsuleBackground: View {
+    var isHovering: Bool = false
+    @ObservedObject private var styleManager = BookStyleManager.shared
+
+    var body: some View {
+        let colors = styleManager.tokens.colors
+        Capsule()
+            .fill(isHovering ? colors.menuItemFillHover : colors.menuItemFill)
+            .overlay {
+                Capsule()
+                    .strokeBorder(
+                        isHovering ? colors.menuItemBorderHover : colors.menuItemBorder,
+                        lineWidth: 1
+                    )
+            }
     }
 }
 
 struct BookToolbarMenuItemButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        BookToolbarMenuItemButton(configuration: configuration)
+    }
+}
+
+private struct BookToolbarMenuItemButton: View {
+    let configuration: PrimitiveButtonStyleConfiguration
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.bookToolbarMenuDismiss) private var dismissMenu
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var isHovering = false
 
-    func makeBody(configuration: Configuration) -> some View {
+    var body: some View {
+        let colors = styleManager.tokens.colors
         Button {
             configuration.trigger()
             dismissMenu?()
         } label: {
             configuration.label
-                .font(BookTheme.captionFont)
-                .foregroundStyle(foregroundColor(for: configuration.role))
+                .font(styleManager.tokens.typography.captionFont.weight(.medium))
+                .foregroundStyle(configuration.role == .destructive ? colors.destructive : colors.menuItemText)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
                 .background {
-                    BookToolbarCapsuleBackground(isProminent: false, isHovering: isHovering)
+                    BookMenuItemCapsuleBackground(isHovering: isHovering)
                 }
         }
         .buttonStyle(.plain)
-        .opacity(isEnabled ? 1 : 0.45)
+        .opacity(isEnabled ? 1 : 0.42)
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.16), value: isHovering)
-    }
-
-    private func foregroundColor(for role: ButtonRole?) -> Color {
-        role == .destructive ? BookTheme.vermilion.opacity(0.92) : BookTheme.goldSoft
     }
 }
 
 struct BookToolbarSubmenuHeaderButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        BookToolbarSubmenuHeaderButton(configuration: configuration)
+    }
+}
+
+private struct BookToolbarSubmenuHeaderButton: View {
+    let configuration: PrimitiveButtonStyleConfiguration
+    @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var isHovering = false
 
-    func makeBody(configuration: Configuration) -> some View {
+    var body: some View {
+        let colors = styleManager.tokens.colors
         Button(action: configuration.trigger) {
             HStack(spacing: 6) {
                 configuration.label
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.goldSoft)
+                    .font(styleManager.tokens.typography.captionFont.weight(.medium))
+                    .foregroundStyle(colors.menuItemText)
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 Text("›")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(Color.white.opacity(0.55))
+                    .font(styleManager.tokens.typography.captionFont.weight(.semibold))
+                    .foregroundStyle(colors.menuItemText.opacity(0.55))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
             .background {
-                BookToolbarCapsuleBackground(isProminent: false, isHovering: isHovering)
+                BookMenuItemCapsuleBackground(isHovering: isHovering)
             }
         }
         .buttonStyle(.plain)
@@ -148,25 +188,29 @@ struct BookToolbarSubmenuHeaderButtonStyle: PrimitiveButtonStyle {
 }
 
 struct BookToolbarMenuDivider: View {
+    @ObservedObject private var styleManager = BookStyleManager.shared
+
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.14))
+            .fill(styleManager.tokens.colors.menuDivider)
             .frame(height: 1)
-            .padding(.vertical, 2)
+            .padding(.vertical, 3)
+            .padding(.horizontal, 4)
     }
 }
 
 struct BookToolbarMenuCaption: View {
     let title: String
+    @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
         Text(title)
-            .font(BookTheme.captionFont)
-            .foregroundStyle(Color.white.opacity(0.72))
+            .font(styleManager.tokens.typography.captionFont)
+            .foregroundStyle(styleManager.tokens.colors.menuItemText.opacity(0.62))
             .lineLimit(2)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 2)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
     }
 }
 
