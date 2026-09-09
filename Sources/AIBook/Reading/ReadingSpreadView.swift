@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Full-screen immersive reading: left/right paginated spread with page-turn animation.
+/// Full-screen immersive reading: dual-page spread or single-page fullscreen.
 struct ReadingSpreadView: View {
     static let defaultPageContentSize = CGSize(width: 340, height: 520)
 
@@ -14,8 +14,10 @@ struct ReadingSpreadView: View {
     @State private var targetSpreadIndex: Int?
     @State private var isDraggingTurn = false
     @State private var isRepaginating = false
+    @State private var layoutMode: ReadingLayoutMode = .spread
 
     private let commitThreshold: CGFloat = 0.34
+    private let spineWidth: CGFloat = 34
 
     var body: some View {
         ZStack {
@@ -35,13 +37,14 @@ struct ReadingSpreadView: View {
         .background(readingKeyboardShortcuts)
         .onAppear {
             displayedSpreadIndex = viewModel.readingSpreadIndex
+            layoutMode = .spread
             repaginateIfNeeded()
         }
         .onChange(of: viewModel.fileContent) { _ in
             repaginateIfNeeded()
         }
         .onChange(of: viewModel.readingSpreadIndex) { newValue in
-            guard flipDirection == nil else { return }
+            guard flipDirection == nil, layoutMode == .spread else { return }
             displayedSpreadIndex = newValue
         }
         .onChange(of: styleManager.revision) { _ in
@@ -81,7 +84,7 @@ struct ReadingSpreadView: View {
 
             Spacer(minLength: 8)
 
-            if viewModel.showsReadingComparisonToggle {
+            if viewModel.showsReadingComparisonToggle, layoutMode == .spread {
                 Toggle("对照翻页", isOn: $viewModel.readingComparisonEnabled)
                     .toggleStyle(.switch)
                     .font(BookTheme.captionFont)
@@ -91,8 +94,10 @@ struct ReadingSpreadView: View {
                     .fixedSize()
             }
 
+            layoutModePicker
+
             BookStatusPill(
-                title: viewModel.readingProgressLabel(spreadIndex: activeSpreadIndex),
+                title: progressLabel(forSpreadIndex: activeSpreadIndex),
                 icon: "book.pages"
             )
             .layoutPriority(-1)
@@ -117,11 +122,41 @@ struct ReadingSpreadView: View {
         }
     }
 
+    private var layoutModePicker: some View {
+        HStack(spacing: 4) {
+            ForEach(ReadingLayoutMode.allCases) { mode in
+                Button {
+                    setLayoutMode(mode)
+                } label: {
+                    Text(mode.displayName)
+                        .font(BookTheme.captionFont.weight(mode == layoutMode ? .semibold : .regular))
+                        .foregroundStyle(mode == layoutMode ? BookTheme.goldSoft : BookTheme.chromeMuted)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background {
+                            Capsule()
+                                .fill(mode == layoutMode ? BookTheme.buttonFill : Color.clear)
+                                .overlay {
+                                    Capsule()
+                                        .strokeBorder(
+                                            mode == layoutMode ? BookTheme.buttonBorder : BookTheme.chromeOverlay.opacity(0.18),
+                                            lineWidth: 1
+                                        )
+                                }
+                        }
+                }
+                .buttonStyle(.plain)
+                .help(mode == .spread ? "左右双页翻页" : "单页占满屏幕")
+            }
+        }
+        .fixedSize()
+    }
+
     private var spreadBody: some View {
         GeometryReader { geometry in
             let spreadWidth = geometry.size.width
             let spreadHeight = geometry.size.height
-            let pageWidth = max(0, (spreadWidth - 34) / 2)
+            let pageWidth = pageWidth(forSpreadWidth: spreadWidth)
 
             BookInterface.SpreadShell {
                 ZStack {
@@ -141,8 +176,8 @@ struct ReadingSpreadView: View {
                         spreadIndex: displayedSpreadIndex,
                         pageWidth: pageWidth,
                         spreadHeight: spreadHeight,
-                        hideLeadingPage: flipDirection == .backward && flipProgress > 0,
-                        hideTrailingPage: flipDirection == .forward && flipProgress > 0
+                        hideLeadingPage: shouldHidePage(side: .leading),
+                        hideTrailingPage: shouldHidePage(side: .trailing)
                     )
 
                     if let flipDirection, flipProgress > 0 {
@@ -175,31 +210,46 @@ struct ReadingSpreadView: View {
         hideLeadingPage: Bool,
         hideTrailingPage: Bool
     ) -> some View {
-        HStack(spacing: 0) {
+        if layoutMode == .fullscreen {
             pagePanel(
-                text: pageText(spreadIndex: spreadIndex, side: .leading),
-                pageNumber: pageNumber(spreadIndex: spreadIndex, side: .leading),
+                text: fullscreenPageText(at: spreadIndex),
+                pageNumber: fullscreenPageNumber(at: spreadIndex),
                 pageCaption: viewModel.readingComparisonEnabled ? "原文" : nil,
                 side: .leading,
                 width: pageWidth,
-                height: spreadHeight
+                height: spreadHeight,
+                usesSplitTapNavigation: true
             )
             .opacity(hideLeadingPage ? 0 : 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        } else {
+            HStack(spacing: 0) {
+                pagePanel(
+                    text: pageText(spreadIndex: spreadIndex, side: .leading),
+                    pageNumber: pageNumber(spreadIndex: spreadIndex, side: .leading),
+                    pageCaption: leadingPageCaption,
+                    side: .leading,
+                    width: pageWidth,
+                    height: spreadHeight
+                )
+                .opacity(hideLeadingPage ? 0 : 1)
 
-            ZStack(alignment: .top) {
-                bookSpine
-                BookInterface.BookmarkRibbon()
+                ZStack(alignment: .top) {
+                    bookSpine
+                    BookInterface.BookmarkRibbon()
+                }
+
+                pagePanel(
+                    text: pageText(spreadIndex: spreadIndex, side: .trailing),
+                    pageNumber: pageNumber(spreadIndex: spreadIndex, side: .trailing),
+                    pageCaption: trailingPageCaption,
+                    side: .trailing,
+                    width: pageWidth,
+                    height: spreadHeight
+                )
+                .opacity(hideTrailingPage ? 0 : 1)
             }
-
-            pagePanel(
-                text: pageText(spreadIndex: spreadIndex, side: .trailing),
-                pageNumber: pageNumber(spreadIndex: spreadIndex, side: .trailing),
-                pageCaption: viewModel.readingComparisonEnabled ? "译文" : nil,
-                side: .trailing,
-                width: pageWidth,
-                height: spreadHeight
-            )
-            .opacity(hideTrailingPage ? 0 : 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
 
@@ -209,48 +259,80 @@ struct ReadingSpreadView: View {
         pageWidth: CGFloat,
         spreadHeight: CGFloat
     ) -> some View {
-        HStack(spacing: 0) {
-            if direction == .backward {
-                BookPageTurnSheet(
-                    progress: flipProgress,
-                    direction: direction,
-                    width: pageWidth,
-                    height: spreadHeight
-                ) {
-                    pagePanel(
+        if layoutMode == .fullscreen {
+            turningPageSheet(
+                direction: direction,
+                side: .leading,
+                pageWidth: pageWidth,
+                spreadHeight: spreadHeight,
+                text: fullscreenPageText(at: displayedSpreadIndex),
+                pageNumber: fullscreenPageNumber(at: displayedSpreadIndex),
+                pageCaption: viewModel.readingComparisonEnabled ? "原文" : nil
+            )
+            .frame(maxWidth: .infinity, alignment: .center)
+            .allowsHitTesting(false)
+        } else {
+            HStack(spacing: 0) {
+                if direction == .backward {
+                    turningPageSheet(
+                        direction: direction,
+                        side: .leading,
+                        pageWidth: pageWidth,
+                        spreadHeight: spreadHeight,
                         text: pageText(spreadIndex: displayedSpreadIndex, side: .leading),
                         pageNumber: pageNumber(spreadIndex: displayedSpreadIndex, side: .leading),
-                        side: .leading,
-                        width: pageWidth,
-                        height: spreadHeight
+                        pageCaption: leadingPageCaption
                     )
+                } else {
+                    Color.clear.frame(width: pageWidth)
                 }
-            } else {
-                Color.clear.frame(width: pageWidth)
-            }
 
-            Color.clear.frame(width: 34)
+                Color.clear.frame(width: spineWidth)
 
-            if direction == .forward {
-                BookPageTurnSheet(
-                    progress: flipProgress,
-                    direction: direction,
-                    width: pageWidth,
-                    height: spreadHeight
-                ) {
-                    pagePanel(
+                if direction == .forward {
+                    turningPageSheet(
+                        direction: direction,
+                        side: .trailing,
+                        pageWidth: pageWidth,
+                        spreadHeight: spreadHeight,
                         text: pageText(spreadIndex: displayedSpreadIndex, side: .trailing),
                         pageNumber: pageNumber(spreadIndex: displayedSpreadIndex, side: .trailing),
-                        side: .trailing,
-                        width: pageWidth,
-                        height: spreadHeight
+                        pageCaption: trailingPageCaption
                     )
+                } else {
+                    Color.clear.frame(width: pageWidth)
                 }
-            } else {
-                Color.clear.frame(width: pageWidth)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .allowsHitTesting(false)
         }
-        .allowsHitTesting(false)
+    }
+
+    private func turningPageSheet(
+        direction: BookPageTurnDirection,
+        side: HorizontalEdge,
+        pageWidth: CGFloat,
+        spreadHeight: CGFloat,
+        text: String,
+        pageNumber: Int?,
+        pageCaption: String?
+    ) -> some View {
+        BookPageTurnSheet(
+            progress: flipProgress,
+            direction: direction,
+            width: pageWidth,
+            height: spreadHeight
+        ) {
+            pagePanel(
+                text: text,
+                pageNumber: pageNumber,
+                pageCaption: pageCaption,
+                side: side,
+                width: pageWidth,
+                height: spreadHeight,
+                usesSplitTapNavigation: layoutMode == .fullscreen
+            )
+        }
     }
 
     private var readingKeyboardShortcuts: some View {
@@ -261,6 +343,10 @@ struct ReadingSpreadView: View {
                 .keyboardShortcut(.rightArrow, modifiers: [])
             Button("学习模式") { viewModel.exitReadingMode() }
                 .keyboardShortcut(.escape, modifiers: [])
+            Button("双页") { setLayoutMode(.spread) }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+            Button("全屏") { setLayoutMode(.fullscreen) }
+                .keyboardShortcut("2", modifiers: [.command, .option])
         }
         .opacity(0)
         .frame(width: 0, height: 0)
@@ -328,10 +414,11 @@ struct ReadingSpreadView: View {
         pageCaption: String? = nil,
         side: HorizontalEdge,
         width: CGFloat,
-        height: CGFloat
+        height: CGFloat,
+        usesSplitTapNavigation: Bool = false
     ) -> some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(spacing: 8) {
                 if let pageCaption {
                     Text(pageCaption)
                         .font(BookTheme.captionFont.weight(.semibold))
@@ -354,20 +441,38 @@ struct ReadingSpreadView: View {
                 .padding(.horizontal, 36)
                 .padding(.vertical, 24)
 
-            pageFooter(pageNumber: pageNumber, side: side)
+            pageFooter(pageNumber: pageNumber, side: side, centered: usesSplitTapNavigation)
         }
         .frame(width: width, height: height)
         .bookPaperTexture()
-        .bookPage(side == .leading ? BookTheme.pageLeft : BookTheme.pageRight)
+        .bookPage(pageStyle(for: side))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(alignment: .bottomTrailing) {
-            if side == .trailing {
+            if side == .trailing, layoutMode == .spread {
                 BookInterface.PageCornerFold()
+            }
+        }
+        .overlay {
+            if usesSplitTapNavigation {
+                HStack(spacing: 0) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard flipDirection == nil else { return }
+                            turnPage(.backward)
+                        }
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard flipDirection == nil else { return }
+                            turnPage(.forward)
+                        }
+                }
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .onTapGesture {
-            guard flipDirection == nil else { return }
+            guard flipDirection == nil, !usesSplitTapNavigation else { return }
             if side == .trailing {
                 turnPage(.forward)
             } else {
@@ -376,9 +481,11 @@ struct ReadingSpreadView: View {
         }
     }
 
-    private func pageFooter(pageNumber: Int?, side: HorizontalEdge) -> some View {
+    private func pageFooter(pageNumber: Int?, side: HorizontalEdge, centered: Bool = false) -> some View {
         HStack {
-            if side == .leading {
+            if centered {
+                Spacer()
+            } else if side == .leading {
                 BookInterface.PageMark(label: BookInterface.leftPageMark)
             }
             Spacer()
@@ -387,7 +494,10 @@ struct ReadingSpreadView: View {
                     .font(BookTheme.captionFont.monospacedDigit())
                     .foregroundStyle(BookTheme.inkSecondary)
             }
-            if side == .trailing {
+            Spacer()
+            if centered {
+                Spacer()
+            } else if side == .trailing {
                 BookInterface.PageMark(label: BookInterface.rightPageMark)
             }
         }
@@ -409,7 +519,7 @@ struct ReadingSpreadView: View {
                     endPoint: .trailing
                 )
             )
-            .frame(width: 34)
+            .frame(width: spineWidth)
             .shadow(color: .black.opacity(0.28), radius: 4, x: 0, y: 0)
     }
 
@@ -426,11 +536,21 @@ struct ReadingSpreadView: View {
     }
 
     private var canGoForward: Bool {
-        viewModel.canTurnReadingSpreadForward(from: displayedSpreadIndex)
+        switch layoutMode {
+        case .spread:
+            return viewModel.canTurnReadingSpreadForward(from: displayedSpreadIndex)
+        case .fullscreen:
+            return displayedSpreadIndex < max(0, viewModel.readingPageCount - 1)
+        }
     }
 
     private var canGoBackward: Bool {
-        viewModel.canTurnReadingSpreadBackward(from: displayedSpreadIndex)
+        switch layoutMode {
+        case .spread:
+            return viewModel.canTurnReadingSpreadBackward(from: displayedSpreadIndex)
+        case .fullscreen:
+            return displayedSpreadIndex > 0
+        }
     }
 
     private func pageText(spreadIndex: Int, side: HorizontalEdge) -> String {
@@ -462,6 +582,15 @@ struct ReadingSpreadView: View {
         }
     }
 
+    private func fullscreenPageText(at pageIndex: Int) -> String {
+        viewModel.readingPageText(at: min(max(0, pageIndex), max(0, viewModel.readingPageCount - 1)))
+    }
+
+    private func fullscreenPageNumber(at pageIndex: Int) -> Int? {
+        guard viewModel.readingPageCount > 0 else { return nil }
+        return min(max(1, pageIndex + 1), viewModel.readingPageCount)
+    }
+
     private func updatePageContentSize(width: CGFloat, height: CGFloat) {
         let footerHeight: CGFloat = 44
         let headerHeight: CGFloat = 28
@@ -475,12 +604,13 @@ struct ReadingSpreadView: View {
         repaginateIfNeeded()
     }
 
-    private func repaginateIfNeeded() {
+    private func repaginateIfNeeded(restoreSourcePage: Int? = nil) {
         guard !isRepaginating else { return }
         guard pageContentSize.width > 0, pageContentSize.height > 0 else { return }
+        let sourcePage = restoreSourcePage ?? currentSourcePageIndex()
         isRepaginating = true
         viewModel.repaginateForReading(pageContentSize: pageContentSize)
-        displayedSpreadIndex = viewModel.readingSpreadIndex
+        applyPosition(fromSourcePage: sourcePage)
         DispatchQueue.main.async {
             isRepaginating = false
         }
@@ -537,11 +667,89 @@ struct ReadingSpreadView: View {
     private func finishTurnState() {
         if let targetSpreadIndex {
             displayedSpreadIndex = targetSpreadIndex
-            viewModel.readingSpreadIndex = targetSpreadIndex
+            if layoutMode == .spread {
+                viewModel.readingSpreadIndex = targetSpreadIndex
+            }
         }
         flipProgress = 0
         flipDirection = nil
         self.targetSpreadIndex = nil
         isDraggingTurn = false
+    }
+
+    private var leadingPageCaption: String? {
+        viewModel.readingComparisonEnabled ? "原文" : nil
+    }
+
+    private var trailingPageCaption: String? {
+        viewModel.readingComparisonEnabled ? "译文" : nil
+    }
+
+    private func pageWidth(forSpreadWidth spreadWidth: CGFloat) -> CGFloat {
+        switch layoutMode {
+        case .spread:
+            return max(0, (spreadWidth - spineWidth) / 2)
+        case .fullscreen:
+            return max(0, spreadWidth)
+        }
+    }
+
+    private func pageStyle(for side: HorizontalEdge) -> Color {
+        switch layoutMode {
+        case .spread:
+            return side == .leading ? BookTheme.pageLeft : BookTheme.pageRight
+        case .fullscreen:
+            return BookTheme.pageLeft
+        }
+    }
+
+    private func setLayoutMode(_ mode: ReadingLayoutMode) {
+        guard layoutMode != mode else { return }
+        let sourcePage = currentSourcePageIndex()
+        layoutMode = mode
+        if mode == .fullscreen, viewModel.readingComparisonEnabled {
+            viewModel.readingComparisonEnabled = false
+        }
+        repaginateIfNeeded(restoreSourcePage: sourcePage)
+    }
+
+    private func currentSourcePageIndex() -> Int {
+        switch layoutMode {
+        case .spread:
+            return viewModel.leftPageIndex(forSpread: displayedSpreadIndex)
+        case .fullscreen:
+            return min(max(0, displayedSpreadIndex), max(0, viewModel.readingPageCount - 1))
+        }
+    }
+
+    private func applyPosition(fromSourcePage sourcePage: Int) {
+        let clampedSource = min(max(0, sourcePage), max(0, viewModel.readingPageCount - 1))
+        switch layoutMode {
+        case .spread:
+            displayedSpreadIndex = viewModel.readingSpreadIndex
+        case .fullscreen:
+            displayedSpreadIndex = clampedSource
+        }
+    }
+
+    private func shouldHidePage(side: HorizontalEdge) -> Bool {
+        guard flipDirection != nil, flipProgress > 0 else { return false }
+        switch layoutMode {
+        case .spread:
+            return side == .leading ? flipDirection == .backward : flipDirection == .forward
+        case .fullscreen:
+            return side == .leading
+        }
+    }
+
+    private func progressLabel(forSpreadIndex spreadIndex: Int) -> String {
+        switch layoutMode {
+        case .spread:
+            return viewModel.readingProgressLabel(spreadIndex: spreadIndex)
+        case .fullscreen:
+            let page = min(max(1, spreadIndex + 1), max(viewModel.readingPageCount, 1))
+            let total = max(viewModel.readingPageCount, 1)
+            return "第 \(page) 页 / 共 \(total) 页"
+        }
     }
 }

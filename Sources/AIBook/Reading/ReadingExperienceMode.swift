@@ -21,3 +21,18 @@ enum ReadingExperienceMode: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// Reading spread layout: dual-page spread or single-page fullscreen.
+enum ReadingLayoutMode: String, CaseIterable, Identifiable {
+    case spread
+    case fullscreen
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .spread: return "双页"
+        case .fullscreen: return "全屏"
+        }
+    }
+}
