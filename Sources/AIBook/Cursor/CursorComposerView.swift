@@ -354,7 +354,7 @@ struct CursorComposerView: View {
 
                 Spacer()
 
-                Text("⌘E 进化 · ⌘↩ 发送")
+                Text("\(BookKeyboardShortcuts.evolutionHint) 进化 · ⌘↩ 发送")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
 

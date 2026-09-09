@@ -22,59 +22,59 @@ struct AIBookApp: App {
                 Button("新建") {
                     viewModel.newDocument()
                 }
-                .keyboardShortcut("n")
+                .bookMenuShortcut(BookKeyboardShortcuts.newDocument)
 
                 Button("打开文本文件…") {
                     viewModel.openFile()
                 }
-                .keyboardShortcut("o")
+                .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
             }
 
             CommandGroup(after: .saveItem) {
                 Button("保存") {
                     viewModel.save()
                 }
-                .keyboardShortcut("s")
+                .bookMenuShortcut(BookKeyboardShortcuts.save)
 
                 Button("另存为…") {
                     viewModel.saveAs()
                 }
-                .keyboardShortcut("S", modifiers: [.command, .shift])
+                .bookMenuShortcut(BookKeyboardShortcuts.saveAs)
                 .disabled(viewModel.fileContent.isEmpty)
 
                 Button("导出选中为…") {
                     viewModel.saveSelectionAs()
                 }
-                .keyboardShortcut("s", modifiers: [.command, .option])
+                .bookMenuShortcut(BookKeyboardShortcuts.exportSelection)
                 .disabled(viewModel.selectedText.isEmpty)
 
                 Button("选择讲解") {
                     viewModel.explainSelection()
                 }
-                .keyboardShortcut("r")
+                .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
 
                 Button("全文讲解") {
                     viewModel.explainFullText()
                 }
-                .keyboardShortcut("R", modifiers: [.command, .shift])
+                .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
                 .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button("全选左页") {
                     viewModel.selectAllLeftPage()
                 }
-                .keyboardShortcut("a", modifiers: [.command, .control])
+                .bookMenuShortcut(BookKeyboardShortcuts.selectAllLeftPage)
                 .disabled(viewModel.fileContent.isEmpty)
 
                 Button("全选翻译") {
                     viewModel.selectAllRightPage()
                 }
-                .keyboardShortcut("a", modifiers: [.command, .control, .shift])
+                .bookMenuShortcut(BookKeyboardShortcuts.selectAllTranslation)
                 .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读原文（选中/全文）") {
                     viewModel.readSelectionAloud()
                 }
-                .keyboardShortcut("r", modifiers: [.command, .option])
+                .bookMenuShortcut(BookKeyboardShortcuts.readOriginalSelectionOrFull)
                 .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
 
                 Button("朗读原文全文") {
@@ -93,7 +93,7 @@ struct AIBookApp: App {
                 Button("朗读翻译全文") {
                     viewModel.readTranslationFullTextAloud()
                 }
-                .keyboardShortcut("t", modifiers: [.command, .option])
+                .bookMenuShortcut(BookKeyboardShortcuts.readTranslationFull)
                 .disabled(
                     viewModel.isRunning
                         || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -118,13 +118,13 @@ struct AIBookApp: App {
                 Button(ClassicLiteratureSupplement.capabilityLabel) {
                     viewModel.supplementClassicLiterature()
                 }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .bookMenuShortcut(BookKeyboardShortcuts.classicSupplement)
                 .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
 
                 Button("自我进化") {
                     viewModel.startEvolution()
                 }
-                .keyboardShortcut("e")
+                .bookMenuShortcut(BookKeyboardShortcuts.evolution)
             }
         }
     }

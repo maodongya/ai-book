@@ -3,7 +3,7 @@ import Foundation
 /// 识别左页名著节选并由大模型补全为完整篇章。
 enum ClassicLiteratureSupplement {
     static let capabilityLabel = "名著补充"
-    static let shortcutHint = "⌘⇧C"
+    static let shortcutHint = BookKeyboardShortcuts.classicSupplementHint
 
     static let markerStart = "<<<名著补充>>>"
     static let markerEnd = "<<<END>>>"

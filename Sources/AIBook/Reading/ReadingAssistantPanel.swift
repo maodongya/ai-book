@@ -15,4 +15,23 @@ enum ReadingAssistantPanel: String, CaseIterable, Identifiable, Codable {
             return "character.book.closed"
         }
     }
+
+    /// 顶栏胶囊按钮短标题（右页分栏用完整 rawValue）。
+    var toolbarTitle: String {
+        switch self {
+        case .explanation:
+            return "讲解"
+        case .translation:
+            return "翻译"
+        }
+    }
+
+    var toolbarHelp: String {
+        switch self {
+        case .explanation:
+            return "切换到右页讲解结果分栏"
+        case .translation:
+            return "切换到右页翻译结果分栏"
+        }
+    }
 }

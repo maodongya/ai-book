@@ -127,38 +127,39 @@ extension View {
 
 struct BookToolbarMenuButton<MenuContent: View>: View {
     var title: String = "更多"
-    var icon: String = "ellipsis.circle"
+    var isDisabled: Bool = false
     @ViewBuilder let menuContent: () -> MenuContent
     @State private var isHovering = false
+    @State private var isPresented = false
 
     var body: some View {
-        Menu(content: menuContent) {
-            Label(title, systemImage: icon)
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.goldSoft)
-                .lineLimit(1)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background {
-                    Capsule()
-                        .fill(Color.white.opacity(isHovering ? 0.14 : 0.08))
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(Color.white.opacity(isHovering ? 0.22 : 0.12), lineWidth: 1)
-                        }
-                        .shadow(color: .black.opacity(isHovering ? 0.18 : 0.08), radius: isHovering ? 8 : 4, y: isHovering ? 4 : 2)
-                }
+        Button {
+            isPresented.toggle()
+        } label: {
+            BookToolbarCapsuleLabel(
+                title: title,
+                isProminent: false,
+                isCompact: true,
+                isHovering: isHovering
+            )
         }
-        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.45 : 1)
         .fixedSize()
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.16), value: isHovering)
+        .popover(isPresented: $isPresented, arrowEdge: .top) {
+            BookToolbarMenuPanel(isPresented: $isPresented) {
+                menuContent()
+            }
+        }
     }
 }
 
 struct BookActionButton: View {
     let title: String
-    let icon: String
+    var icon: String?
     var isProminent: Bool = false
     var isCompact: Bool = false
     var isDisabled: Bool = false
@@ -167,28 +168,18 @@ struct BookActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(isCompact ? BookTheme.captionFont : BookTheme.labelFont)
-                .foregroundStyle(isProminent ? BookTheme.leatherShadow : BookTheme.goldSoft)
-                .lineLimit(1)
-                .padding(.horizontal, isCompact ? (isProminent ? 12 : 10) : (isProminent ? 16 : 13))
-                .padding(.vertical, isCompact ? 5 : 8)
-                .background {
-                    Capsule()
-                        .fill(isProminent ? AnyShapeStyle(BookTheme.goldGradient) : AnyShapeStyle(Color.white.opacity(isHovering ? 0.14 : 0.08)))
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(
-                                    isProminent ? BookTheme.goldSoft.opacity(0.75) : Color.white.opacity(isHovering ? 0.22 : 0.12),
-                                    lineWidth: 1
-                                )
-                        }
-                        .shadow(
-                            color: isProminent ? BookTheme.gold.opacity(0.25) : .black.opacity(isHovering ? 0.18 : 0.08),
-                            radius: isHovering ? 8 : 4,
-                            y: isHovering ? 4 : 2
-                        )
+            Group {
+                if let icon {
+                    Label(title, systemImage: icon)
+                } else {
+                    BookToolbarCapsuleLabel(
+                        title: title,
+                        isProminent: isProminent,
+                        isCompact: isCompact,
+                        isHovering: isHovering
+                    )
                 }
+            }
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)

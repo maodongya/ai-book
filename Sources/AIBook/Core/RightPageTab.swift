@@ -21,4 +21,14 @@ enum RightPageTab: String, CaseIterable, Identifiable {
             return "Cursor Agent 风格 · 思考过程与工具步骤追踪"
         }
     }
+
+    /// 顶栏下拉菜单标题（与 Tab 按钮 `rawValue` 区分，对齐「讲解操作」等命名）。
+    var toolbarMenuTitle: String? {
+        switch self {
+        case .readingAssistant:
+            return nil
+        case .aiEvolution:
+            return "进化操作"
+        }
+    }
 }

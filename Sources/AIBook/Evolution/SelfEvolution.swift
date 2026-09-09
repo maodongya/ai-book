@@ -4,7 +4,7 @@ import Foundation
 /// Self-evolution loop: optimization queue drives AI to change source, rebuild and relaunch.
 enum SelfEvolution {
     static let capabilityLabel = "自我进化"
-    static let shortcutHint = "⌘E"
+    static let shortcutHint = BookKeyboardShortcuts.evolutionHint
 
     static let productDefinition: [String] = [
         "ai-book（AIBook）：辅助读书软件，左页阅读原文，右页讲解与 AI 进化",

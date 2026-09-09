@@ -90,43 +90,41 @@ struct ExplanationChatView: View {
 
     private var explanationToolbar: some View {
         HStack(spacing: 8) {
-            explanationToolbarButton(title: "新建", icon: "doc.badge.plus") {
+            explanationToolbarButton(title: "新建") {
                 viewModel.newExplanationDocument()
             }
             .disabled(viewModel.isRunning)
 
-            explanationToolbarButton(title: "保存", icon: "square.and.arrow.down") {
+            explanationToolbarButton(title: "保存") {
                 viewModel.saveExplanationDocument()
             }
             .disabled(!viewModel.hasExplanationContent)
 
-            explanationToolbarButton(title: "打开", icon: "folder") {
+            explanationToolbarButton(title: "打开") {
                 viewModel.openExplanationDocument()
             }
             .disabled(viewModel.isRunning)
 
-            explanationToolbarButton(title: "全选", icon: "selection.pin.in.out") {
+            explanationToolbarButton(title: "全选") {
                 viewModel.selectAllExplanation()
             }
             .disabled(!viewModel.hasExplanationContent || viewModel.isRunning)
 
-            explanationToolbarButton(title: "清空", icon: "trash") {
+            explanationToolbarButton(title: "清空") {
                 viewModel.clearExplanation()
             }
             .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
 
             if viewModel.isSpeakingExplanation && !viewModel.isRunning {
                 explanationToolbarButton(
-                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
-                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
+                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停"
                 ) {
                     viewModel.toggleExplanationSpeechPause()
                 }
             }
 
             explanationToolbarButton(
-                title: viewModel.isSpeakingExplanation ? "停止" : "朗读",
-                icon: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
+                title: viewModel.isSpeakingExplanation ? "停止" : "朗读"
             ) {
                 viewModel.readExplanationAloud()
             }
@@ -136,11 +134,10 @@ struct ExplanationChatView: View {
 
     private func explanationToolbarButton(
         title: String,
-        icon: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
+            Text(title)
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.leather)
                 .padding(.horizontal, 10)
@@ -369,7 +366,7 @@ struct ExplanationChatView: View {
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isRunning || (isEmpty && !viewModel.isSpeakingExplanation))
-            .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（⌘⌥T）")
+            .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（\(BookKeyboardShortcuts.readTranslationFullHint)）")
         }
     }
 
@@ -387,7 +384,7 @@ struct ExplanationChatView: View {
             Label("点击「逐字翻译」开始", systemImage: "sparkles")
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("在顶栏「翻译操作」选择逐字/整段翻译；生成后可编辑，并点击右上角朗读或 ⌘⌥T。")
+            Text("在顶栏「翻译操作」选择逐字/整段翻译；生成后可编辑，并点击右上角朗读或 \(BookKeyboardShortcuts.readTranslationFullHint)。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)

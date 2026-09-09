@@ -126,29 +126,87 @@ struct ContentView: View {
         .fixedSize(horizontal: true, vertical: false)
     }
 
+    private var bookLLMToolbarHelp: String {
+        AppGuard.bookLLMErrorMessage(for: settings)
+            ?? "配置读书助手大模型（推荐本机 Ollama）"
+    }
+
+    private var evolutionToolbarHelp: String {
+        AppGuard.evolutionErrorMessage(for: settings)
+            ?? (viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置")
+    }
+
+    @ViewBuilder
+    private var bookLLMConfigGuideMenuItem: some View {
+        if !settings.isBookLLMConfigured {
+            Button {
+                viewModel.openBookSettings()
+            } label: {
+                Text("未配置 book 大模型 · 点击设置")
+            }
+            BookToolbarMenuDivider()
+        }
+    }
+
+    @ViewBuilder
+    private var evolutionConfigGuideMenuItem: some View {
+        if !settings.isCursorRunnable {
+            Button {
+                viewModel.openSettings()
+            } label: {
+                Text("Cursor 未就绪 · 点击进化设置")
+            }
+            BookToolbarMenuDivider()
+        }
+    }
+
+    private var requiresBookLLM: Bool { !settings.isBookLLMConfigured }
+
+    private var requiresEvolutionBackend: Bool { !settings.isCursorRunnable }
+
+    private var isReadingToolbarContext: Bool {
+        viewModel.rightPageTab == .readingAssistant
+    }
+
+    private func toolbarColumnWidths(totalWidth: CGFloat) -> (left: CGFloat, center: CGFloat, right: CGFloat) {
+        let dividerSpan = Self.toolbarDividerSpan
+        let dividers = dividerSpan * 2
+        switch viewModel.rightPageTab {
+        case .readingAssistant:
+            let left = totalWidth * 2 / 5
+            let remaining = max(0, totalWidth - left - dividers)
+            let side = remaining / 2
+            return (left, side, side)
+        case .aiEvolution:
+            let left = totalWidth / 5
+            let right = totalWidth / 5
+            let center = max(0, totalWidth - left - right - dividers)
+            return (left, center, right)
+        }
+    }
+
     private var toolbarActionRow: some View {
         GeometryReader { geometry in
-            let dividerSpan = Self.toolbarDividerSpan
-            let leftWidth = geometry.size.width * 2 / 5
-            let remaining = max(0, geometry.size.width - leftWidth - dividerSpan * 2)
-            let sideWidth = remaining / 2
+            let widths = toolbarColumnWidths(totalWidth: geometry.size.width)
 
             HStack(spacing: 0) {
                 documentActionBar
-                    .frame(width: leftWidth, alignment: .leading)
+                    .frame(width: widths.left, alignment: .leading)
 
                 toolbarSectionDivider
 
                 readingActionBar
-                    .frame(width: sideWidth, alignment: .center)
+                    .frame(width: widths.center, alignment: .center)
 
                 toolbarSectionDivider
 
                 utilityActionBar
-                    .frame(width: sideWidth, alignment: .trailing)
+                    .frame(width: widths.right, alignment: .trailing)
             }
         }
         .frame(height: 24)
+        .animation(.easeOut(duration: 0.2), value: viewModel.rightPageTab)
+        .animation(.easeOut(duration: 0.2), value: viewModel.readingAssistantPanel)
     }
 
     private static let toolbarDividerSpan: CGFloat = 21
@@ -161,450 +219,946 @@ struct ContentView: View {
     }
 
     private var documentActionBar: some View {
-        HStack(spacing: 8) {
-            BookActionButton(
-                title: RightPageTab.readingAssistant.rawValue,
-                icon: RightPageTab.readingAssistant.icon,
-                isProminent: viewModel.rightPageTab == .readingAssistant,
-                isCompact: true
-            ) {
-                viewModel.selectRightPageTab(.readingAssistant)
-            }
-            .help("切换到读书助手：讲解、朗读与文章翻译")
-
-            BookActionButton(
-                title: "book设置",
-                icon: "slider.horizontal.3",
-                isProminent: false,
-                isCompact: true
-            ) {
-                viewModel.openBookSettings()
-            }
-            .help("配置读书助手大模型（推荐本机 Ollama）")
-
-            BookToolbarMenuButton(title: "原文操作", icon: "folder.badge.plus") {
-                Button {
-                    viewModel.newDocument()
-                } label: {
-                    Label("新建", systemImage: "doc.badge.plus")
-                }
-                .disabled(viewModel.isRunning)
-
-                Button {
-                    viewModel.openFile()
-                } label: {
-                    Label("打开", systemImage: "doc.text")
-                }
-                .disabled(viewModel.isRunning)
-
-                Divider()
-
-                Button {
-                    viewModel.save()
-                } label: {
-                    Label("保存", systemImage: "square.and.arrow.down")
-                }
-                .disabled(viewModel.fileContent.isEmpty && !viewModel.isDirty)
-
-                Button {
-                    viewModel.saveAs()
-                } label: {
-                    Label("另存为", systemImage: "square.and.arrow.down.on.square")
-                }
-                .disabled(viewModel.fileContent.isEmpty)
-
-                Button {
-                    viewModel.selectAllLeftPage()
-                } label: {
-                    Label("原文全选", systemImage: "selection.pin.in.out")
-                }
-                .disabled(viewModel.fileContent.isEmpty)
-
-                Divider()
-
-                Button {
-                    viewModel.supplementClassicLiterature()
-                } label: {
-                    Label(ClassicLiteratureSupplement.capabilityLabel, systemImage: "text.append")
-                }
-                .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
-            }
-            .help("新建、打开、保存、另存为、全选与名著补充")
-
-            BookToolbarMenuButton(title: "讲解操作", icon: "sparkles.text.clipboard") {
-                Button {
-                    viewModel.explainSelection()
-                } label: {
-                    Label("选择讲解", systemImage: "text.cursor")
-                }
-                .disabled(viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
-
-                Button {
-                    viewModel.explainFullText()
-                } label: {
-                    Label("全文讲解", systemImage: "doc.text.magnifyingglass")
-                }
-                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
-
-                Divider()
-
-                Button {
-                    viewModel.newExplanationDocument()
-                } label: {
-                    Label("新建", systemImage: "doc.badge.plus")
-                }
-                .disabled(viewModel.isRunning)
-
-                Button {
-                    viewModel.openExplanationDocument()
-                } label: {
-                    Label("打开", systemImage: "folder")
-                }
-                .disabled(viewModel.isRunning)
-
-                Button {
-                    viewModel.saveExplanationDocument()
-                } label: {
-                    Label("保存", systemImage: "square.and.arrow.down")
-                }
-                .disabled(!viewModel.hasExplanationContent)
-
-                Button {
-                    viewModel.selectAllExplanation()
-                } label: {
-                    Label("全选", systemImage: "selection.pin.in.out")
-                }
-                .disabled(!viewModel.hasExplanationContent)
-
-                Button(role: .destructive) {
-                    viewModel.clearExplanation()
-                } label: {
-                    Label("清空讲解", systemImage: "trash")
-                }
-                .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
-
-                Divider()
-
-                Button {
-                    viewModel.readExplanationAloud()
-                } label: {
-                    Label(
-                        viewModel.isSpeakingExplanation ? "停止朗读" : "朗读讲解",
-                        systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
-                    )
-                }
-                .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
-            }
-            .help("选择/全文讲解、文稿管理与朗读")
-
-            BookToolbarMenuButton(title: "翻译操作", icon: "character.book.closed") {
-                Button {
-                    viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.generateLessonPlan()
-                } label: {
-                    Label("逐字翻译", systemImage: "text.magnifyingglass")
-                }
-                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
-
-                Button {
-                    viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.refineLessonPlan()
-                } label: {
-                    Label("整段翻译", systemImage: "paragraphsign")
-                }
-                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
-
-                Button {
-                    viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.readLessonPlanAloud()
-                } label: {
-                    Label(
-                        viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译",
-                        systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
-                    )
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && !viewModel.isSpeakingExplanation)
-                )
-
-                Button {
-                    viewModel.selectAllRightPage()
-                } label: {
-                    Label("全选翻译", systemImage: "selection.pin.in.out")
-                }
-                .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Divider()
-
-                Button {
-                    viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.openLessonPlanFile()
-                } label: {
-                    Label("打开翻译", systemImage: "folder")
-                }
-                .disabled(viewModel.isRunning)
-
-                Button {
-                    viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.saveLessonPlan()
-                } label: {
-                    Label("保存翻译", systemImage: "square.and.arrow.down")
-                }
-                .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Button(role: .destructive) {
-                    viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.clearLessonPlan()
-                } label: {
-                    Label("清空翻译", systemImage: "trash")
-                }
-                .disabled(viewModel.isRunning || viewModel.lessonPlanContent.isEmpty)
-
-            }
-            .help("逐字/整段翻译、朗读与翻译文件管理")
-
-            BookToolbarMenuButton(title: "朗读功能", icon: "speaker.wave.2.fill") {
-                Button {
-                    viewModel.readOriginalFullTextAloud()
-                } label: {
-                    Label("朗读原文全文", systemImage: "text.book.closed")
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && !viewModel.isSpeakingExplanation)
-                )
-
-                Button {
-                    viewModel.readOriginalSelectionAloud()
-                } label: {
-                    Label("朗读原文选中", systemImage: "text.cursor")
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (viewModel.effectiveSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
-                )
-
-                Divider()
-
-                Button {
-                    viewModel.readTranslationFullTextAloud()
-                } label: {
-                    Label("朗读翻译全文", systemImage: "character.book.closed")
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && !viewModel.isSpeakingExplanation)
-                )
-
-                Button {
-                    viewModel.readTranslationSelectionAloud()
-                } label: {
-                    Label("朗读翻译选择", systemImage: "selection.pin.in.out")
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (viewModel.effectiveLessonPlanSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
-                )
-
-                Divider()
-
-                Button {
-                    viewModel.readExplanationFullTextAloud()
-                } label: {
-                    Label("朗读讲解全文", systemImage: "sparkles.text.clipboard")
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation)
-                )
-
-                Button {
-                    viewModel.readExplanationSelectionAloud()
-                } label: {
-                    Label("朗读讲解选中", systemImage: "text.quote")
-                }
-                .disabled(
-                    viewModel.isRunning
-                        || (viewModel.effectiveExplanationPanelSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
-                )
-            }
-            .help("原文、翻译与讲解的选中/全文朗读；朗读中请使用顶栏中部播控")
+        BookToolbarOverflowRow {
+            documentActionBarFull
+        } compact: {
+            documentActionBarCompact
+        } minimal: {
+            documentActionBarMinimal
         }
     }
 
-    private var readingActionBar: some View {
+    private var documentActionBarFull: some View {
         HStack(spacing: 8) {
+            readingAssistantTabButton
+            if isReadingToolbarContext {
+                bookSettingsToolbarButton
+            }
+            documentOperationsMenu
+            if isReadingToolbarContext, viewModel.readingAssistantPanel == .explanation {
+                explanationOperationsMenu
+            }
+            if isReadingToolbarContext, viewModel.readingAssistantPanel == .translation {
+                translationOperationsMenu
+            }
+            if isReadingToolbarContext {
+                speechOperationsMenu
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var documentActionBarCompact: some View {
+        HStack(spacing: 8) {
+            readingAssistantTabButton
+            documentOperationsMenu
+            if isReadingToolbarContext, viewModel.readingAssistantPanel == .explanation {
+                explanationOperationsMenu
+            } else if isReadingToolbarContext, viewModel.readingAssistantPanel == .translation {
+                translationOperationsMenu
+            }
+            if isReadingToolbarContext {
+                documentToolbarOverflowMenu(includeDocumentMenu: false)
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var documentActionBarMinimal: some View {
+        HStack(spacing: 8) {
+            readingAssistantTabButton
+            documentToolbarOverflowMenu(includeDocumentMenu: true)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var readingAssistantTabButton: some View {
+        BookActionButton(
+            title: RightPageTab.readingAssistant.rawValue,
+            isProminent: viewModel.rightPageTab == .readingAssistant,
+            isCompact: true
+        ) {
+            viewModel.selectRightPageTab(.readingAssistant)
+        }
+        .help("切换到读书助手：讲解、朗读与文章翻译")
+    }
+
+    private var bookSettingsToolbarButton: some View {
+        BookActionButton(
+            title: "book设置",
+            isProminent: false,
+            isCompact: true
+        ) {
+            viewModel.openBookSettings()
+        }
+        .help("配置读书助手大模型（推荐本机 Ollama）")
+    }
+
+    @ViewBuilder
+    private var documentOperationsMenuContent: some View {
+        bookLLMConfigGuideMenuItem
+
+        Button {
+            viewModel.newDocument()
+        } label: {
+            Text("新建")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.newDocument)
+        .disabled(viewModel.isRunning)
+
+        Button {
+            viewModel.openFile()
+        } label: {
+            Text("打开")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
+        .disabled(viewModel.isRunning)
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.save()
+        } label: {
+            Text("保存")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.save)
+        .disabled(viewModel.fileContent.isEmpty && !viewModel.isDirty)
+
+        Button {
+            viewModel.saveAs()
+        } label: {
+            Text("另存为")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.saveAs)
+        .disabled(viewModel.fileContent.isEmpty)
+
+        Button {
+            viewModel.selectAllLeftPage()
+        } label: {
+            Text("原文全选")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.selectAllLeftPage)
+        .disabled(viewModel.fileContent.isEmpty)
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.supplementClassicLiterature()
+        } label: {
+            Text(ClassicLiteratureSupplement.capabilityLabel)
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.classicSupplement)
+        .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning || requiresBookLLM)
+    }
+
+    private var documentOperationsMenu: some View {
+        BookToolbarMenuButton(title: "原文操作") {
+            documentOperationsMenuContent
+        }
+        .help(requiresBookLLM ? bookLLMToolbarHelp : "新建、打开、保存、另存为、全选与名著补充 · \(BookKeyboardShortcuts.documentMenuSummary)")
+    }
+
+    @ViewBuilder
+    private func documentToolbarOverflowMenu(includeDocumentMenu: Bool) -> some View {
+        BookToolbarOverflowMenu(help: "原文、讲解、翻译与朗读等操作") {
+            if isReadingToolbarContext {
+                Button {
+                    viewModel.openBookSettings()
+                } label: {
+                    Text("book设置")
+                }
+                BookToolbarMenuDivider()
+            }
+
+            if includeDocumentMenu {
+                BookToolbarSubmenu(title: "原文操作") {
+                    documentOperationsMenuContent
+                }
+            }
+
+            if isReadingToolbarContext {
+                if includeDocumentMenu || viewModel.readingAssistantPanel != .explanation {
+                    BookToolbarSubmenu(title: "讲解操作") {
+                        explanationOperationsMenuContent
+                    }
+                }
+                if includeDocumentMenu || viewModel.readingAssistantPanel != .translation {
+                    BookToolbarSubmenu(title: "翻译操作") {
+                        translationOperationsMenuContent
+                    }
+                }
+                BookToolbarSubmenu(title: "朗读功能") {
+                    speechOperationsMenuContent
+                }
+            }
+        }
+    }
+
+    private var explanationOperationsMenu: some View {
+        BookToolbarMenuButton(title: "讲解操作") {
+            explanationOperationsMenuContent
+        }
+        .help(requiresBookLLM ? bookLLMToolbarHelp : "选择/全文讲解、文稿管理与朗读 · \(BookKeyboardShortcuts.explanationMenuSummary)")
+    }
+
+    @ViewBuilder
+    private var explanationOperationsMenuContent: some View {
+        bookLLMConfigGuideMenuItem
+
+        Button {
+            viewModel.explainSelection()
+        } label: {
+            Text("选择讲解")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
+        .disabled(requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
+
+        Button {
+            viewModel.explainFullText()
+        } label: {
+            Text("全文讲解")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
+        .disabled(
+            requiresBookLLM
+                || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || viewModel.isRunning
+        )
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.newExplanationDocument()
+        } label: {
+            Text("新建")
+        }
+        .disabled(viewModel.isRunning)
+
+        Button {
+            viewModel.openExplanationDocument()
+        } label: {
+            Text("打开")
+        }
+        .disabled(viewModel.isRunning)
+
+        Button {
+            viewModel.saveExplanationDocument()
+        } label: {
+            Text("保存")
+        }
+        .disabled(!viewModel.hasExplanationContent)
+
+        Button {
+            viewModel.selectAllExplanation()
+        } label: {
+            Text("全选")
+        }
+        .disabled(!viewModel.hasExplanationContent)
+
+        Button(role: .destructive) {
+            viewModel.clearExplanation()
+        } label: {
+            Text("清空讲解")
+        }
+        .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.readExplanationAloud()
+        } label: {
+            Text(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读讲解")
+        }
+        .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
+    }
+
+    private var translationOperationsMenu: some View {
+        BookToolbarMenuButton(title: "翻译操作") {
+            translationOperationsMenuContent
+        }
+        .help(requiresBookLLM ? bookLLMToolbarHelp : "逐字/整段翻译、朗读与翻译文件管理 · \(BookKeyboardShortcuts.translationMenuSummary)")
+    }
+
+    @ViewBuilder
+    private var translationOperationsMenuContent: some View {
+        bookLLMConfigGuideMenuItem
+
+        Button {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.generateLessonPlan()
+        } label: {
+            Text("逐字翻译")
+        }
+        .disabled(
+            requiresBookLLM
+                || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || viewModel.isRunning
+        )
+
+        Button {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.refineLessonPlan()
+        } label: {
+            Text("整段翻译")
+        }
+        .disabled(
+            requiresBookLLM
+                || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || viewModel.isRunning
+        )
+
+        Button {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.readLessonPlanAloud()
+        } label: {
+            Text(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译")
+        }
+        .bookMenuShortcut(
+            viewModel.isSpeakingExplanation ? nil : BookKeyboardShortcuts.readTranslationFull
+        )
+        .disabled(
+            viewModel.isRunning
+                || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !viewModel.isSpeakingExplanation)
+        )
+
+        Button {
+            viewModel.selectAllRightPage()
+        } label: {
+            Text("全选翻译")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.selectAllTranslation)
+        .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.selectReadingAssistantPanel(.translation)
+            viewModel.openLessonPlanFile()
+        } label: {
+            Text("打开翻译")
+        }
+        .disabled(viewModel.isRunning)
+
+        Button {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.selectReadingAssistantPanel(.translation)
+            viewModel.saveLessonPlan()
+        } label: {
+            Text("保存翻译")
+        }
+        .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+        Button(role: .destructive) {
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.selectReadingAssistantPanel(.translation)
+            viewModel.clearLessonPlan()
+        } label: {
+            Text("清空翻译")
+        }
+        .disabled(viewModel.isRunning || viewModel.lessonPlanContent.isEmpty)
+    }
+
+    private var speechOperationsMenu: some View {
+        BookToolbarMenuButton(title: "朗读功能") {
+            speechOperationsMenuContent
+        }
+        .help("原文、翻译与讲解的选中/全文朗读；朗读中请使用顶栏中部播控 · \(BookKeyboardShortcuts.speechMenuSummary)")
+    }
+
+    @ViewBuilder
+    private var speechOperationsMenuContent: some View {
+        Button {
+            viewModel.readOriginalFullTextAloud()
+        } label: {
+            Text("朗读原文全文")
+        }
+        .disabled(
+            viewModel.isRunning
+                || (viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !viewModel.isSpeakingExplanation)
+        )
+
+        Button {
+            viewModel.readOriginalSelectionAloud()
+        } label: {
+            Text("朗读原文选中")
+        }
+        .disabled(
+            viewModel.isRunning
+                || (viewModel.effectiveSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+        )
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.readTranslationFullTextAloud()
+        } label: {
+            Text("朗读翻译全文")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.readTranslationFull)
+        .disabled(
+            viewModel.isRunning
+                || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !viewModel.isSpeakingExplanation)
+        )
+
+        Button {
+            viewModel.readTranslationSelectionAloud()
+        } label: {
+            Text("朗读翻译选择")
+        }
+        .disabled(
+            viewModel.isRunning
+                || (viewModel.effectiveLessonPlanSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+        )
+
+        BookToolbarMenuDivider()
+
+        Button {
+            viewModel.readExplanationFullTextAloud()
+        } label: {
+            Text("朗读讲解全文")
+        }
+        .disabled(
+            viewModel.isRunning
+                || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation)
+        )
+
+        Button {
+            viewModel.readExplanationSelectionAloud()
+        } label: {
+            Text("朗读讲解选中")
+        }
+        .disabled(
+            viewModel.isRunning
+                || (viewModel.effectiveExplanationPanelSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+        )
+    }
+
+    private var readingActionBar: some View {
+        Group {
             if viewModel.isSpeakingExplanation {
-                unifiedSpeechPlaybackBar
+                BookToolbarOverflowRow {
+                    unifiedSpeechPlaybackBarFull
+                } compact: {
+                    unifiedSpeechPlaybackBarCompact
+                } minimal: {
+                    unifiedSpeechPlaybackBarMinimal
+                }
+            } else if isReadingToolbarContext {
+                BookToolbarOverflowRow {
+                    readingPrimaryActionBarFull
+                } compact: {
+                    readingPrimaryActionBarCompact
+                } minimal: {
+                    readingPrimaryActionBarMinimal
+                }
             } else {
-                readingPrimaryActionButtons
+                BookToolbarOverflowRow {
+                    evolutionPrimaryActionBarFull
+                } compact: {
+                    evolutionPrimaryActionBarCompact
+                } minimal: {
+                    evolutionPrimaryActionBarMinimal
+                }
             }
         }
         .frame(maxWidth: .infinity)
         .animation(.easeOut(duration: 0.18), value: viewModel.isSpeakingExplanation)
+        .animation(.easeOut(duration: 0.2), value: viewModel.rightPageTab)
     }
 
-    private var readingPrimaryActionButtons: some View {
+    private var readingPrimaryActionBarFull: some View {
+        HStack(spacing: 8) {
+            readingAssistantPanelSwitcher
+            switch viewModel.readingAssistantPanel {
+            case .explanation:
+                explanationPrimaryActionButtons
+            case .translation:
+                translationPrimaryActionButtons
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var readingPrimaryActionBarCompact: some View {
+        HStack(spacing: 8) {
+            readingAssistantPanelSwitcher
+            readingPrimaryOverflowMenu(includePanelSwitcher: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var readingPrimaryActionBarMinimal: some View {
+        HStack(spacing: 8) {
+            readingPrimaryOverflowMenu(includePanelSwitcher: true)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder
+    private func readingPrimaryOverflowMenu(includePanelSwitcher: Bool) -> some View {
+        BookToolbarOverflowMenu(help: "讲解/翻译分栏与一键操作") {
+            if includePanelSwitcher {
+                ForEach(ReadingAssistantPanel.allCases) { panel in
+                    Button {
+                        viewModel.selectRightPageTab(.readingAssistant)
+                        viewModel.selectReadingAssistantPanel(panel)
+                    } label: {
+                        Text(panel.toolbarTitle)
+                    }
+                }
+                BookToolbarMenuDivider()
+            }
+
+            switch viewModel.readingAssistantPanel {
+            case .explanation:
+                Button {
+                    viewModel.explainSelection()
+                } label: {
+                    Text("选择讲解")
+                }
+                .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
+                .disabled(requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
+
+                Button {
+                    viewModel.explainFullText()
+                } label: {
+                    Text("全文讲解")
+                }
+                .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
+                .disabled(
+                    requiresBookLLM
+                        || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.isRunning
+                )
+            case .translation:
+                Button {
+                    viewModel.generateLessonPlan()
+                } label: {
+                    Text("逐字翻译")
+                }
+                .disabled(
+                    requiresBookLLM
+                        || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.isRunning
+                )
+
+                Button {
+                    viewModel.refineLessonPlan()
+                } label: {
+                    Text("整段翻译")
+                }
+                .disabled(
+                    requiresBookLLM
+                        || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.isRunning
+                )
+            }
+        }
+    }
+
+    private var readingAssistantPanelSwitcher: some View {
+        HStack(spacing: 8) {
+            ForEach(ReadingAssistantPanel.allCases) { panel in
+                BookActionButton(
+                    title: panel.toolbarTitle,
+                    isProminent: viewModel.rightPageTab == .readingAssistant
+                        && viewModel.readingAssistantPanel == panel,
+                    isCompact: true
+                ) {
+                    viewModel.selectRightPageTab(.readingAssistant)
+                    viewModel.selectReadingAssistantPanel(panel)
+                }
+                .help(panel.toolbarHelp)
+            }
+        }
+    }
+
+    private var evolutionPrimaryActionBarFull: some View {
+        HStack(spacing: 8) {
+            evolutionPrimaryActionButtons
+            if viewModel.isRunning {
+                evolutionStopButton
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var evolutionPrimaryActionBarCompact: some View {
         HStack(spacing: 8) {
             BookActionButton(
-                title: "选择讲解",
-                icon: "text.cursor",
+                title: "进化",
                 isCompact: true,
-                isDisabled: viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning
+                isDisabled: requiresEvolutionBackend || viewModel.isRunning
+            ) {
+                viewModel.startEvolution()
+            }
+            .help(requiresEvolutionBackend ? evolutionToolbarHelp : "执行下一条优化队列（\(BookKeyboardShortcuts.evolutionHint)）")
+
+            evolutionPrimaryOverflowMenu(includeEvolution: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var evolutionPrimaryActionBarMinimal: some View {
+        HStack(spacing: 8) {
+            evolutionPrimaryOverflowMenu(includeEvolution: true)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder
+    private func evolutionPrimaryOverflowMenu(includeEvolution: Bool) -> some View {
+        BookToolbarOverflowMenu(help: "进化、分析与停止") {
+            if includeEvolution {
+                Button {
+                    viewModel.startEvolution()
+                } label: {
+                    Text("进化")
+                }
+                .bookMenuShortcut(BookKeyboardShortcuts.evolution)
+                .disabled(requiresEvolutionBackend || viewModel.isRunning)
+            }
+
+            Button {
+                viewModel.analyzeOptimizations()
+            } label: {
+                Text("分析优化")
+            }
+            .disabled(requiresEvolutionBackend || viewModel.isRunning)
+
+            if viewModel.isRunning {
+                Button {
+                    viewModel.stopCurrentRun()
+                } label: {
+                    Text("停止")
+                }
+            }
+        }
+    }
+
+    private var unifiedSpeechPlaybackBarFull: some View {
+        HStack(spacing: 8) {
+            speechSourcePill
+            speechPauseResumeButton
+            speechStopButton
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var unifiedSpeechPlaybackBarCompact: some View {
+        HStack(spacing: 8) {
+            speechSourcePill
+            speechPlaybackOverflowMenu(includeSource: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var unifiedSpeechPlaybackBarMinimal: some View {
+        HStack(spacing: 8) {
+            speechPlaybackOverflowMenu(includeSource: true)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder
+    private var speechSourcePill: some View {
+        if let source = viewModel.currentSpeechSource {
+            BookStatusPill(
+                title: source.label,
+                icon: source.icon,
+                tint: BookTheme.goldSoft
+            )
+            .help("当前朗读：\(source.label)")
+        } else {
+            BookStatusPill(
+                title: "朗读中",
+                icon: "speaker.wave.2.fill",
+                tint: BookTheme.goldSoft
+            )
+            .help("正在朗读")
+        }
+    }
+
+    private var speechPauseResumeButton: some View {
+        BookActionButton(
+            title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+            isCompact: true,
+            isDisabled: viewModel.isRunning
+        ) {
+            viewModel.toggleExplanationSpeechPause()
+        }
+        .help(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
+    }
+
+    private var speechStopButton: some View {
+        BookActionButton(
+            title: "停止",
+            isCompact: true,
+            isDisabled: viewModel.isRunning
+        ) {
+            viewModel.stopExplanationSpeech()
+        }
+        .help("停止朗读")
+    }
+
+    @ViewBuilder
+    private func speechPlaybackOverflowMenu(includeSource: Bool) -> some View {
+        BookToolbarOverflowMenu(help: "朗读播控") {
+            if includeSource, let source = viewModel.currentSpeechSource {
+                BookToolbarMenuCaption(title: "当前朗读：\(source.label)")
+            } else if includeSource {
+                BookToolbarMenuCaption(title: "正在朗读")
+            }
+            if includeSource {
+                BookToolbarMenuDivider()
+            }
+
+            Button {
+                viewModel.toggleExplanationSpeechPause()
+            } label: {
+                Text(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
+            }
+            .disabled(viewModel.isRunning)
+
+            Button {
+                viewModel.stopExplanationSpeech()
+            } label: {
+                Text("停止朗读")
+            }
+            .disabled(viewModel.isRunning)
+        }
+    }
+
+    private var explanationPrimaryActionButtons: some View {
+        Group {
+            BookActionButton(
+                title: "选择讲解",
+                isCompact: true,
+                isDisabled: requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning
             ) {
                 viewModel.explainSelection()
             }
-            .help("讲解左页选中文字（⌘R）")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "讲解左页选中文字（\(BookKeyboardShortcuts.explainSelectionHint)）")
 
             BookActionButton(
                 title: "全文讲解",
-                icon: "doc.text.magnifyingglass",
                 isCompact: true,
-                isDisabled: viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                isDisabled: requiresBookLLM
+                    || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     || viewModel.isRunning
             ) {
                 viewModel.explainFullText()
             }
-            .help("讲解左页全文（⌘⇧R）")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "讲解左页全文（\(BookKeyboardShortcuts.explainFullTextHint)）")
+        }
+    }
 
+    private var translationPrimaryActionButtons: some View {
+        Group {
             BookActionButton(
                 title: "逐字翻译",
-                icon: "text.magnifyingglass",
                 isCompact: true,
-                isDisabled: viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                isDisabled: requiresBookLLM
+                    || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     || viewModel.isRunning
             ) {
                 viewModel.generateLessonPlan()
             }
-            .help("按左页原文生成逐字翻译表")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成逐字翻译表")
 
             BookActionButton(
                 title: "整段翻译",
-                icon: "paragraphsign",
                 isCompact: true,
-                isDisabled: viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                isDisabled: requiresBookLLM
+                    || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     || viewModel.isRunning
             ) {
                 viewModel.refineLessonPlan()
             }
-            .help("按左页原文生成整段翻译")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成整段翻译")
         }
     }
 
-    private var unifiedSpeechPlaybackBar: some View {
-        HStack(spacing: 8) {
-            if let source = viewModel.currentSpeechSource {
-                BookStatusPill(
-                    title: source.label,
-                    icon: source.icon,
-                    tint: BookTheme.goldSoft
-                )
-                .help("当前朗读：\(source.label)")
-            } else {
-                BookStatusPill(
-                    title: "朗读中",
-                    icon: "speaker.wave.2.fill",
-                    tint: BookTheme.goldSoft
-                )
-                .help("正在朗读")
+    private var evolutionPrimaryActionButtons: some View {
+        Group {
+            BookActionButton(
+                title: "进化",
+                isCompact: true,
+                isDisabled: requiresEvolutionBackend || viewModel.isRunning
+            ) {
+                viewModel.startEvolution()
             }
+            .help(requiresEvolutionBackend ? evolutionToolbarHelp : "执行下一条优化队列（\(BookKeyboardShortcuts.evolutionHint)）")
 
             BookActionButton(
-                title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
-                icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                title: "分析优化",
                 isCompact: true,
-                isDisabled: viewModel.isRunning
+                isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
-                viewModel.toggleExplanationSpeechPause()
+                viewModel.analyzeOptimizations()
             }
-            .help(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
-
-            BookActionButton(
-                title: "停止",
-                icon: "stop.fill",
-                isCompact: true,
-                isDisabled: viewModel.isRunning
-            ) {
-                viewModel.stopExplanationSpeech()
-            }
-            .help("停止朗读")
+            .help(requiresEvolutionBackend ? evolutionToolbarHelp : "AI 分析源码并写入优化队列")
         }
+    }
+
+    private var evolutionStopButton: some View {
+        BookActionButton(
+            title: "停止",
+            isCompact: true
+        ) {
+            viewModel.stopCurrentRun()
+        }
+        .help("停止当前进化或分析任务")
     }
 
     private var utilityActionBar: some View {
+        BookToolbarOverflowRow {
+            utilityActionBarFull
+        } compact: {
+            utilityActionBarCompact
+        } minimal: {
+            utilityActionBarMinimal
+        }
+    }
+
+    private var utilityActionBarFull: some View {
         HStack(spacing: 8) {
-            BookActionButton(
-                title: RightPageTab.aiEvolution.rawValue,
-                icon: RightPageTab.aiEvolution.icon,
-                isProminent: viewModel.rightPageTab == .aiEvolution,
-                isCompact: true
+            aiEvolutionTabButton
+            if !isReadingToolbarContext {
+                evolutionOperationsMenu
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var utilityActionBarCompact: some View {
+        HStack(spacing: 8) {
+            aiEvolutionTabButton
+            if !isReadingToolbarContext {
+                utilityEvolutionOverflowMenu(includeTab: false)
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var utilityActionBarMinimal: some View {
+        HStack(spacing: 8) {
+            if isReadingToolbarContext {
+                aiEvolutionTabButton
+            } else {
+                utilityEvolutionOverflowMenu(includeTab: true)
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var aiEvolutionTabButton: some View {
+        BookActionButton(
+            title: RightPageTab.aiEvolution.rawValue,
+            isProminent: viewModel.rightPageTab == .aiEvolution,
+            isCompact: true
+        ) {
+            viewModel.selectRightPageTab(.aiEvolution)
+        }
+        .help("切换到 AI 进化：分析优化队列并升级 ai-book")
+    }
+
+    @ViewBuilder
+    private func utilityEvolutionOverflowMenu(includeTab: Bool) -> some View {
+        BookToolbarOverflowMenu(
+            help: requiresEvolutionBackend
+                ? evolutionToolbarHelp
+                : (viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置 · \(BookKeyboardShortcuts.evolutionMenuSummary)")
+        ) {
+            if includeTab {
+                Button {
+                    viewModel.selectRightPageTab(.aiEvolution)
+                } label: {
+                    Text(RightPageTab.aiEvolution.rawValue)
+                }
+                BookToolbarMenuDivider()
+            }
+
+            BookToolbarSubmenu(
+                title: RightPageTab.aiEvolution.toolbarMenuTitle ?? RightPageTab.aiEvolution.rawValue
             ) {
-                viewModel.selectRightPageTab(.aiEvolution)
+                evolutionOperationsMenuContent
             }
-            .help("切换到 AI 进化：分析优化队列并升级 ai-book")
+        }
+    }
 
-            BookToolbarMenuButton(title: "AI进化", icon: "arrow.triangle.2.circlepath") {
-                Button {
-                    viewModel.selectRightPageTab(.aiEvolution)
-                    viewModel.startEvolution()
-                } label: {
-                    Label("进化", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .disabled(viewModel.isRunning)
+    private var evolutionOperationsMenu: some View {
+        BookToolbarMenuButton(
+            title: RightPageTab.aiEvolution.toolbarMenuTitle ?? RightPageTab.aiEvolution.rawValue
+        ) {
+            evolutionOperationsMenuContent
+        }
+        .help(requiresEvolutionBackend ? evolutionToolbarHelp : (viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置 · \(BookKeyboardShortcuts.evolutionMenuSummary)"))
+    }
 
-                Button {
-                    viewModel.selectRightPageTab(.aiEvolution)
-                    viewModel.analyzeOptimizations()
-                } label: {
-                    Label("分析优化", systemImage: "magnifyingglass")
-                }
-                .disabled(viewModel.isRunning)
+    @ViewBuilder
+    private var evolutionOperationsMenuContent: some View {
+        evolutionConfigGuideMenuItem
 
-                Button {
-                    viewModel.openSettings()
-                } label: {
-                    Label("进化设置", systemImage: "gearshape")
-                }
+        Button {
+            viewModel.selectRightPageTab(.aiEvolution)
+            viewModel.startEvolution()
+        } label: {
+            Text("进化")
+        }
+        .bookMenuShortcut(BookKeyboardShortcuts.evolution)
+        .disabled(requiresEvolutionBackend || viewModel.isRunning)
 
-                Divider()
+        Button {
+            viewModel.selectRightPageTab(.aiEvolution)
+            viewModel.analyzeOptimizations()
+        } label: {
+            Text("分析优化")
+        }
+        .disabled(requiresEvolutionBackend || viewModel.isRunning)
 
-                Button {
-                    viewModel.saveEvolutionCommands()
-                } label: {
-                    Label("保存进化命令", systemImage: "square.and.arrow.down")
-                }
-                .disabled(!viewModel.canSaveEvolutionCommands)
+        Button {
+            viewModel.openSettings()
+        } label: {
+            Text("进化设置")
+        }
 
-                Button {
-                    viewModel.openEvolutionCommands()
-                } label: {
-                    Label("打开进化命令", systemImage: "folder")
-                }
-                .disabled(!viewModel.canOpenEvolutionCommands)
+        BookToolbarMenuDivider()
 
-                Button(role: .destructive) {
-                    viewModel.selectRightPageTab(.aiEvolution)
-                    viewModel.clearAIContext()
-                } label: {
-                    Label("清空 AI 上下文", systemImage: "cpu")
-                }
-                .disabled(viewModel.isRunning || !viewModel.canClearAIContext)
+        Button {
+            viewModel.saveEvolutionCommands()
+        } label: {
+            Text("保存进化命令")
+        }
+        .disabled(!viewModel.canSaveEvolutionCommands)
 
-                if viewModel.isRunning {
-                    Divider()
+        Button {
+            viewModel.openEvolutionCommands()
+        } label: {
+            Text("打开进化命令")
+        }
+        .disabled(!viewModel.canOpenEvolutionCommands)
 
-                    Button {
-                        viewModel.stopCurrentRun()
-                    } label: {
-                        Label("停止", systemImage: "stop.fill")
-                    }
-                }
+        Button(role: .destructive) {
+            viewModel.selectRightPageTab(.aiEvolution)
+            viewModel.clearAIContext()
+        } label: {
+            Text("清空 AI 上下文")
+        }
+        .disabled(viewModel.isRunning || !viewModel.canClearAIContext)
+
+        if viewModel.isRunning {
+            BookToolbarMenuDivider()
+
+            Button {
+                viewModel.stopCurrentRun()
+            } label: {
+                Text("停止")
             }
-            .help(viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置")
         }
     }
 
@@ -633,10 +1187,10 @@ struct ContentView: View {
                 title: "原文 / 命令笔记",
                 icon: "text.book.closed",
                 subtitle: viewModel.fileContent.isEmpty
-                    ? "可直接输入，或 ⌘N 新建 / ⌘O 打开 .txt · ⌘S 保存"
+                    ? "可直接输入，或 \(BookKeyboardShortcuts.newDocumentHint) 新建 / \(BookKeyboardShortcuts.openDocumentHint) 打开 .txt · \(BookKeyboardShortcuts.saveHint) 保存"
                     : viewModel.isEditingNotes
-                        ? "可编辑 · 命令笔记自动保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读原文"
-                        : "可编辑 · ⌘S 保存 · ⌘⇧C 名著补充 · ⌘R 选择讲解 · ⌘⇧R 全文讲解 · ⌘⌥R 朗读原文"
+                        ? "可编辑 · 命令笔记自动保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文"
+                        : "可编辑 · \(BookKeyboardShortcuts.saveHint) 保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文"
             )
 
             ZStack {
