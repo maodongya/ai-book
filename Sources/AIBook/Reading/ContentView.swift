@@ -1028,7 +1028,7 @@ struct ContentView: View {
             ) {
                 viewModel.generateLessonPlan()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成逐字翻译表")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成逐字翻译；是否同步滚动取决于翻译页开关")
 
             BookActionButton(
                 title: "整段翻译",
@@ -1039,7 +1039,7 @@ struct ContentView: View {
             ) {
                 viewModel.refineLessonPlan()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成整段翻译")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成整段翻译；开启同步滚动时按段落对齐")
         }
     }
 

@@ -159,7 +159,7 @@ struct ExplanationChatView: View {
                             alignment: alignment,
                             highlightedBlockID: viewModel.translationTableHighlightedBlockID,
                             scrollTargetBlockID: viewModel.translationTableScrollTargetID,
-                            onVisibleBlockChange: { block in
+                            onSelectBlock: { block in
                                 viewModel.handleTranslationTableVisibleBlock(block)
                             }
                         )
@@ -217,27 +217,38 @@ struct ExplanationChatView: View {
                 .padding(.top, 4)
         }
 
-        HStack(spacing: 12) {
-            Toggle("同步滚动", isOn: $viewModel.translationScrollSyncEnabled)
-                .toggleStyle(.switch)
-                .font(BookTheme.captionFont)
-                .disabled(
-                    viewModel.translationAlignment == nil
-                        || viewModel.translationAlignment?.isStale == true
-                )
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("同步滚动", isOn: $viewModel.translationScrollSyncEnabled)
+                    .toggleStyle(.switch)
+                    .font(BookTheme.captionFont)
+                Text(viewModel.translationScrollSyncEnabled
+                     ? "已开：生成带段落/词条锚点的译文，左右可跟着滑。请在生成前打开，生成后生效。"
+                     : "已关：生成通顺全文，不强制逐段对齐。需要对照时请打开后再点「整段翻译」或「逐字翻译」。")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: 360, alignment: .leading)
 
-            Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
-                .toggleStyle(.switch)
-                .font(BookTheme.captionFont)
-                .disabled(!viewModel.canUseTranslationTableView)
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
+                    .toggleStyle(.switch)
+                    .font(BookTheme.captionFont)
+                    .disabled(!viewModel.canUseTranslationTableView)
+                Text("把译文拆成「原文 | 译文 | 说明」三列。点一行，左页会滚到对应原文；左页滚动时表格会跟到那一行。适合查词和按段对照。")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if let alignment = viewModel.translationAlignment, !alignment.isStale {
                 Text("\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
+                    .padding(.top, 4)
             }
-
-            Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.top, 4)

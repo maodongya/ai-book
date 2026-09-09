@@ -4,11 +4,15 @@ struct TranslationTableView: View {
     let alignment: TranslationAlignment
     var highlightedBlockID: UUID?
     var scrollTargetBlockID: UUID?
-    var onVisibleBlockChange: (TranslationBlock) -> Void
+    var onSelectBlock: (TranslationBlock) -> Void
 
     private var entryBlocks: [TranslationBlock] {
-        alignment.blocks
+        let words = alignment.blocks
             .filter { $0.level == .word || $0.level == .phrase }
+            .sorted { $0.order < $1.order }
+        if !words.isEmpty { return words }
+        return alignment.blocks
+            .filter { $0.level == .paragraph }
             .sorted { $0.order < $1.order }
     }
 
@@ -18,18 +22,23 @@ struct TranslationTableView: View {
             .sorted { $0.order < $1.order }
     }
 
+    private var showsNotes: Bool {
+        entryBlocks.contains { noteText(for: $0) != nil }
+    }
+
     var body: some View {
         GeometryReader { viewport in
+            let layout = columnLayout(totalWidth: max(viewport.size.width - 24, 1), showsNotes: showsNotes)
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                         Section {
                             ForEach(entryBlocks) { block in
-                                row(for: block)
+                                row(for: block, layout: layout)
                                     .id(block.id)
                             }
                         } header: {
-                            columnHeader
+                            columnHeader(layout: layout)
                         }
 
                         if !summaryBlocks.isEmpty {
@@ -44,10 +53,6 @@ struct TranslationTableView: View {
                         }
                     }
                 }
-                .coordinateSpace(name: TranslationTableMetrics.coordinateSpaceName)
-                .onPreferenceChange(TranslationRowFramePreference.self) { frames in
-                    reportVisibleBlock(frames: frames, viewportHeight: viewport.size.height)
-                }
                 .onChange(of: scrollTargetBlockID) { blockID in
                     guard let blockID else { return }
                     withAnimation(.easeInOut(duration: 0.18)) {
@@ -61,13 +66,15 @@ struct TranslationTableView: View {
         .padding(.vertical, 8)
     }
 
-    private var columnHeader: some View {
+    private func columnHeader(layout: ColumnLayout) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
-            headerCell("原文", width: TranslationTableMetrics.sourceColumnWidth)
+            headerCell("原文", width: layout.source)
             tableDivider
-            headerCell("译文", flexible: true)
-            tableDivider
-            headerCell("说明", width: TranslationTableMetrics.noteColumnWidth)
+            headerCell("译文", width: layout.translation)
+            if showsNotes {
+                tableDivider
+                headerCell("说明", width: layout.note)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -86,19 +93,27 @@ struct TranslationTableView: View {
         .background(BookTheme.pageEdge.opacity(0.12))
     }
 
-    private func row(for block: TranslationBlock) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            bodyCell(block.sourceText, width: TranslationTableMetrics.sourceColumnWidth, emphasized: true)
-            tableDivider
-            bodyCell(block.translationText, flexible: true)
-            tableDivider
-            bodyCell(block.note ?? "—", width: TranslationTableMetrics.noteColumnWidth, muted: block.note == nil)
+    private func row(for block: TranslationBlock, layout: ColumnLayout) -> some View {
+        Button {
+            onSelectBlock(block)
+        } label: {
+            HStack(alignment: .top, spacing: 0) {
+                bodyCell(block.sourceText, width: layout.source, emphasized: true)
+                tableDivider
+                bodyCell(block.translationText, width: layout.translation)
+                if showsNotes {
+                    tableDivider
+                    bodyCell(noteText(for: block) ?? "", width: layout.note, muted: noteText(for: block) == nil)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(rowBackground(for: block.id))
+            .overlay(alignment: .bottom) { Divider() }
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(rowBackground(for: block.id))
-        .overlay(alignment: .bottom) { Divider() }
-        .background(rowGeometryReporter(for: block.id))
+        .buttonStyle(.plain)
     }
 
     private func summaryRow(for block: TranslationBlock) -> some View {
@@ -118,71 +133,33 @@ struct TranslationTableView: View {
         .overlay(alignment: .bottom) { Divider() }
     }
 
-    private func rowGeometryReporter(for blockID: UUID) -> some View {
-        GeometryReader { geo in
-            Color.clear.preference(
-                key: TranslationRowFramePreference.self,
-                value: [
-                    TranslationRowFrame(
-                        id: blockID,
-                        frame: geo.frame(in: .named(TranslationTableMetrics.coordinateSpaceName))
-                    ),
-                ]
-            )
-        }
-    }
-
-    private func reportVisibleBlock(frames: [TranslationRowFrame], viewportHeight: CGFloat) {
-        let candidates = frames.filter { frame in
-            frame.frame.maxY > 0 && frame.frame.minY < viewportHeight
-        }
-        guard let blockID = candidates.min(by: {
-            abs($0.frame.minY) < abs($1.frame.minY)
-        })?.id,
-            let block = entryBlocks.first(where: { $0.id == blockID }) else { return }
-        onVisibleBlockChange(block)
-    }
-
     private func summaryTitle(for block: TranslationBlock) -> String {
         let source = block.sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         if source == "难点词语" { return "难点词语" }
         return "一句话总译"
     }
 
-    private func headerCell(_ title: String, width: CGFloat? = nil, flexible: Bool = false) -> some View {
-        Group {
-            if flexible {
-                Text(title)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Text(title)
-                    .frame(width: width ?? 0, alignment: .leading)
-            }
-        }
-        .font(BookTheme.captionFont.weight(.semibold))
-        .foregroundStyle(BookTheme.inkSecondary)
+    private func headerCell(_ title: String, width: CGFloat) -> some View {
+        Text(title)
+            .frame(width: width, alignment: .leading)
+            .font(BookTheme.captionFont.weight(.semibold))
+            .foregroundStyle(BookTheme.inkSecondary)
     }
 
     private func bodyCell(
         _ text: String,
-        width: CGFloat? = nil,
-        flexible: Bool = false,
+        width: CGFloat,
         emphasized: Bool = false,
         muted: Bool = false
     ) -> some View {
-        Group {
-            if flexible {
-                Text(text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Text(text)
-                    .frame(width: width ?? 0, alignment: .leading)
-            }
-        }
-        .font(emphasized ? BookTheme.labelFont : BookTheme.captionFont)
-        .foregroundStyle(muted ? BookTheme.inkMuted : BookTheme.ink)
-        .textSelection(.enabled)
-        .lineSpacing(3)
+        Text(text)
+            .frame(width: width, alignment: .leading)
+            .font(emphasized ? BookTheme.labelFont : BookTheme.captionFont)
+            .foregroundStyle(muted ? BookTheme.inkMuted : BookTheme.ink)
+            .textSelection(.enabled)
+            .lineSpacing(4)
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
     }
 
     private func rowBackground(for blockID: UUID) -> some View {
@@ -209,27 +186,22 @@ struct TranslationTableView: View {
                     .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
             }
     }
-}
 
-private enum TranslationTableMetrics {
-    static let coordinateSpaceName = "translationTableScroll"
-    static let sourceColumnWidth: CGFloat = 96
-    static let noteColumnWidth: CGFloat = 120
-}
-
-private struct TranslationRowFrame: Equatable {
-    let id: UUID
-    let frame: CGRect
-}
-
-private struct TranslationRowFramePreference: PreferenceKey {
-    static var defaultValue: [TranslationRowFrame] = []
-
-    static func reduce(value: inout [TranslationRowFrame], nextValue: () -> [TranslationRowFrame]) {
-        var merged = Dictionary(uniqueKeysWithValues: value.map { ($0.id, $0) })
-        for frame in nextValue() {
-            merged[frame.id] = frame
-        }
-        value = merged.values.sorted { $0.id.uuidString < $1.id.uuidString }
+    private func noteText(for block: TranslationBlock) -> String? {
+        let note = block.note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return note.isEmpty ? nil : note
     }
+
+    private func columnLayout(totalWidth: CGFloat, showsNotes: Bool) -> ColumnLayout {
+        let source = totalWidth * (showsNotes ? 0.34 : 0.40)
+        let note = showsNotes ? totalWidth * 0.22 : 0
+        let translation = max(0, totalWidth - source - note)
+        return ColumnLayout(source: source, translation: translation, note: note)
+    }
+}
+
+private struct ColumnLayout {
+    let source: CGFloat
+    let translation: CGFloat
+    let note: CGFloat
 }

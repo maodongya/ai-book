@@ -106,9 +106,6 @@ final class ReadingViewModel: ObservableObject {
         didSet {
             translationScrollSync.resetAnchors()
             if isApplyingAlignment { return }
-            if translationAlignment?.mode != .wordByWord, translationTableViewEnabled {
-                translationTableViewEnabled = false
-            }
             if readingComparisonEnabled,
                (translationAlignment == nil
                 || translationAlignment?.isStale == true
@@ -2218,7 +2215,12 @@ final class ReadingViewModel: ObservableObject {
         runLessonPlanTask(
             displayText: "生成逐字翻译",
             mode: .wordByWord,
-            prompt: buildLessonPlanPrompt(source: source, existingPlan: nil, instruction: nil, mode: .wordByWord)
+            prompt: buildLessonPlanPrompt(
+                source: source,
+                existingPlan: nil,
+                instruction: nil,
+                mode: .wordByWord
+            )
         )
     }
 
@@ -2230,14 +2232,13 @@ final class ReadingViewModel: ObservableObject {
         }
         selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.translation)
-        let existing = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedInstruction = instruction?.trimmingCharacters(in: .whitespacesAndNewlines)
         runLessonPlanTask(
             displayText: "生成整段翻译",
             mode: .paragraph,
             prompt: buildLessonPlanPrompt(
                 source: source,
-                existingPlan: existing.isEmpty ? nil : existing,
+                existingPlan: existingTranslationForPrompt(),
                 instruction: trimmedInstruction?.isEmpty == false ? trimmedInstruction : nil,
                 mode: .paragraph
             )
@@ -2606,31 +2607,26 @@ final class ReadingViewModel: ObservableObject {
     }
 
     func handleTranslationTableVisibleBlock(_ block: TranslationBlock) {
-        guard shouldSyncTranslationScroll,
-              showsTranslationTableView,
+        guard canUseTranslationTableView,
               let alignment = alignmentForScrollSync() else { return }
         translationTableHighlightedBlockID = block.id
         let mappedBlock = alignment.blocks.first(where: { $0.id == block.id }) ?? block
-        translationScrollSync.translationDidScrollToBlock(mappedBlock, alignment: alignment)
+        guard mappedBlock.isAnchored else { return }
+        sourceTextScrollProxy.scrollToCharacterRange(mappedBlock.sourceRange, anchor: .top)
+        sourceTextScrollProxy.highlightRange(mappedBlock.sourceRange)
     }
 
     var showsTranslationTableView: Bool {
-        guard translationTableViewEnabled,
-              let alignment = translationAlignment,
-              !alignment.isStale,
-              alignment.mode == .wordByWord else {
-            return false
-        }
-        return alignment.blocks.contains { $0.level == .word || $0.level == .phrase }
+        translationTableViewEnabled && canUseTranslationTableView
     }
 
     var canUseTranslationTableView: Bool {
-        guard let alignment = translationAlignment,
-              !alignment.isStale,
-              alignment.mode == .wordByWord else {
+        guard let alignment = translationAlignment, !alignment.isStale else {
             return false
         }
-        return alignment.blocks.contains { $0.level == .word || $0.level == .phrase }
+        return alignment.blocks.contains {
+            $0.level == .word || $0.level == .phrase || $0.level == .paragraph
+        }
     }
 
     private func syncTranslationScrollPresentation() {
@@ -2745,67 +2741,39 @@ final class ReadingViewModel: ObservableObject {
         return fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private func existingTranslationForPrompt() -> String? {
+        if let alignment = translationAlignment, !alignment.blocks.isEmpty {
+            let texts = alignment.blocks
+                .filter { $0.level != .summary }
+                .sorted { $0.order < $1.order }
+                .map { $0.translationText.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            if !texts.isEmpty {
+                return texts.joined(separator: "\n\n")
+            }
+        }
+
+        let content = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty else { return nil }
+        if content.contains("\"translationText\"") || content.contains("```json") {
+            return nil
+        }
+        return content
+    }
+
     private func buildLessonPlanPrompt(
         source: String,
         existingPlan: String?,
         instruction: String?,
         mode: TranslationAlignmentMode
     ) -> String {
-        let taskIntro: String
-        let outputFormat: String
-        switch mode {
-        case .wordByWord:
-            taskIntro = """
-            请对左侧文章做逐字翻译。
-            要求：按原文顺序逐字、逐词、短语拆解；每项给出原文、译文和必要的极简说明；不扩写成教案，不啰嗦，不重复。
-            """
-            outputFormat = """
-            请只输出 JSON（可放在 ```json 代码块内），格式如下：
-            {
-              "mode": "wordByWord",
-              "entries": [
-                { "source": "原文词", "translation": "译文", "note": "可选说明" }
-              ],
-              "summary": "一句话总译",
-              "hardPoints": ["难点词语说明"]
-            }
-            要求：entries 顺序必须与原文一致；source 必须是原文中的连续子串。
-            """
-        case .paragraph:
-            taskIntro = """
-            请对左侧文章做整段翻译。
-            要求：保留段落层次，译文通顺准确；可参考现有翻译内容进行改写；只输出翻译与少量必要注释，不写教案，不冗余。
-            """
-            outputFormat = """
-            请只输出 JSON（可放在 ```json 代码块内），格式如下：
-            {
-              "mode": "paragraph",
-              "blocks": [
-                {
-                  "sourceText": "第一段原文",
-                  "translationText": "第一段译文",
-                  "notes": "可选注释"
-                }
-              ]
-            }
-            要求：blocks 数量、顺序必须与原文段落一致；sourceText 必须来自原文对应段落。
-            """
-        }
-
-        var sections = [
-            taskIntro,
-            outputFormat,
-            "【左侧文章】\n\(source)",
-        ]
-
-        if let existingPlan, !existingPlan.isEmpty {
-            sections.append("【现有翻译内容】\n\(existingPlan)")
-        }
-        if let instruction, !instruction.isEmpty {
-            sections.append("【本次翻译要求】\n\(instruction)")
-        }
-
-        return sections.joined(separator: "\n\n")
+        TranslationPromptBuilder.build(
+            source: source,
+            existingPlan: existingPlan,
+            instruction: instruction,
+            mode: mode,
+            scrollSync: translationScrollSyncEnabled
+        )
     }
 
     private func lessonPlanFileName() -> String {
