@@ -24,11 +24,18 @@ final class BookStyleManager: ObservableObject {
         }
     }
 
+    @Published var readingFontFamilyID: String {
+        didSet {
+            UserDefaults.standard.set(readingFontFamilyID, forKey: Keys.readingFontFamily)
+        }
+    }
+
     var tokens: BookStyleTokens {
         BookStyleCatalog.tokens(
             for: presetID,
             ornamentOverrides: ornamentOverrides,
-            readingFontSizeOverride: readingFontSizeOverride
+            readingFontSizeOverride: readingFontSizeOverride,
+            readingFontFamilyID: readingFontFamilyID
         )
     }
 
@@ -42,7 +49,7 @@ final class BookStyleManager: ObservableObject {
         let header = Self.flagToken(ornamentOverrides.showHeaderOrnament)
         let texture = Self.flagToken(ornamentOverrides.showPaperTexture)
         let fontSize = readingFontSizeOverride.map { String($0) } ?? "-"
-        return "\(presetID.rawValue)/\(bookmark)/\(fold)/\(header)/\(texture)/\(fontSize)"
+        return "\(presetID.rawValue)/\(bookmark)/\(fold)/\(header)/\(texture)/\(fontSize)/\(readingFontFamilyID)"
     }
 
     private static func flagToken(_ value: Bool?) -> String {
@@ -57,6 +64,7 @@ final class BookStyleManager: ObservableObject {
         static let paperTexture = "aiBook.style.ornament.paperTexture"
         static let headerOrnament = "aiBook.style.ornament.headerOrnament"
         static let readingFontSize = "aiBook.style.readingFontSize"
+        static let readingFontFamily = "aiBook.style.readingFontFamily"
     }
 
     private init() {
@@ -72,6 +80,13 @@ final class BookStyleManager: ObservableObject {
             readingFontSizeOverride = storedSize
         } else {
             readingFontSizeOverride = nil
+        }
+        let storedFamily = UserDefaults.standard.string(forKey: Keys.readingFontFamily)
+        if let storedFamily,
+           BookStyleCatalog.readingFontFamilyOptions.contains(where: { $0.id == storedFamily }) {
+            readingFontFamilyID = storedFamily
+        } else {
+            readingFontFamilyID = ReadingFontFamilyOption.themeDefaultID
         }
     }
 

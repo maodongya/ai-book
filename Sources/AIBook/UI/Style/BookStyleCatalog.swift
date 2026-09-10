@@ -1,10 +1,20 @@
 import SwiftUI
 
+struct ReadingFontFamilyOption: Identifiable, Equatable {
+    let id: String
+    let displayName: String
+    /// `nil` keeps the active theme font; `[]` uses the system font.
+    let fontNames: [String]?
+
+    static let themeDefaultID = "theme"
+}
+
 enum BookStyleCatalog {
     static func tokens(
         for preset: BookStylePresetID,
         ornamentOverrides: BookStyleOrnamentOverrides = .empty,
-        readingFontSizeOverride: Double? = nil
+        readingFontSizeOverride: Double? = nil,
+        readingFontFamilyID: String = ReadingFontFamilyOption.themeDefaultID
     ) -> BookStyleTokens {
         var tokens = baseTokens(for: preset)
         if let showBookmark = ornamentOverrides.showBookmarkRibbon {
@@ -21,6 +31,11 @@ enum BookStyleCatalog {
         }
         if let size = readingFontSizeOverride, size > 0 {
             tokens.typography.readingSize = size
+        }
+        if readingFontFamilyID != ReadingFontFamilyOption.themeDefaultID,
+           let option = readingFontFamilyOptions.first(where: { $0.id == readingFontFamilyID }),
+           let fontNames = option.fontNames {
+            tokens.typography.preferredFontNames = fontNames
         }
         return tokens
     }
@@ -39,7 +54,16 @@ enum BookStyleCatalog {
     }
 
     static let songtiNames = ["Songti SC", "STSong", "Georgia"]
-    static let readingSizes: [Double] = [15, 16, 17, 18, 19]
+    static let readingSizes: [Double] = [14, 15, 16, 17, 18, 19, 20, 21, 22]
+
+    static let readingFontFamilyOptions: [ReadingFontFamilyOption] = [
+        ReadingFontFamilyOption(id: ReadingFontFamilyOption.themeDefaultID, displayName: "跟随主题", fontNames: nil),
+        ReadingFontFamilyOption(id: "songti", displayName: "宋体", fontNames: songtiNames),
+        ReadingFontFamilyOption(id: "kaiti", displayName: "楷体", fontNames: ["Kaiti SC", "STKaiti", "KaiTi"]),
+        ReadingFontFamilyOption(id: "heiti", displayName: "黑体", fontNames: ["Heiti SC", "STHeiti", "PingFang SC"]),
+        ReadingFontFamilyOption(id: "pingfang", displayName: "苹方", fontNames: ["PingFang SC", "PingFang TC"]),
+        ReadingFontFamilyOption(id: "system", displayName: "系统默认", fontNames: []),
+    ]
 
     private static let classicStudy = BookStyleTokens(
         colors: BookStyleColors(

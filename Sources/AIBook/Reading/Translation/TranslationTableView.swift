@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct TranslationTableView: View {
+    @ObservedObject private var styleManager = BookStyleManager.shared
+
     let alignment: TranslationAlignment
     var highlightedBlockID: UUID?
     var scrollTargetBlockID: UUID?
@@ -64,6 +66,7 @@ struct TranslationTableView: View {
         .background(tableBackground)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+        .id(styleManager.revision)
     }
 
     private func columnHeader(layout: ColumnLayout) -> some View {
@@ -122,7 +125,7 @@ struct TranslationTableView: View {
                 .font(BookTheme.captionFont.weight(.semibold))
                 .foregroundStyle(BookTheme.leather)
             Text(block.translationText)
-                .font(BookTheme.captionFont)
+                .font(BookTheme.readingContentFont)
                 .foregroundStyle(BookTheme.inkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
@@ -154,10 +157,10 @@ struct TranslationTableView: View {
     ) -> some View {
         Text(text)
             .frame(width: width, alignment: .leading)
-            .font(emphasized ? BookTheme.labelFont : BookTheme.captionFont)
+            .font(BookTheme.readingContentFont)
             .foregroundStyle(muted ? BookTheme.inkMuted : BookTheme.ink)
             .textSelection(.enabled)
-            .lineSpacing(4)
+            .lineSpacing(BookTheme.readingLineSpacing)
             .fixedSize(horizontal: false, vertical: true)
             .multilineTextAlignment(.leading)
     }

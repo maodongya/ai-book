@@ -46,20 +46,44 @@ struct BookStyleSettingsView: View {
                 }
             }
 
-            HStack {
-                Text("左页字号")
-                    .font(BookTheme.captionFont)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("正文阅读")
+                    .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
-                Spacer()
-                Picker("左页字号", selection: readingSizeBinding) {
-                    Text("跟随主题").tag(Optional<Double>.none)
-                    ForEach(BookStyleCatalog.readingSizes, id: \.self) { size in
-                        Text("\(Int(size))").tag(Optional(size))
+                Text("作用于左页原文、右页讲解/翻译，以及阅读模式分页。")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.settingsSecondary)
+
+                HStack {
+                    Text("字体")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.settingsPrimary)
+                    Spacer()
+                    Picker("字体", selection: $styleManager.readingFontFamilyID) {
+                        ForEach(BookStyleCatalog.readingFontFamilyOptions) { option in
+                            Text(option.displayName).tag(option.id)
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(BookTheme.settingsPrimary)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .tint(BookTheme.settingsPrimary)
+
+                HStack {
+                    Text("字号")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.settingsPrimary)
+                    Spacer()
+                    Picker("字号", selection: readingSizeBinding) {
+                        Text("跟随主题").tag(Optional<Double>.none)
+                        ForEach(BookStyleCatalog.readingSizes, id: \.self) { size in
+                            Text("\(Int(size))").tag(Optional(size))
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(BookTheme.settingsPrimary)
+                }
             }
         }
     }

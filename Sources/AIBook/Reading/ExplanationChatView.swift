@@ -786,9 +786,9 @@ struct ExplanationChatView: View {
             get: { messageContent(for: message.id) },
             set: { viewModel.updateAssistantMessage(id: message.id, content: $0) }
         ))
-        .font(BookTheme.bodyFont)
+        .font(BookTheme.readingContentFont)
         .foregroundStyle(BookTheme.ink)
-        .lineSpacing(6)
+        .lineSpacing(BookTheme.readingLineSpacing)
         .scrollContentBackground(.hidden)
         .frame(minHeight: 120)
         .padding(.horizontal, 10)
@@ -806,9 +806,9 @@ struct ExplanationChatView: View {
 
     private func bubbleContent(_ text: String, isUser: Bool) -> some View {
         Text(text)
-            .font(BookTheme.bodyFont)
+            .font(BookTheme.readingContentFont)
             .foregroundStyle(isUser ? BookTheme.leatherShadow : BookTheme.ink)
-            .lineSpacing(6)
+            .lineSpacing(BookTheme.readingLineSpacing)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background {

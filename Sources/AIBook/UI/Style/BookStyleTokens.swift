@@ -67,6 +67,13 @@ struct BookStyleTypography {
         nsFont(size: readingSize)
     }
 
+    var readingFont: Font {
+        if let name = preferredFontNames.first {
+            return .custom(name, size: readingSize)
+        }
+        return .system(size: readingSize)
+    }
+
     func nsFont(size: CGFloat) -> NSFont {
         for name in preferredFontNames {
             if let font = NSFont(name: name, size: size) {

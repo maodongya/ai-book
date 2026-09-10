@@ -420,9 +420,9 @@ struct ReadingSpreadView: View {
                 .padding(.top, pageCaption == nil ? 8 : 2)
 
             Text(text)
-                .font(readingFont)
+                .font(BookTheme.readingContentFont)
                 .foregroundStyle(pageCaption == "译文" && text == "本页暂无译文" ? BookTheme.inkMuted : BookTheme.ink)
-                .lineSpacing(BookTheme.tokens.typography.readingLineSpacing)
+                .lineSpacing(BookTheme.readingLineSpacing)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(.horizontal, 36)
@@ -508,14 +508,6 @@ struct ReadingSpreadView: View {
             )
             .frame(width: spineWidth)
             .shadow(color: .black.opacity(0.28), radius: 4, x: 0, y: 0)
-    }
-
-    private var readingFont: Font {
-        let typography = BookTheme.tokens.typography
-        if let name = typography.preferredFontNames.first {
-            return .custom(name, size: typography.readingSize)
-        }
-        return .system(size: typography.readingSize)
     }
 
     private var activeSpreadIndex: Int {

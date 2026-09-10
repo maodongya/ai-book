@@ -51,6 +51,8 @@ enum BookTheme {
     static var goldGradient: LinearGradient { tokens.accentGradient }
 
     static var readingFont: NSFont { tokens.typography.readingNSFont }
+    static var readingContentFont: Font { tokens.typography.readingFont }
+    static var readingLineSpacing: CGFloat { tokens.typography.readingLineSpacing }
     static var titleFont: Font { tokens.typography.titleFont }
     static var labelFont: Font { tokens.typography.labelFont }
     static var bodyFont: Font { tokens.typography.bodyFont }

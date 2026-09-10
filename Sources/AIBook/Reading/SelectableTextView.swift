@@ -49,8 +49,7 @@ struct SelectableTextView: NSViewRepresentable {
 
         var font: NSFont {
             switch self {
-            case .reading: return BookTheme.readingFont
-            case .editor: return NSFont.systemFont(ofSize: 15)
+            case .reading, .editor: return BookTheme.readingFont
             }
         }
 
@@ -63,15 +62,13 @@ struct SelectableTextView: NSViewRepresentable {
 
         var lineSpacing: CGFloat {
             switch self {
-            case .reading: return BookTheme.tokens.typography.readingLineSpacing
-            case .editor: return 7
+            case .reading, .editor: return BookTheme.readingLineSpacing
             }
         }
 
         var paragraphSpacing: CGFloat {
             switch self {
-            case .reading: return 14
-            case .editor: return 8
+            case .reading, .editor: return 14
             }
         }
     }
