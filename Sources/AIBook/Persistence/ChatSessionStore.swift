@@ -45,9 +45,7 @@ final class ChatSessionStore {
         lastOpenedFilePath: String?,
         lessonPlanContent: String,
         translationAlignment: TranslationAlignment?,
-        scrollSyncEnabled: Bool,
-        translationTableViewEnabled: Bool,
-        readingComparisonEnabled: Bool
+        translationTableViewEnabled: Bool
     ) throws {
         let session = PersistedChatSession(
             messages: readingMessages,
@@ -55,9 +53,7 @@ final class ChatSessionStore {
             lastOpenedFilePath: lastOpenedFilePath,
             lessonPlanContent: lessonPlanContent,
             translationAlignment: translationAlignment,
-            scrollSyncEnabled: scrollSyncEnabled,
             translationTableViewEnabled: translationTableViewEnabled,
-            readingComparisonEnabled: readingComparisonEnabled,
             readingMessages: readingMessages,
             evolutionMessages: evolutionMessages,
             readingChatInput: readingChatInput,

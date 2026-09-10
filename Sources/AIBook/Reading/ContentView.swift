@@ -1,10 +1,14 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
+    @State private var learningPaneFocus: LearningPaneFocus = .both
+
+    private let learningSpineWidth: CGFloat = 34
 
     var body: some View {
         ZStack {
@@ -13,12 +17,14 @@ struct ContentView: View {
             BookTheme.deskLampGlow
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                bookHeader
-                    .bookStyleRefreshing()
-                openBook
+            if showsLearningWorkspace {
+                VStack(spacing: 0) {
+                    bookHeader
+                        .bookStyleRefreshing()
+                    openBook
+                }
+                .padding(24)
             }
-            .padding(24)
         }
         .alert("提示", isPresented: errorBinding) {
             Button("确定", role: .cancel) {}
@@ -35,22 +41,57 @@ struct ContentView: View {
         }
         .frame(minWidth: 960, minHeight: 640)
         .animation(.easeOut(duration: 0.2), value: styleManager.presetID)
+        .animation(.easeOut(duration: 0.2), value: learningPaneFocus)
         .onAppear {
             viewModel.onAppear()
         }
+        .onChange(of: viewModel.experienceMode) { mode in
+            if mode == .reading, learningPaneFocus != .both {
+                setLearningPaneFocus(.both)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
+            if learningPaneFocus != .both {
+                learningPaneFocus = .both
+            }
+        }
         .background(learningModeKeyboardShortcuts)
         .overlay {
-            if viewModel.experienceMode == .reading {
-                ReadingSpreadView()
+            if showsLearningPaneFullscreen {
+                learningPaneFullscreenOverlay
                     .bookStyleEnvironment(styleManager)
                     .transition(.opacity)
                     .zIndex(1)
             }
         }
+        .overlay {
+            if viewModel.experienceMode == .reading {
+                ReadingSpreadView()
+                    .bookStyleEnvironment(styleManager)
+                    .transition(.opacity)
+                    .zIndex(2)
+            }
+        }
+    }
+
+    private var showsLearningWorkspace: Bool {
+        viewModel.experienceMode == .learning && learningPaneFocus == .both
+    }
+
+    private var showsLearningPaneFullscreen: Bool {
+        viewModel.experienceMode == .learning && learningPaneFocus != .both
     }
 
     private var learningModeKeyboardShortcuts: some View {
         Group {
+            if viewModel.experienceMode == .learning {
+                Button("双页") { setLearningPaneFocus(.both) }
+                    .keyboardShortcut("1", modifiers: [.command, .option])
+                Button("左全屏") { setLearningPaneFocus(.leading) }
+                    .keyboardShortcut("2", modifiers: [.command, .option])
+                Button("右全屏") { setLearningPaneFocus(.trailing) }
+                    .keyboardShortcut("3", modifiers: [.command, .option])
+            }
             if viewModel.canEnterReadingMode, viewModel.experienceMode == .learning {
                 Button("阅读模式") {
                     viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
@@ -1037,7 +1078,7 @@ struct ContentView: View {
             ) {
                 viewModel.generateLessonPlan()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成逐字翻译；是否同步滚动取决于翻译页开关")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成逐字翻译，输出带对齐结构的 JSON")
 
             BookActionButton(
                 title: "整段翻译",
@@ -1048,7 +1089,7 @@ struct ContentView: View {
             ) {
                 viewModel.refineLessonPlan()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成整段翻译；开启同步滚动时按段落对齐")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成整段翻译，输出按段落对齐的 JSON")
         }
     }
 
@@ -1233,10 +1274,12 @@ struct ContentView: View {
 
     private var openBook: some View {
         GeometryReader { geometry in
+            let pageWidth = max(0, (geometry.size.width - learningSpineWidth) / 2)
+
             BookInterface.SpreadShell {
                 HStack(spacing: 0) {
                     leftPage
-                        .frame(width: (geometry.size.width - 34) / 2)
+                        .frame(width: pageWidth)
 
                     ZStack(alignment: .top) {
                         bookSpine
@@ -1244,10 +1287,90 @@ struct ContentView: View {
                     }
 
                     rightPage
-                        .frame(width: (geometry.size.width - 34) / 2)
+                        .frame(width: pageWidth)
                 }
             }
         }
+    }
+
+    private var learningPaneFullscreenOverlay: some View {
+        ZStack {
+            BookTheme.deskGradient
+                .ignoresSafeArea()
+            BookTheme.deskLampGlow
+                .ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                learningPaneFullscreenHeader
+                Group {
+                    if learningPaneFocus == .leading {
+                        leftPage
+                    } else {
+                        rightPage
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .padding(24)
+        }
+        .background(learningPaneFullscreenShortcuts)
+    }
+
+    private var learningPaneFullscreenHeader: some View {
+        HStack(spacing: 12) {
+            Button(action: { setLearningPaneFocus(.both) }) {
+                BookToolbarCapsuleLabel(
+                    title: "双页",
+                    isProminent: true,
+                    isCompact: false,
+                    isHovering: false
+                )
+            }
+            .buttonStyle(.plain)
+            .fixedSize()
+            .help("恢复左右双页布局")
+            .keyboardShortcut(.escape, modifiers: [])
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(learningPaneFocus == .leading ? "原文全屏" : "右页全屏")
+                    .font(BookTheme.titleFont)
+                    .foregroundStyle(BookTheme.goldSoft)
+                Text(learningPaneFocus == .leading ? viewModel.displayFileName : viewModel.rightPageTab.rawValue)
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.chromeMuted)
+                    .lineLimit(1)
+            }
+            .layoutPriority(-1)
+
+            Spacer(minLength: 8)
+
+            BookStatusPill(
+                title: learningPaneFocus == .leading ? "原文 / 命令笔记" : viewModel.rightPageTab.rawValue,
+                icon: learningPaneFocus == .leading ? "text.book.closed" : viewModel.rightPageTab.icon
+            )
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(BookTheme.leatherGradient)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(BookTheme.chromeOverlay.opacity(0.10), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.32), radius: 16, y: 8)
+        }
+    }
+
+    private var learningPaneFullscreenShortcuts: some View {
+        Group {
+            Button("双页") { setLearningPaneFocus(.both) }
+                .keyboardShortcut(.escape, modifiers: [])
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var leftPage: some View {
@@ -1259,7 +1382,8 @@ struct ContentView: View {
                     ? "可直接输入，或 \(BookKeyboardShortcuts.newDocumentHint) 新建 / \(BookKeyboardShortcuts.openDocumentHint) 打开 .txt · \(BookKeyboardShortcuts.saveHint) 保存"
                     : viewModel.isEditingNotes
                         ? "可编辑 · 命令笔记自动保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文"
-                        : "可编辑 · \(BookKeyboardShortcuts.saveHint) 保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文"
+                        : "可编辑 · \(BookKeyboardShortcuts.saveHint) 保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文",
+                paneSide: .leading
             )
 
             ZStack {
@@ -1331,7 +1455,8 @@ struct ContentView: View {
             pageLabel(
                 title: viewModel.rightPageTab.rawValue,
                 icon: viewModel.rightPageTab.icon,
-                subtitle: rightPageSubtitle
+                subtitle: rightPageSubtitle,
+                paneSide: .trailing
             )
 
             ExplanationChatView()
@@ -1377,7 +1502,7 @@ struct ContentView: View {
         .shadow(color: .black.opacity(0.25), radius: 4)
     }
 
-    private func pageLabel(title: String, icon: String, subtitle: String? = nil) -> some View {
+    private func pageLabel(title: String, icon: String, subtitle: String? = nil, paneSide: HorizontalEdge? = nil) -> some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 10) {
                 Image(systemName: icon)
@@ -1397,6 +1522,10 @@ struct ContentView: View {
 
                 Spacer()
 
+                if let paneSide {
+                    learningPaneFocusButton(for: paneSide)
+                }
+
                 Rectangle()
                     .fill(BookTheme.pageEdge.opacity(0.8))
                     .frame(height: 1)
@@ -1409,6 +1538,37 @@ struct ContentView: View {
             BookInterface.HeaderOrnament()
                 .padding(.bottom, 6)
         }
+    }
+
+    private func setLearningPaneFocus(_ focus: LearningPaneFocus) {
+        guard learningPaneFocus != focus else { return }
+        learningPaneFocus = focus
+        if focus == .both {
+            WindowFullscreenHelper.setNativeFullscreen(false)
+        } else {
+            WindowFullscreenHelper.setNativeFullscreen(true)
+        }
+    }
+
+    private func learningPaneFocusButton(for side: HorizontalEdge) -> some View {
+        let isFocused = (side == .leading && learningPaneFocus == .leading)
+            || (side == .trailing && learningPaneFocus == .trailing)
+        let targetFocus: LearningPaneFocus = side == .leading ? .leading : .trailing
+
+        return Button {
+            setLearningPaneFocus(isFocused ? .both : targetFocus)
+        } label: {
+            Image(systemName: isFocused ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(BookTheme.leather.opacity(0.72))
+                .frame(width: 24, height: 24)
+                .background {
+                    Circle()
+                        .fill(BookTheme.pageEdge.opacity(0.35))
+                }
+        }
+        .buttonStyle(.plain)
+        .help(isFocused ? "恢复双页" : side == .leading ? "原文占满桌面" : "右页占满桌面")
     }
 
     private var leftPageSaveStatus: String {

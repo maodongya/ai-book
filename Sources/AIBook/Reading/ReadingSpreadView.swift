@@ -50,9 +50,6 @@ struct ReadingSpreadView: View {
         .onChange(of: styleManager.revision) { _ in
             repaginateIfNeeded()
         }
-        .onChange(of: viewModel.readingComparisonEnabled) { _ in
-            repaginateIfNeeded()
-        }
         .id(styleManager.revision)
     }
 
@@ -83,16 +80,6 @@ struct ReadingSpreadView: View {
             .layoutPriority(-1)
 
             Spacer(minLength: 8)
-
-            if viewModel.showsReadingComparisonToggle, layoutMode == .spread {
-                Toggle("对照翻页", isOn: $viewModel.readingComparisonEnabled)
-                    .toggleStyle(.switch)
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.chromeMuted)
-                    .disabled(!viewModel.canUseReadingComparison)
-                    .help(viewModel.readingComparisonHelp)
-                    .fixedSize()
-            }
 
             layoutModePicker
 
@@ -214,7 +201,7 @@ struct ReadingSpreadView: View {
             pagePanel(
                 text: fullscreenPageText(at: spreadIndex),
                 pageNumber: fullscreenPageNumber(at: spreadIndex),
-                pageCaption: viewModel.readingComparisonEnabled ? "原文" : nil,
+                pageCaption: nil,
                 side: .leading,
                 width: pageWidth,
                 height: spreadHeight,
@@ -267,7 +254,7 @@ struct ReadingSpreadView: View {
                 spreadHeight: spreadHeight,
                 text: fullscreenPageText(at: displayedSpreadIndex),
                 pageNumber: fullscreenPageNumber(at: displayedSpreadIndex),
-                pageCaption: viewModel.readingComparisonEnabled ? "原文" : nil
+                pageCaption: nil
             )
             .frame(maxWidth: .infinity, alignment: .center)
             .allowsHitTesting(false)
@@ -558,9 +545,6 @@ struct ReadingSpreadView: View {
         case .leading:
             return viewModel.readingPageText(at: viewModel.leftPageIndex(forSpread: spreadIndex))
         case .trailing:
-            if viewModel.readingComparisonEnabled {
-                return viewModel.comparisonTranslationPageText(forSpread: spreadIndex)
-            }
             if let index = viewModel.rightPageIndex(forSpread: spreadIndex) {
                 return viewModel.readingPageText(at: index)
             }
@@ -574,9 +558,6 @@ struct ReadingSpreadView: View {
         case .leading:
             return viewModel.leftPageIndex(forSpread: spreadIndex) + 1
         case .trailing:
-            if viewModel.readingComparisonEnabled {
-                return viewModel.comparisonTranslationPageNumber(forSpread: spreadIndex)
-            }
             guard let index = viewModel.rightPageIndex(forSpread: spreadIndex) else { return nil }
             return index + 1
         }
@@ -677,13 +658,9 @@ struct ReadingSpreadView: View {
         isDraggingTurn = false
     }
 
-    private var leadingPageCaption: String? {
-        viewModel.readingComparisonEnabled ? "原文" : nil
-    }
+    private var leadingPageCaption: String? { nil }
 
-    private var trailingPageCaption: String? {
-        viewModel.readingComparisonEnabled ? "译文" : nil
-    }
+    private var trailingPageCaption: String? { nil }
 
     private func pageWidth(forSpreadWidth spreadWidth: CGFloat) -> CGFloat {
         switch layoutMode {
@@ -707,9 +684,6 @@ struct ReadingSpreadView: View {
         guard layoutMode != mode else { return }
         let sourcePage = currentSourcePageIndex()
         layoutMode = mode
-        if mode == .fullscreen, viewModel.readingComparisonEnabled {
-            viewModel.readingComparisonEnabled = false
-        }
         repaginateIfNeeded(restoreSourcePage: sourcePage)
     }
 

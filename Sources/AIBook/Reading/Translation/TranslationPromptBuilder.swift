@@ -5,17 +5,16 @@ enum TranslationPromptBuilder {
         source: String,
         existingPlan: String?,
         instruction: String?,
-        mode: TranslationAlignmentMode,
-        scrollSync: Bool
+        mode: TranslationAlignmentMode
     ) -> String {
         let paragraphCount = countParagraphs(in: source)
         let taskIntro: String
         let outputFormat: String
 
-        switch (mode, scrollSync) {
-        case (.wordByWord, true):
+        switch mode {
+        case .wordByWord:
             taskIntro = """
-            请对左侧文章做逐字翻译，供原文对照与同步滚动使用。
+            请对左侧文章做逐字翻译，供原文对照与表格查阅使用。
             要求：按原文顺序逐字、逐词、短语拆解；每项给出原文、译文和必要的极简说明；不扩写成教案，不啰嗦，不重复。
             """
             outputFormat = """
@@ -30,20 +29,9 @@ enum TranslationPromptBuilder {
             }
             要求：entries 顺序必须与原文一致；source 必须是原文中的连续子串。
             """
-        case (.wordByWord, false):
+        case .paragraph:
             taskIntro = """
-            请对左侧文章做逐字翻译，供阅读查阅（无需同步滚动）。
-            要求：按原文顺序拆词；每行一条，通顺易读；不写教案，不输出 JSON。
-            """
-            outputFormat = """
-            请只输出纯文本，每行一条：
-            原文词 → 译文
-            或：原文词 → 译文（极简说明）
-            最后可加一小节「总译：…」。不要使用 JSON 或代码块。
-            """
-        case (.paragraph, true):
-            taskIntro = """
-            请对左侧文章做整段翻译，供原文对照与同步滚动使用。
+            请对左侧文章做整段翻译，供原文对照与表格查阅使用。
             要求：一段原文对应一段译文；译文通顺准确；只输出翻译与少量必要注释，不写教案。
             原文共 \(paragraphCount) 段，blocks 必须正好 \(paragraphCount) 项，顺序一致。
             """
@@ -60,14 +48,6 @@ enum TranslationPromptBuilder {
               ]
             }
             要求：sourceText 必须来自原文对应段落，不要合并或拆段。
-            """
-        case (.paragraph, false):
-            taskIntro = """
-            请对左侧文章做整段翻译，供通读（无需同步滚动）。
-            要求：译文流畅完整，可按原文段落换行；不要为对齐而机械切分；不写教案，不输出 JSON。
-            """
-            outputFormat = """
-            请只输出纯文本译文，用空行分隔段落。不要使用 JSON、代码块或【标题】包装。
             """
         }
 

@@ -36,3 +36,20 @@ enum ReadingLayoutMode: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// Learning mode split layout: dual pane, left-only, or right-only.
+enum LearningPaneFocus: String, CaseIterable, Identifiable {
+    case both
+    case leading
+    case trailing
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .both: return "双页"
+        case .leading: return "左全屏"
+        case .trailing: return "右全屏"
+        }
+    }
+}

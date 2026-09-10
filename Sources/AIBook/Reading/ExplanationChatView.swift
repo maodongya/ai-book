@@ -219,24 +219,11 @@ struct ExplanationChatView: View {
 
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Toggle("同步滚动", isOn: $viewModel.translationScrollSyncEnabled)
-                    .toggleStyle(.switch)
-                    .font(BookTheme.captionFont)
-                Text(viewModel.translationScrollSyncEnabled
-                     ? "已开：生成带段落/词条锚点的译文，左右可跟着滑。请在生成前打开，生成后生效。"
-                     : "已关：生成通顺全文。需要对照时可打开后再生成，或直接点「对齐原文」按段落重分割已有译文。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: 360, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 4) {
                 Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
                     .toggleStyle(.switch)
                     .font(BookTheme.captionFont)
                     .disabled(!viewModel.canUseTranslationTableView)
-                Text("按左页段落重新分割译文并建立映射。点一行，左页会滚到对应原文；左页滚动时表格会跟到那一行。")
+                Text("按左页段落建立原文与译文映射。点一行，左页会滚到对应原文；左页滚动时表格会跟到那一行。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -272,7 +259,7 @@ struct ExplanationChatView: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-            Text("对齐已失效。可点击「对齐原文」恢复同步，无需重新翻译；仅当译文内容本身也要改时才重新生成。")
+            Text("对齐已失效。可点击「对齐原文」恢复表格对照，无需重新翻译；仅当译文内容本身也要改时才重新生成。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkSecondary)
             Spacer(minLength: 8)
