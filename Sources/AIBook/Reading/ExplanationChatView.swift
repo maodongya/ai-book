@@ -277,6 +277,7 @@ struct ExplanationChatView: View {
                             isEditable: !viewModel.isRunning,
                             highlightedBlockID: viewModel.translationTableHighlightedBlockID,
                             scrollTargetBlockID: viewModel.translationTableScrollTargetID,
+                            focusTranslationBlockID: viewModel.translationTableFocusTranslationBlockID,
                             onSelectBlock: { block in
                                 viewModel.handleTranslationTableVisibleBlock(block)
                             },
@@ -287,6 +288,16 @@ struct ExplanationChatView: View {
                                     translationText: translation,
                                     note: note
                                 )
+                            },
+                            onSplitTranslation: { id, before, after in
+                                viewModel.splitTranslationTableBlock(
+                                    id: id,
+                                    translationBefore: before,
+                                    translationAfter: after
+                                )
+                            },
+                            onClearFocusTranslation: {
+                                viewModel.translationTableFocusTranslationBlockID = nil
                             }
                         )
                     } else {

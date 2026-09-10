@@ -118,6 +118,7 @@ final class ReadingViewModel: ObservableObject {
     }
     @Published var translationTableScrollTargetID: UUID?
     @Published var translationTableHighlightedBlockID: UUID?
+    @Published var translationTableFocusTranslationBlockID: UUID?
 
     let sourceTextScrollProxy = SelectableTextViewProxy()
     let translationTextScrollProxy = SelectableTextViewProxy()
@@ -2567,6 +2568,72 @@ final class ReadingViewModel: ObservableObject {
         lessonPlanContent = rendered.content
         syncTranslationScrollPresentation()
         persistChatSession()
+    }
+
+    func splitTranslationTableBlock(
+        id: UUID,
+        translationBefore: String,
+        translationAfter: String
+    ) {
+        guard !isRunning, var alignment = translationAlignment, !alignment.isStale else { return }
+        guard let index = alignment.blocks.firstIndex(where: { $0.id == id }) else { return }
+
+        let block = alignment.blocks[index]
+        guard block.level != .summary else { return }
+
+        let before = translationBefore.trimmingCharacters(in: .newlines)
+        let after = translationAfter.trimmingCharacters(in: .newlines)
+        guard !before.isEmpty || !after.isEmpty else { return }
+
+        guard let nextIndex = nextTranslationTableEntryIndex(after: index, in: alignment.blocks) else {
+            showTransientSaveMessage("已是最后一行，无法向下合并")
+            return
+        }
+
+        isApplyingAlignment = true
+        defer { isApplyingAlignment = false }
+
+        var blocks = alignment.blocks
+        var current = blocks[index]
+        current.translationText = before
+        blocks[index] = current
+
+        var next = blocks[nextIndex]
+        if after.isEmpty {
+            next.translationText = next.translationText.trimmingCharacters(in: .newlines)
+        } else if next.translationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            next.translationText = after
+        } else {
+            next.translationText = after + next.translationText
+        }
+        blocks[nextIndex] = next
+
+        alignment.blocks = blocks
+        let rendered = TranslationContentFormatter.renderIndexed(alignment, title: translationDisplayTitle())
+        alignment.blocks = rendered.blocks
+        alignment.isStale = false
+        translationAlignment = alignment
+        lessonPlanContent = rendered.content
+        translationTableFocusTranslationBlockID = next.id
+        syncTranslationScrollPresentation()
+        persistChatSession()
+    }
+
+    private func nextTranslationTableEntryIndex(after index: Int, in blocks: [TranslationBlock]) -> Int? {
+        let current = blocks[index]
+        guard current.level != .summary else { return nil }
+
+        let entries = blocks
+            .enumerated()
+            .filter { $0.element.level != .summary }
+            .sorted { $0.element.order < $1.element.order }
+
+        guard let currentEntryIndex = entries.firstIndex(where: { $0.element.id == current.id }) else {
+            return nil
+        }
+        let nextEntryIndex = entries.index(after: currentEntryIndex)
+        guard nextEntryIndex < entries.endIndex else { return nil }
+        return entries[nextEntryIndex].offset
     }
 
     private func sourceSearchStart(forBlockAt index: Int, in blocks: [TranslationBlock]) -> Int {
