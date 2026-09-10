@@ -283,8 +283,21 @@ final class ReadingViewModel: ObservableObject {
 
     var canAlignTranslationWithSource: Bool {
         !isRunning
+            && translationAlignment?.isLocked != true
             && !lessonPlanSourceText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var canAdjustTranslationSyncOffset: Bool {
+        canUseTranslationTableView && translationAlignment?.isLocked != true
+    }
+
+    var isTranslationAlignmentLocked: Bool {
+        translationAlignment?.isLocked == true
+    }
+
+    var translationSyncBlockOffset: Int {
+        translationAlignment?.syncBlockOffset ?? 0
     }
 
     var translationAlignmentStatusText: String? {
@@ -292,7 +305,14 @@ final class ReadingViewModel: ObservableObject {
         if alignment.isStale {
             return "对齐失效"
         }
-        return "\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定"
+        var parts = ["\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定"]
+        if alignment.syncBlockOffset != 0 {
+            parts.append("偏移 \(alignment.syncBlockOffset > 0 ? "+" : "")\(alignment.syncBlockOffset)")
+        }
+        if alignment.isLocked {
+            parts.append("已锁定")
+        }
+        return parts.joined(separator: " · ")
     }
 
     func repaginateForReading(pageContentSize: CGSize) {
@@ -2369,6 +2389,13 @@ final class ReadingViewModel: ObservableObject {
 
     @discardableResult
     func alignTranslationWithSource(showFeedback: Bool = true) -> Bool {
+        if translationAlignment?.isLocked == true {
+            if showFeedback {
+                errorMessage = "对照关系已锁定。请先解锁后再整体对齐。"
+            }
+            return false
+        }
+
         let source = lessonPlanSourceText()
         let content = lessonPlanContent
         guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -2449,6 +2476,117 @@ final class ReadingViewModel: ObservableObject {
                 self.sourceTextScrollProxy.highlightRange(sourceRange)
             }
         }
+    }
+
+    func shiftTranslationSyncOffset(rightTableSteps: Int) {
+        guard !isRunning, var alignment = translationAlignment, !alignment.isStale, !alignment.isLocked else {
+            return
+        }
+        alignment.syncBlockOffset += rightTableSteps
+        translationAlignment = alignment
+        translationScrollSync.resetAnchors()
+        persistChatSession()
+    }
+
+    func resetTranslationSyncOffset() {
+        guard var alignment = translationAlignment, !alignment.isLocked, alignment.syncBlockOffset != 0 else {
+            return
+        }
+        alignment.syncBlockOffset = 0
+        translationAlignment = alignment
+        translationScrollSync.resetAnchors()
+        persistChatSession()
+    }
+
+    func lockTranslationAlignment() {
+        guard var alignment = translationAlignment, !alignment.isStale else { return }
+        alignment.isLocked = true
+        translationAlignment = alignment
+        persistChatSession()
+        showTransientSaveMessage("对照关系已锁定并保存")
+    }
+
+    func unlockTranslationAlignment() {
+        guard var alignment = translationAlignment, alignment.isLocked else { return }
+        alignment.isLocked = false
+        translationAlignment = alignment
+        persistChatSession()
+        showTransientSaveMessage("已解锁，可继续整体调整")
+    }
+
+    func updateTranslationTableBlock(
+        id: UUID,
+        sourceText: String? = nil,
+        translationText: String? = nil,
+        note: String? = nil
+    ) {
+        guard !isRunning, var alignment = translationAlignment, !alignment.isStale else { return }
+        guard let index = alignment.blocks.firstIndex(where: { $0.id == id }) else { return }
+
+        let source = lessonPlanSourceText()
+        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        isApplyingAlignment = true
+        defer { isApplyingAlignment = false }
+
+        var blocks = alignment.blocks
+        var block = blocks[index]
+
+        if let sourceText {
+            let trimmed = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            block.sourceText = trimmed
+            if block.level != .summary {
+                let searchStart = sourceSearchStart(forBlockAt: index, in: blocks)
+                let range = TranslationAlignmentBuilder.reanchorSourceText(
+                    trimmed,
+                    in: source,
+                    searchStart: searchStart
+                )
+                block.sourceLocation = range.location
+                block.sourceLength = range.length
+            }
+        }
+
+        if let translationText {
+            block.translationText = translationText.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if let note {
+            let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            block.note = trimmed.isEmpty ? nil : trimmed
+        }
+
+        blocks[index] = block
+        alignment.blocks = blocks
+
+        let rendered = TranslationContentFormatter.renderIndexed(alignment, title: translationDisplayTitle())
+        alignment.blocks = rendered.blocks
+        alignment.isStale = false
+        translationAlignment = alignment
+        lessonPlanContent = rendered.content
+        syncTranslationScrollPresentation()
+        persistChatSession()
+    }
+
+    private func sourceSearchStart(forBlockAt index: Int, in blocks: [TranslationBlock]) -> Int {
+        let currentOrder = blocks[index].order
+        let previous = blocks
+            .filter { $0.level != .summary && $0.order < currentOrder && $0.isAnchored }
+            .sorted { $0.order < $1.order }
+            .last
+        guard let previous else { return 0 }
+        return previous.sourceRange.location + previous.sourceRange.length
+    }
+
+    private func translationDisplayTitle() -> String? {
+        let first = lessonPlanContent
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .first
+            .map(String.init)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard first.hasPrefix("【"), first.hasSuffix("】"), first.count > 2 else { return nil }
+        return String(first.dropFirst().dropLast())
     }
 
     var showsTranslationTableView: Bool {

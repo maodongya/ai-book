@@ -21,10 +21,15 @@ final class TranslationScrollSync: ObservableObject {
 
     func sourceDidScroll(visibleRange: NSRange, alignment: TranslationAlignment) {
         guard isEnabled, !isPropagating, !alignment.isStale else { return }
-        guard let block = TranslationAnchorResolver.anchorBlock(
+        guard let anchored = TranslationAnchorResolver.anchorBlock(
             forSourceVisibleRange: visibleRange,
             in: alignment
-        ), block.hasTranslationRange else { return }
+        ), anchored.hasTranslationRange else { return }
+        let block = TranslationAnchorResolver.blockWithSyncOffset(
+            from: anchored,
+            offset: alignment.syncBlockOffset,
+            in: alignment
+        )
         guard block.id != lastSourceAnchorID else { return }
 
         isPropagating = true

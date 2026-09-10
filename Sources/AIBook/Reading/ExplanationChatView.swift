@@ -274,10 +274,19 @@ struct ExplanationChatView: View {
                     if viewModel.showsTranslationTableView, let alignment = viewModel.translationAlignment {
                         TranslationTableView(
                             alignment: alignment,
+                            isEditable: !viewModel.isRunning,
                             highlightedBlockID: viewModel.translationTableHighlightedBlockID,
                             scrollTargetBlockID: viewModel.translationTableScrollTargetID,
                             onSelectBlock: { block in
                                 viewModel.handleTranslationTableVisibleBlock(block)
+                            },
+                            onUpdateBlock: { id, source, translation, note in
+                                viewModel.updateTranslationTableBlock(
+                                    id: id,
+                                    sourceText: source,
+                                    translationText: translation,
+                                    note: note
+                                )
                             }
                         )
                     } else {
@@ -340,10 +349,14 @@ struct ExplanationChatView: View {
                     .toggleStyle(.switch)
                     .font(BookTheme.captionFont)
                     .disabled(!viewModel.canUseTranslationTableView)
-                Text("按左页段落建立原文与译文映射。点一行，左页会滚到对应原文；左页滚动时表格会跟到那一行。")
+                Text("按左页段落建立原文与译文映射。可直接在表格中编辑；对照偏移可整体上下微调；锁定后保存且禁止整体调整。")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if viewModel.canUseTranslationTableView {
+                    translationSyncOffsetControls
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -354,6 +367,20 @@ struct ExplanationChatView: View {
                 .buttonStyle(.bordered)
                 .font(BookTheme.captionFont)
                 .disabled(!viewModel.canAlignTranslationWithSource)
+
+                if viewModel.isTranslationAlignmentLocked {
+                    Button("解锁对照") {
+                        viewModel.unlockTranslationAlignment()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(BookTheme.captionFont)
+                } else if viewModel.canUseTranslationTableView {
+                    Button("锁定对照") {
+                        viewModel.lockTranslationAlignment()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .font(BookTheme.captionFont)
+                }
 
                 if let status = viewModel.translationAlignmentStatusText {
                     Text(status)
@@ -370,6 +397,48 @@ struct ExplanationChatView: View {
         .padding(.horizontal, 14)
         .padding(.top, 4)
         .padding(.bottom, 2)
+    }
+
+    private var translationSyncOffsetControls: some View {
+        HStack(spacing: 8) {
+            Text("对照偏移")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkSecondary)
+
+            Button("左表↓") {
+                viewModel.shiftTranslationSyncOffset(rightTableSteps: -1)
+            }
+            .buttonStyle(.bordered)
+            .font(BookTheme.captionFont)
+            .disabled(!viewModel.canAdjustTranslationSyncOffset)
+
+            Button("右表↓") {
+                viewModel.shiftTranslationSyncOffset(rightTableSteps: 1)
+            }
+            .buttonStyle(.bordered)
+            .font(BookTheme.captionFont)
+            .disabled(!viewModel.canAdjustTranslationSyncOffset)
+
+            Text(offsetLabel)
+                .font(BookTheme.captionFont.monospacedDigit())
+                .foregroundStyle(BookTheme.leather)
+                .frame(minWidth: 28)
+
+            Button("复位") {
+                viewModel.resetTranslationSyncOffset()
+            }
+            .buttonStyle(.plain)
+            .font(BookTheme.captionFont)
+            .foregroundStyle(BookTheme.leather)
+            .disabled(!viewModel.canAdjustTranslationSyncOffset || viewModel.translationSyncBlockOffset == 0)
+        }
+        .help("左表↓：右表整体上移一行对照；右表↓：右表整体下移一行对照。锁定后不可调整。")
+    }
+
+    private var offsetLabel: String {
+        let offset = viewModel.translationSyncBlockOffset
+        if offset == 0 { return "0" }
+        return offset > 0 ? "+\(offset)" : "\(offset)"
     }
 
     private var translationStaleBanner: some View {

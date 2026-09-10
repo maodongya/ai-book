@@ -183,6 +183,24 @@ enum TranslationAlignmentBuilder {
         paragraphRanges(in: source)
     }
 
+    static func reanchorSourceText(
+        _ sourceText: String,
+        in source: String,
+        searchStart: Int = 0
+    ) -> NSRange {
+        let needle = normalized(sourceText)
+        guard !needle.isEmpty else { return NSRange(location: 0, length: 0) }
+
+        let ns = source as NSString
+        let start = max(0, min(searchStart, ns.length))
+        let forwardRange = NSRange(location: start, length: max(0, ns.length - start))
+        var found = ns.range(of: needle, options: [], range: forwardRange)
+        if found.location == NSNotFound {
+            found = ns.range(of: needle, options: [], range: NSRange(location: 0, length: ns.length))
+        }
+        return found.location == NSNotFound ? NSRange(location: 0, length: 0) : found
+    }
+
     static func buildParagraphAlignment(
         source: String,
         segments: [TranslationParagraphSegmenter.Segment]
