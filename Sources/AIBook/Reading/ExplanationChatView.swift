@@ -6,6 +6,8 @@ struct ExplanationChatView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var editingMessageIDs: Set<UUID> = []
+    @AppStorage("aiBook.readingComposerVisible") private var isReadingComposerVisible = true
+    @AppStorage("aiBook.readingChromeVisible") private var isReadingChromeVisible = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,34 +27,145 @@ struct ExplanationChatView: View {
 
     private var readingAssistantPage: some View {
         VStack(spacing: 0) {
-            configurationNotice
-
-            readingAssistantPanelSwitcher
-
-            Group {
-                switch viewModel.readingAssistantPanel {
-                case .explanation:
-                    explanationPanel
-                case .translation:
-                    translationPanel
-                }
+            if isReadingChromeVisible {
+                configurationNotice
+                readingAssistantPanelSwitcher
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            composer(for: .readingAssistant)
+            readingAssistantContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .topTrailing) {
+                    if !isReadingChromeVisible {
+                        readingChromeRestoreControl
+                            .padding(10)
+                    }
+                }
+
+            readingComposerSection
         }
     }
 
-    private var readingAssistantPanelSwitcher: some View {
-        Picker("右页分栏", selection: $viewModel.readingAssistantPanel) {
-            ForEach(ReadingAssistantPanel.allCases) { panel in
-                Text(panel.rawValue).tag(panel)
-            }
+    @ViewBuilder
+    private var readingAssistantContent: some View {
+        switch viewModel.readingAssistantPanel {
+        case .explanation:
+            explanationPanel
+        case .translation:
+            translationPanel
         }
-        .pickerStyle(.segmented)
+    }
+
+    @ViewBuilder
+    private var readingComposerSection: some View {
+        if !isReadingChromeVisible {
+            EmptyView()
+        } else if isReadingComposerVisible {
+            composer(for: .readingAssistant)
+        } else {
+            collapsedReadingComposerBar
+        }
+    }
+
+    private var collapsedReadingComposerBar: some View {
+        HStack(spacing: 8) {
+            if viewModel.isRunning {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(collapsedRunningStatusText)
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.leather)
+                        .lineLimit(1)
+                }
+
+                BookPageActionButton(
+                    title: "停止",
+                    icon: "stop.fill",
+                    isDisabled: false
+                ) {
+                    viewModel.stopCurrentRun()
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    isReadingComposerVisible = true
+                }
+            } label: {
+                Label("显示输入", systemImage: "chevron.up")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
+            }
+            .buttonStyle(.plain)
+            .help("显示 AI 输入框")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.58))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(BookTheme.pageEdge.opacity(0.9), lineWidth: 1)
+                }
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
+    }
+
+    private var collapsedRunningStatusText: String {
+        let text = viewModel.runningStatusText(for: .readingAssistant)
+        return text.isEmpty ? "大模型生成中…" : text
+    }
+
+    private var readingAssistantPanelSwitcher: some View {
+        HStack(spacing: 8) {
+            Picker("右页分栏", selection: $viewModel.readingAssistantPanel) {
+                ForEach(ReadingAssistantPanel.allCases) { panel in
+                    Text(panel.rawValue).tag(panel)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Button(action: enterReadingFocusMode) {
+                Label("专注阅读", systemImage: "arrow.up.left.and.arrow.down.right")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
+            }
+            .buttonStyle(.plain)
+            .help("隐藏工具栏与分栏切换，只保留结果正文")
+        }
         .padding(.horizontal, 14)
         .padding(.top, 6)
         .padding(.bottom, 4)
+    }
+
+    private var readingChromeRestoreControl: some View {
+        Button(action: exitReadingFocusMode) {
+            Label("显示工具栏", systemImage: "chevron.down")
+                .font(styleManager.tokens.typography.captionFont)
+                .foregroundStyle(styleManager.tokens.colors.ink)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background { lessonPlanToolbarCapsule }
+        }
+        .buttonStyle(.plain)
+        .help("显示读书助手标题、分栏切换与翻译状态栏")
+    }
+
+    private func enterReadingFocusMode() {
+        withAnimation(.easeOut(duration: 0.18)) {
+            isReadingChromeVisible = false
+            isReadingComposerVisible = false
+        }
+    }
+
+    private func exitReadingFocusMode() {
+        withAnimation(.easeOut(duration: 0.18)) {
+            isReadingChromeVisible = true
+            isReadingComposerVisible = true
+        }
     }
 
     private var explanationPanel: some View {
@@ -76,14 +189,16 @@ struct ExplanationChatView: View {
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
 
-            VStack {
-                HStack(spacing: 8) {
+            if isReadingChromeVisible {
+                VStack {
+                    HStack(spacing: 8) {
+                        Spacer()
+                        explanationToolbar
+                    }
                     Spacer()
-                    explanationToolbar
                 }
-                Spacer()
+                .padding(10)
             }
-            .padding(10)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
@@ -151,7 +266,9 @@ struct ExplanationChatView: View {
 
     private var translationPanel: some View {
         VStack(spacing: 0) {
-            translationSyncControls
+            if isReadingChromeVisible {
+                translationSyncControls
+            }
             ZStack(alignment: .topTrailing) {
                 Group {
                     if viewModel.showsTranslationTableView, let alignment = viewModel.translationAlignment {
@@ -168,7 +285,7 @@ struct ExplanationChatView: View {
                     }
                 }
 
-                if !viewModel.showsTranslationTableView {
+                if isReadingChromeVisible, !viewModel.showsTranslationTableView {
                     VStack {
                         HStack(spacing: 8) {
                             Spacer()
@@ -259,15 +376,10 @@ struct ExplanationChatView: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-            Text("对齐已失效。可点击「对齐原文」恢复表格对照，无需重新翻译；仅当译文内容本身也要改时才重新生成。")
+            Text("对齐已失效。可点击右侧「对齐原文」恢复表格对照，无需重新翻译；仅当译文内容本身也要改时才重新生成。")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkSecondary)
             Spacer(minLength: 8)
-            Button("对齐原文") {
-                viewModel.alignTranslationWithSource()
-            }
-            .font(BookTheme.captionFont)
-            .disabled(!viewModel.canAlignTranslationWithSource)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -367,7 +479,14 @@ struct ExplanationChatView: View {
         if mode == .aiEvolution {
             CursorComposerView(mode: mode)
         } else {
-            LLMComposerView(mode: mode)
+            LLMComposerView(
+                mode: mode,
+                onCollapse: {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        isReadingComposerVisible = false
+                    }
+                }
+            )
         }
     }
 

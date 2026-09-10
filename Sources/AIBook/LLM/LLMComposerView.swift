@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LLMComposerView: View {
     var mode: RightPageTab = .readingAssistant
+    var onCollapse: (() -> Void)? = nil
 
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
@@ -104,6 +105,16 @@ struct LLMComposerView: View {
             .foregroundStyle(BookTheme.leather)
 
             compactUsageMeter
+
+            if let onCollapse {
+                Button(action: onCollapse) {
+                    Label("隐藏", systemImage: "chevron.down")
+                        .font(BookTheme.captionFont)
+                        .foregroundStyle(BookTheme.leather)
+                }
+                .buttonStyle(.plain)
+                .help("隐藏 AI 输入框")
+            }
         }
         .font(BookTheme.captionFont)
     }
@@ -499,7 +510,12 @@ struct LLMComposerView: View {
     private var composerPlaceholder: String {
         switch mode {
         case .readingAssistant:
-            return "输入翻译要求，例如：翻成白话文、保留古文词义、第二段整段翻译"
+            switch viewModel.readingAssistantPanel {
+            case .explanation:
+                return "输入讲解追问，例如：这一段主旨是什么、和上文有何联系"
+            case .translation:
+                return "输入翻译要求，例如：翻成白话文、保留古文词义、第二段整段翻译"
+            }
         case .aiEvolution:
             return "输入分析方向（可选），例如：读书助手讲解可见性、翻译入口；留空则全面分析。也可输入进化追问"
         }

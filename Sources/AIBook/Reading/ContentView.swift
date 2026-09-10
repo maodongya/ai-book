@@ -7,6 +7,7 @@ struct ContentView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var learningPaneFocus: LearningPaneFocus = .both
+    @AppStorage("aiBook.readingChromeVisible") private var isReadingChromeVisible = true
 
     private let learningSpineWidth: CGFloat = 34
 
@@ -1452,12 +1453,14 @@ struct ContentView: View {
 
     private var rightPage: some View {
         VStack(spacing: 0) {
-            pageLabel(
-                title: viewModel.rightPageTab.rawValue,
-                icon: viewModel.rightPageTab.icon,
-                subtitle: rightPageSubtitle,
-                paneSide: .trailing
-            )
+            if showsRightPageLabel {
+                pageLabel(
+                    title: viewModel.rightPageTab.rawValue,
+                    icon: viewModel.rightPageTab.icon,
+                    subtitle: rightPageSubtitle,
+                    paneSide: .trailing
+                )
+            }
 
             ExplanationChatView()
         }
@@ -1467,6 +1470,10 @@ struct ContentView: View {
         .bookPaperTexture()
         .bookPage(BookTheme.pageRight)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var showsRightPageLabel: Bool {
+        !(viewModel.rightPageTab == .readingAssistant && !isReadingChromeVisible)
     }
 
     private var rightPageSubtitle: String {
