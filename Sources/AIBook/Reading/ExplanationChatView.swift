@@ -104,10 +104,10 @@ struct ExplanationChatView: View {
         .padding(.vertical, 8)
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.58))
+                .fill(Color.white.opacity(0.35))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(BookTheme.pageEdge.opacity(0.9), lineWidth: 1)
+                        .strokeBorder(BookTheme.pageEdge.opacity(0.55), lineWidth: 1)
                 }
         }
         .padding(.horizontal, 12)
@@ -200,8 +200,6 @@ struct ExplanationChatView: View {
                 .padding(10)
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
     }
 
     private var explanationToolbar: some View {
@@ -479,7 +477,8 @@ struct ExplanationChatView: View {
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)
         }
-        .padding(24)
+        .padding(.horizontal, 36)
+        .padding(.vertical, 32)
         .allowsHitTesting(false)
     }
 
@@ -585,22 +584,11 @@ struct ExplanationChatView: View {
                     viewModel.handleTranslationTextScroll(visibleRange: range)
                 },
                 scrollProxy: viewModel.translationTextScrollProxy,
-                appearance: .editor,
                 isEditable: !viewModel.isRunning,
                 selectAllSignal: viewModel.rightSelectAllSignal
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.70))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
-                }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
     }
 
     private var lessonPlanSelectAllButton: some View {
@@ -688,7 +676,8 @@ struct ExplanationChatView: View {
                 .foregroundStyle(BookTheme.inkMuted)
                 .lineSpacing(4)
         }
-        .padding(24)
+        .padding(.horizontal, 36)
+        .padding(.vertical, 32)
         .allowsHitTesting(false)
     }
 
@@ -706,13 +695,8 @@ struct ExplanationChatView: View {
                             .id("loading")
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-            }
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(0.18))
-                    .padding(.horizontal, 10)
+                .padding(.horizontal, 36)
+                .padding(.vertical, 32)
             }
             .onChange(of: viewModel.chatMessages.count) { _ in
                 scrollToBottom(proxy: proxy)
@@ -738,9 +722,9 @@ struct ExplanationChatView: View {
     }
 
     private func chatBubble(for message: ChatMessage) -> some View {
-        HStack(alignment: .top, spacing: 0) {
+        Group {
             if message.role == .assistant {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 10) {
                     assistantMessageHeader(message)
                     if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
                         AssistantExecutionTraceCard(
@@ -757,10 +741,8 @@ struct ExplanationChatView: View {
                     assistantMessageMenu(for: message)
                 }
                 .help("右键可编辑、保存、朗读、复制或删除此条 AI 输出")
-                Spacer(minLength: 36)
             } else {
-                Spacer(minLength: 36)
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Label("你", systemImage: "person.fill")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
@@ -772,6 +754,7 @@ struct ExplanationChatView: View {
                 .help("右键可复制或删除此条消息")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func assistantMessageHeader(_ message: ChatMessage) -> some View {
@@ -870,57 +853,32 @@ struct ExplanationChatView: View {
         .foregroundStyle(BookTheme.ink)
         .lineSpacing(BookTheme.readingLineSpacing)
         .scrollContentBackground(.hidden)
-        .frame(minHeight: 120)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.78))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(BookTheme.gold.opacity(0.45), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
-        }
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
     }
 
     private func bubbleContent(_ text: String, isUser: Bool) -> some View {
         Text(text)
             .font(BookTheme.readingContentFont)
-            .foregroundStyle(isUser ? BookTheme.leatherShadow : BookTheme.ink)
+            .foregroundStyle(isUser ? BookTheme.inkSecondary : BookTheme.ink)
             .lineSpacing(BookTheme.readingLineSpacing)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isUser ? BookTheme.gold.opacity(0.86) : Color.white.opacity(0.66))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(
-                                isUser ? BookTheme.goldSoft.opacity(0.62) : BookTheme.pageEdge.opacity(0.72),
-                                lineWidth: 1
-                            )
-                    }
-                    .shadow(color: .black.opacity(isUser ? 0.08 : 0.05), radius: 8, y: 3)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .multilineTextAlignment(.leading)
             .textSelection(.enabled)
     }
 
     private var streamingBubble: some View {
-        HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                Label(assistantLabel, systemImage: "sparkles")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.leather)
+        VStack(alignment: .leading, spacing: 10) {
+            Label(assistantLabel, systemImage: "sparkles")
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.leather)
 
-                if viewModel.showsExecutionTrace {
-                    cursorStreamingContent
-                } else {
-                    llmStreamingContent
-                }
+            if viewModel.showsExecutionTrace {
+                cursorStreamingContent
+            } else {
+                llmStreamingContent
             }
-            Spacer(minLength: 36)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

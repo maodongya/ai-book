@@ -51,10 +51,10 @@ struct LLMComposerView: View {
         .padding(.vertical, 8)
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.58))
+                .fill(Color.white.opacity(0.35))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(BookTheme.pageEdge.opacity(0.9), lineWidth: 1)
+                        .strokeBorder(BookTheme.pageEdge.opacity(0.55), lineWidth: 1)
                 }
         }
         .padding(.horizontal, 12)
@@ -388,14 +388,17 @@ struct LLMComposerView: View {
         ZStack(alignment: .topLeading) {
             if activeChatInput.isEmpty {
                 Text(composerPlaceholder)
-                    .font(BookTheme.bodyFont)
+                    .font(BookTheme.readingContentFont)
                     .foregroundStyle(BookTheme.inkMuted.opacity(0.65))
+                    .lineSpacing(BookTheme.readingLineSpacing)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
             }
 
             TextEditor(text: activeChatInputBinding)
-                .font(BookTheme.bodyFont)
+                .font(BookTheme.readingContentFont)
+                .foregroundStyle(BookTheme.ink)
+                .lineSpacing(BookTheme.readingLineSpacing)
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 56, maxHeight: 88)
                 .padding(.horizontal, 10)
@@ -404,10 +407,10 @@ struct LLMComposerView: View {
         }
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.82))
+                .fill(Color.white.opacity(0.35))
                 .overlay {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(BookTheme.pageEdge, lineWidth: 1)
+                        .strokeBorder(BookTheme.pageEdge.opacity(0.55), lineWidth: 1)
                 }
         }
     }

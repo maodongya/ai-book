@@ -54,10 +54,7 @@ struct SelectableTextView: NSViewRepresentable {
         }
 
         var textContainerInset: NSSize {
-            switch self {
-            case .reading: return NSSize(width: 36, height: 32)
-            case .editor: return NSSize(width: 12, height: 10)
-            }
+            return NSSize(width: 36, height: 32)
         }
 
         var lineSpacing: CGFloat {

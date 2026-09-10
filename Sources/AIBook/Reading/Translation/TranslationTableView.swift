@@ -92,8 +92,8 @@ struct TranslationTableView: View {
             }
         }
         .background(tableBackground)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 36)
+        .padding(.vertical, 32)
         .id(styleManager.revision)
     }
 
@@ -136,7 +136,7 @@ struct TranslationTableView: View {
             if isHighlighted {
                 BookTheme.selection.opacity(0.28)
             } else {
-                Color.white.opacity(0.55)
+                Color.white.opacity(0.12)
             }
         }
     }
@@ -148,11 +148,11 @@ struct TranslationTableView: View {
     }
 
     private var tableBackground: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(Color.white.opacity(0.70))
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(Color.white.opacity(0.18))
             .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(BookTheme.pageEdge.opacity(0.45), lineWidth: 1)
             }
     }
 
@@ -315,7 +315,7 @@ private struct TranslationTableEditableRow: View {
             if isHighlighted {
                 BookTheme.selection.opacity(0.28)
             } else {
-                Color.white.opacity(0.55)
+                Color.white.opacity(0.12)
             }
         }
     }
