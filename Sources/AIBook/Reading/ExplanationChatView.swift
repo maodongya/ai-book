@@ -5,7 +5,6 @@ struct ExplanationChatView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
-    @State private var editingMessageIDs: Set<UUID> = []
     @AppStorage("aiBook.readingComposerVisible") private var isReadingComposerVisible = true
     @AppStorage("aiBook.readingChromeVisible") private var isReadingChromeVisible = true
 
@@ -646,12 +645,6 @@ struct ExplanationChatView: View {
     @ViewBuilder
     private func assistantMessageMenu(for message: ChatMessage) -> some View {
         Button {
-            toggleEditing(message.id)
-        } label: {
-            Label(isEditing(message.id) ? "完成编辑" : "编辑此条", systemImage: isEditing(message.id) ? "checkmark" : "pencil")
-        }
-
-        Button {
             viewModel.saveAssistantMessage(id: message.id)
         } label: {
             Label("保存 AI 输出", systemImage: "square.and.arrow.down")
@@ -683,7 +676,6 @@ struct ExplanationChatView: View {
         }
 
         Button(role: .destructive) {
-            editingMessageIDs.remove(message.id)
             viewModel.deleteChatMessage(id: message.id)
         } label: {
             Label("删除此条 AI 输出", systemImage: "trash")
@@ -712,7 +704,7 @@ struct ExplanationChatView: View {
 
     private func assistantContent(_ message: ChatMessage) -> some View {
         Group {
-            if isEditing(message.id) {
+            if viewModel.canEditExplanationMessage(message) && !viewModel.isRunning {
                 editableAssistantContent(message)
             } else {
                 bubbleContent(message.content, isUser: false)
@@ -729,7 +721,8 @@ struct ExplanationChatView: View {
         .foregroundStyle(BookTheme.ink)
         .lineSpacing(BookTheme.readingLineSpacing)
         .scrollContentBackground(.hidden)
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
+        .disabled(viewModel.isRunning)
     }
 
     private func bubbleContent(_ text: String, isUser: Bool) -> some View {
@@ -807,18 +800,6 @@ struct ExplanationChatView: View {
             return "AI进化"
         }
         return "读书助手"
-    }
-
-    private func isEditing(_ id: UUID) -> Bool {
-        editingMessageIDs.contains(id)
-    }
-
-    private func toggleEditing(_ id: UUID) {
-        if editingMessageIDs.contains(id) {
-            editingMessageIDs.remove(id)
-        } else {
-            editingMessageIDs.insert(id)
-        }
     }
 
     private func messageContent(for id: UUID) -> String {

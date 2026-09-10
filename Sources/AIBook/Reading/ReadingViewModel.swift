@@ -1015,10 +1015,14 @@ final class ReadingViewModel: ObservableObject {
         }
         guard chatMessages[index].content != content else { return }
 
+        updatePromptMessage(id: id, content: content)
         var updated = chatMessages
         updated[index].content = content
         chatMessages = updated
-        updatePromptMessage(id: id, content: content)
+    }
+
+    func canEditExplanationMessage(_ message: ChatMessage) -> Bool {
+        message.role == .assistant && !isReadingWelcomeMessage(message)
     }
 
     func deleteChatMessage(id: UUID) {
@@ -1426,6 +1430,7 @@ final class ReadingViewModel: ObservableObject {
     func saveExplanationDocument() {
         selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.explanation)
+        persistChatSession()
         let content = explanationTranscriptText()
         guard !content.isEmpty else {
             errorMessage = "当前没有可保存的讲解内容。"
