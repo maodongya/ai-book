@@ -289,16 +289,8 @@ final class ReadingViewModel: ObservableObject {
             && !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    var canAdjustTranslationSyncOffset: Bool {
-        canUseTranslationTableView && translationAlignment?.isLocked != true
-    }
-
     var isTranslationAlignmentLocked: Bool {
         translationAlignment?.isLocked == true
-    }
-
-    var translationSyncBlockOffset: Int {
-        translationAlignment?.syncBlockOffset ?? 0
     }
 
     var translationAlignmentStatusText: String? {
@@ -307,9 +299,6 @@ final class ReadingViewModel: ObservableObject {
             return "对齐失效"
         }
         var parts = ["\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定"]
-        if alignment.syncBlockOffset != 0 {
-            parts.append("偏移 \(alignment.syncBlockOffset > 0 ? "+" : "")\(alignment.syncBlockOffset)")
-        }
         if alignment.isLocked {
             parts.append("已锁定")
         }
@@ -2477,26 +2466,6 @@ final class ReadingViewModel: ObservableObject {
                 self.sourceTextScrollProxy.highlightRange(sourceRange)
             }
         }
-    }
-
-    func shiftTranslationSyncOffset(rightTableSteps: Int) {
-        guard !isRunning, var alignment = translationAlignment, !alignment.isStale, !alignment.isLocked else {
-            return
-        }
-        alignment.syncBlockOffset += rightTableSteps
-        translationAlignment = alignment
-        translationScrollSync.resetAnchors()
-        persistChatSession()
-    }
-
-    func resetTranslationSyncOffset() {
-        guard var alignment = translationAlignment, !alignment.isLocked, alignment.syncBlockOffset != 0 else {
-            return
-        }
-        alignment.syncBlockOffset = 0
-        translationAlignment = alignment
-        translationScrollSync.resetAnchors()
-        persistChatSession()
     }
 
     func lockTranslationAlignment() {

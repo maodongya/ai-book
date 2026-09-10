@@ -265,7 +265,14 @@ struct ExplanationChatView: View {
     private var translationPanel: some View {
         VStack(spacing: 0) {
             if isReadingChromeVisible {
-                translationSyncControls
+                translationToolbar
+            }
+            if viewModel.showsTranslationTableView, let alignment = viewModel.translationAlignment {
+                TranslationTableColumnHeader(
+                    alignment: alignment,
+                    isEditable: !viewModel.isRunning
+                )
+                .padding(.horizontal, 12)
             }
             ZStack(alignment: .topTrailing) {
                 Group {
@@ -303,18 +310,6 @@ struct ExplanationChatView: View {
                     }
                 }
 
-                if isReadingChromeVisible, !viewModel.showsTranslationTableView {
-                    VStack {
-                        HStack(spacing: 8) {
-                            Spacer()
-                            lessonPlanSelectAllButton
-                            lessonPlanReadAloudButton
-                        }
-                        Spacer()
-                    }
-                    .padding(10)
-                }
-
                 if viewModel.isLoading && viewModel.readingAssistantActiveTask == .translation {
                     translationLoadingBadge
                 }
@@ -329,142 +324,93 @@ struct ExplanationChatView: View {
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.leather)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background {
-            Capsule()
-                .fill(Color.white.opacity(0.88))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
-                }
-        }
-        .padding(14)
+        .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         .allowsHitTesting(false)
     }
 
-    @ViewBuilder
-    private var translationSyncControls: some View {
-        if viewModel.translationAlignment?.isStale == true {
-            translationStaleBanner
-                .padding(.horizontal, 14)
-                .padding(.top, 4)
-        }
-
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
-                    .toggleStyle(.switch)
+    private var translationToolbar: some View {
+        HStack(spacing: 10) {
+            if viewModel.translationAlignment?.isStale == true {
+                Image(systemName: "exclamationmark.triangle.fill")
                     .font(BookTheme.captionFont)
-                    .disabled(!viewModel.canUseTranslationTableView)
-                Text("按左页段落建立原文与译文映射。可直接在表格中编辑；对照偏移可整体上下微调；锁定后保存且禁止整体调整。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if viewModel.canUseTranslationTableView {
-                    translationSyncOffsetControls
-                }
+                    .foregroundStyle(.orange)
+                    .help("对齐已失效，点击「对齐原文」恢复")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .trailing, spacing: 6) {
-                Button("对齐原文") {
-                    viewModel.alignTranslationWithSource()
-                }
-                .buttonStyle(.bordered)
+            Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
+                .toggleStyle(.switch)
+                .controlSize(.small)
                 .font(BookTheme.captionFont)
-                .disabled(!viewModel.canAlignTranslationWithSource)
+                .disabled(!viewModel.canUseTranslationTableView)
 
-                if viewModel.isTranslationAlignmentLocked {
-                    Button("解锁对照") {
-                        viewModel.unlockTranslationAlignment()
-                    }
-                    .buttonStyle(.bordered)
-                    .font(BookTheme.captionFont)
-                } else if viewModel.canUseTranslationTableView {
-                    Button("锁定对照") {
-                        viewModel.lockTranslationAlignment()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .font(BookTheme.captionFont)
+            translationToolbarButton(title: "对齐原文") {
+                viewModel.alignTranslationWithSource()
+            }
+            .disabled(!viewModel.canAlignTranslationWithSource)
+
+            if viewModel.isTranslationAlignmentLocked {
+                translationToolbarButton(title: "解锁对照") {
+                    viewModel.unlockTranslationAlignment()
                 }
-
-                if let status = viewModel.translationAlignmentStatusText {
-                    Text(status)
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(
-                            viewModel.translationAlignment?.isStale == true
-                                ? Color.orange
-                                : BookTheme.inkMuted
-                        )
+            } else if viewModel.canUseTranslationTableView {
+                translationToolbarButton(title: "锁定对照", prominent: true) {
+                    viewModel.lockTranslationAlignment()
                 }
             }
-            .padding(.top, 2)
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 4)
-        .padding(.bottom, 2)
-    }
 
-    private var translationSyncOffsetControls: some View {
-        HStack(spacing: 8) {
-            Text("对照偏移")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkSecondary)
-
-            Button("左表↓") {
-                viewModel.shiftTranslationSyncOffset(rightTableSteps: -1)
-            }
-            .buttonStyle(.bordered)
-            .font(BookTheme.captionFont)
-            .disabled(!viewModel.canAdjustTranslationSyncOffset)
-
-            Button("右表↓") {
-                viewModel.shiftTranslationSyncOffset(rightTableSteps: 1)
-            }
-            .buttonStyle(.bordered)
-            .font(BookTheme.captionFont)
-            .disabled(!viewModel.canAdjustTranslationSyncOffset)
-
-            Text(offsetLabel)
-                .font(BookTheme.captionFont.monospacedDigit())
-                .foregroundStyle(BookTheme.leather)
-                .frame(minWidth: 28)
-
-            Button("复位") {
-                viewModel.resetTranslationSyncOffset()
-            }
-            .buttonStyle(.plain)
-            .font(BookTheme.captionFont)
-            .foregroundStyle(BookTheme.leather)
-            .disabled(!viewModel.canAdjustTranslationSyncOffset || viewModel.translationSyncBlockOffset == 0)
-        }
-        .help("左表↓：右表整体上移一行对照；右表↓：右表整体下移一行对照。锁定后不可调整。")
-    }
-
-    private var offsetLabel: String {
-        let offset = viewModel.translationSyncBlockOffset
-        if offset == 0 { return "0" }
-        return offset > 0 ? "+\(offset)" : "\(offset)"
-    }
-
-    private var translationStaleBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            Text("对齐已失效。可点击右侧「对齐原文」恢复表格对照，无需重新翻译；仅当译文内容本身也要改时才重新生成。")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkSecondary)
             Spacer(minLength: 8)
+
+            if !viewModel.showsTranslationTableView {
+                translationToolbarButton(title: "全选") {
+                    viewModel.selectAllRightPage()
+                }
+                .disabled(
+                    viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.isRunning
+                )
+
+                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                    translationToolbarButton(
+                        title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停"
+                    ) {
+                        viewModel.toggleExplanationSpeechPause()
+                    }
+                }
+
+                translationToolbarButton(
+                    title: viewModel.isSpeakingExplanation ? "停止" : "朗读"
+                ) {
+                    if viewModel.isSpeakingExplanation {
+                        viewModel.stopExplanationSpeech()
+                    } else {
+                        viewModel.readLessonPlanAloud()
+                    }
+                }
+                .disabled(
+                    viewModel.isRunning
+                        || (
+                            viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                && !viewModel.isSpeakingExplanation
+                        )
+                )
+            }
         }
+        .font(BookTheme.captionFont)
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.orange.opacity(0.12))
+        .padding(.vertical, 6)
+    }
+
+    private func translationToolbarButton(
+        title: String,
+        prominent: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .foregroundStyle(prominent ? BookTheme.leather : BookTheme.ink)
         }
+        .buttonStyle(.plain)
     }
 
     private var explanationPlaceholder: some View {
@@ -591,71 +537,6 @@ struct ExplanationChatView: View {
         }
     }
 
-    private var lessonPlanSelectAllButton: some View {
-        let isEmpty = viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return Button {
-            viewModel.selectAllRightPage()
-        } label: {
-            Label("全选", systemImage: "selection.pin.in.out")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background {
-                    Capsule()
-                        .fill(Color.white.opacity(0.88))
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(BookTheme.pageEdge.opacity(0.75), lineWidth: 1)
-                        }
-                }
-        }
-        .buttonStyle(.plain)
-        .disabled(isEmpty || viewModel.isRunning)
-        .help("全选翻译内容")
-    }
-
-    private var lessonPlanReadAloudButton: some View {
-        let isEmpty = viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return HStack(spacing: 8) {
-            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
-                Button {
-                    viewModel.toggleExplanationSpeechPause()
-                } label: {
-                    Label(
-                        viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
-                        systemImage: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill"
-                    )
-                    .font(styleManager.tokens.typography.captionFont)
-                    .foregroundStyle(styleManager.tokens.colors.ink)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background { lessonPlanToolbarCapsule }
-                }
-                .buttonStyle(.plain)
-                .help(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
-            }
-
-            Button {
-                viewModel.readLessonPlanAloud()
-            } label: {
-                Label(
-                    viewModel.isSpeakingExplanation ? "停止" : "朗读",
-                    systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill"
-                )
-                .font(styleManager.tokens.typography.captionFont)
-                .foregroundStyle(styleManager.tokens.colors.ink)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background { lessonPlanToolbarCapsule }
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isRunning || (isEmpty && !viewModel.isSpeakingExplanation))
-            .help(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译内容（\(BookKeyboardShortcuts.readTranslationFullHint)）")
-        }
-        .id(styleManager.revision)
-    }
-
     private var lessonPlanToolbarCapsule: some View {
         let colors = styleManager.tokens.colors
         return Capsule()
@@ -667,18 +548,13 @@ struct ExplanationChatView: View {
     }
 
     private var lessonPlanPlaceholder: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("点击「逐字翻译」开始", systemImage: "sparkles")
-                .font(BookTheme.labelFont)
-                .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("在顶栏「翻译操作」选择逐字/整段翻译；生成后可编辑，并点击右上角朗读或 \(BookKeyboardShortcuts.readTranslationFullHint)。")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
-                .lineSpacing(4)
-        }
-        .padding(.horizontal, 36)
-        .padding(.vertical, 32)
-        .allowsHitTesting(false)
+        Text("点击顶栏「翻译操作」开始翻译")
+            .font(BookTheme.captionFont)
+            .foregroundStyle(BookTheme.inkMuted)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .allowsHitTesting(false)
     }
 
     private var chatList: some View {

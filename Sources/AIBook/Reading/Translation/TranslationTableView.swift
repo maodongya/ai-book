@@ -37,48 +37,44 @@ struct TranslationTableView: View {
 
     var body: some View {
         GeometryReader { viewport in
-            let layout = columnLayout(totalWidth: max(viewport.size.width - 24, 1), showsNotes: showsNotes)
+            let layout = TranslationTableLayout.columnLayout(
+                totalWidth: max(viewport.size.width - 24, 1),
+                showsNotes: showsNotes
+            )
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        Section {
-                            ForEach(entryBlocks) { block in
-                                TranslationTableEditableRow(
-                                    block: block,
-                                    layout: layout,
-                                    showsNotes: showsNotes,
-                                    isEditable: isEditable,
-                                    isHighlighted: highlightedBlockID == block.id,
-                                    shouldFocusTranslation: focusTranslationBlockID == block.id,
-                                    onSelect: { onSelectBlock(block) },
-                                    onUpdate: { source, translation, note in
-                                        onUpdateBlock(block.id, source, translation, note)
-                                    },
-                                    onSplitTranslation: { before, after in
-                                        onSplitTranslation(block.id, before, after)
-                                    },
-                                    onClearFocusTranslation: onClearFocusTranslation
-                                )
-                                .id(block.id)
-                            }
-                        } header: {
-                            columnHeader(layout: layout)
+                    LazyVStack(spacing: 0) {
+                        ForEach(entryBlocks) { block in
+                            TranslationTableEditableRow(
+                                block: block,
+                                layout: layout,
+                                showsNotes: showsNotes,
+                                isEditable: isEditable,
+                                isHighlighted: highlightedBlockID == block.id,
+                                shouldFocusTranslation: focusTranslationBlockID == block.id,
+                                onSelect: { onSelectBlock(block) },
+                                onUpdate: { source, translation, note in
+                                    onUpdateBlock(block.id, source, translation, note)
+                                },
+                                onSplitTranslation: { before, after in
+                                    onSplitTranslation(block.id, before, after)
+                                },
+                                onClearFocusTranslation: onClearFocusTranslation
+                            )
+                            .id(block.id)
                         }
 
                         if !summaryBlocks.isEmpty {
-                            Section {
-                                ForEach(summaryBlocks) { block in
-                                    TranslationTableSummaryRow(
-                                        block: block,
-                                        isEditable: isEditable,
-                                        onUpdate: { translation in
-                                            onUpdateBlock(block.id, nil, translation, nil)
-                                        }
-                                    )
-                                    .id(block.id)
-                                }
-                            } header: {
-                                summaryHeader
+                            summaryHeader
+                            ForEach(summaryBlocks) { block in
+                                TranslationTableSummaryRow(
+                                    block: block,
+                                    isEditable: isEditable,
+                                    onUpdate: { translation in
+                                        onUpdateBlock(block.id, nil, translation, nil)
+                                    }
+                                )
+                                .id(block.id)
                             }
                         }
                     }
@@ -91,25 +87,9 @@ struct TranslationTableView: View {
                 }
             }
         }
-        .background(tableBackground)
-        .padding(.horizontal, 36)
-        .padding(.vertical, 32)
-        .id(styleManager.revision)
-    }
-
-    private func columnHeader(layout: ColumnLayout) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            headerCell("原文", width: layout.source)
-            tableDivider
-            headerCell("译文", width: layout.translation)
-            if showsNotes {
-                tableDivider
-                headerCell("说明", width: layout.note)
-            }
-        }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(BookTheme.pageEdge.opacity(0.18))
+        .padding(.vertical, 4)
+        .id(styleManager.revision)
     }
 
     private var summaryHeader: some View {
@@ -122,13 +102,6 @@ struct TranslationTableView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(BookTheme.pageEdge.opacity(0.12))
-    }
-
-    private func headerCell(_ title: String, width: CGFloat) -> some View {
-        Text(title)
-            .frame(width: width, alignment: .leading)
-            .font(BookTheme.captionFont.weight(.semibold))
-            .foregroundStyle(BookTheme.inkSecondary)
     }
 
     private func rowBackground(isHighlighted: Bool) -> some View {
@@ -147,25 +120,81 @@ struct TranslationTableView: View {
             .background(BookTheme.pageEdge.opacity(0.65))
     }
 
-    private var tableBackground: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(Color.white.opacity(0.18))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(BookTheme.pageEdge.opacity(0.45), lineWidth: 1)
-            }
-    }
-
     private func noteText(for block: TranslationBlock) -> String? {
         let note = block.note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return note.isEmpty ? nil : note
     }
 
-    private func columnLayout(totalWidth: CGFloat, showsNotes: Bool) -> ColumnLayout {
+}
+
+struct TranslationTableColumnHeader: View {
+    let alignment: TranslationAlignment
+    var isEditable: Bool = true
+
+    private var showsNotes: Bool {
+        TranslationTableLayout.showsNotes(for: alignment, isEditable: isEditable)
+    }
+
+    var body: some View {
+        GeometryReader { viewport in
+            let layout = TranslationTableLayout.columnLayout(
+                totalWidth: max(viewport.size.width - 24, 1),
+                showsNotes: showsNotes
+            )
+            HStack(alignment: .top, spacing: 0) {
+                headerCell("原文", width: layout.source)
+                tableDivider
+                headerCell("译文", width: layout.translation)
+                if showsNotes {
+                    tableDivider
+                    headerCell("说明", width: layout.note)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+        }
+        .frame(height: 24)
+    }
+
+    private func headerCell(_ title: String, width: CGFloat) -> some View {
+        Text(title)
+            .frame(width: width, alignment: .leading)
+            .font(BookTheme.captionFont.weight(.semibold))
+            .foregroundStyle(BookTheme.inkSecondary)
+    }
+
+    private var tableDivider: some View {
+        Divider()
+            .frame(width: 1)
+            .background(BookTheme.pageEdge.opacity(0.65))
+    }
+}
+
+enum TranslationTableLayout {
+    static func showsNotes(for alignment: TranslationAlignment, isEditable: Bool) -> Bool {
+        let entryBlocks = entryBlocks(for: alignment)
+        let hasNotes = entryBlocks.contains {
+            let note = $0.note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return !note.isEmpty
+        }
+        return hasNotes || (isEditable && alignment.mode == .wordByWord)
+    }
+
+    static func columnLayout(totalWidth: CGFloat, showsNotes: Bool) -> ColumnLayout {
         let source = totalWidth * (showsNotes ? 0.34 : 0.40)
         let note = showsNotes ? totalWidth * 0.22 : 0
         let translation = max(0, totalWidth - source - note)
         return ColumnLayout(source: source, translation: translation, note: note)
+    }
+
+    private static func entryBlocks(for alignment: TranslationAlignment) -> [TranslationBlock] {
+        let words = alignment.blocks
+            .filter { $0.level == .word || $0.level == .phrase }
+            .sorted { $0.order < $1.order }
+        if !words.isEmpty { return words }
+        return alignment.blocks
+            .filter { $0.level == .paragraph }
+            .sorted { $0.order < $1.order }
     }
 }
 
@@ -253,7 +282,6 @@ private struct TranslationTableEditableRow: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(rowBackground)
-        .overlay(alignment: .bottom) { Divider() }
         .contentShape(Rectangle())
         .onTapGesture {
             guard focusedField == nil else { return }
@@ -400,7 +428,6 @@ private struct TranslationTableSummaryRow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(BookTheme.selection.opacity(0.12))
-        .overlay(alignment: .bottom) { Divider() }
         .onChange(of: block.translationText) { translationDraft = $0 }
     }
 
@@ -417,7 +444,7 @@ private struct TranslationTableSummaryRow: View {
     }
 }
 
-private struct ColumnLayout {
+struct ColumnLayout {
     let source: CGFloat
     let translation: CGFloat
     let note: CGFloat

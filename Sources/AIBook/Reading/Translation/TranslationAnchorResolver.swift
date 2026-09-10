@@ -49,18 +49,6 @@ enum TranslationAnchorResolver {
             .sorted { $0.order < $1.order }
     }
 
-    static func blockWithSyncOffset(
-        from block: TranslationBlock,
-        offset: Int,
-        in alignment: TranslationAlignment
-    ) -> TranslationBlock {
-        guard offset != 0 else { return block }
-        let syncable = syncableBlocks(in: alignment)
-        guard let index = syncable.firstIndex(where: { $0.id == block.id }) else { return block }
-        let targetIndex = min(max(0, index + offset), syncable.count - 1)
-        return syncable[targetIndex]
-    }
-
     private static func rangesIntersect(_ lhs: NSRange, _ rhs: NSRange) -> Bool {
         guard lhs.location != NSNotFound, rhs.location != NSNotFound else { return false }
         let lhsEnd = lhs.location + lhs.length

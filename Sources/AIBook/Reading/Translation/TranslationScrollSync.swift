@@ -25,12 +25,8 @@ final class TranslationScrollSync: ObservableObject {
             forSourceVisibleRange: visibleRange,
             in: alignment
         ), anchored.hasTranslationRange else { return }
-        let block = TranslationAnchorResolver.blockWithSyncOffset(
-            from: anchored,
-            offset: alignment.syncBlockOffset,
-            in: alignment
-        )
-        guard block.id != lastSourceAnchorID else { return }
+        guard anchored.id != lastSourceAnchorID else { return }
+        let block = anchored
 
         isPropagating = true
         defer { isPropagating = false }
