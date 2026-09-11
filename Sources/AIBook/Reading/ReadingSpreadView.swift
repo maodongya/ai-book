@@ -15,6 +15,9 @@ struct ReadingSpreadView: View {
     @State private var isDraggingTurn = false
     @State private var isRepaginating = false
     @State private var layoutMode: ReadingLayoutMode = .spread
+    @State private var turningPageSnapshot: BookPageTurnSnapshot?
+    @State private var lastPageWidth: CGFloat = defaultPageContentSize.width
+    @State private var lastSpreadHeight: CGFloat = defaultPageContentSize.height
 
     private let commitThreshold: CGFloat = 0.34
     private let spineWidth: CGFloat = 34
@@ -167,7 +170,11 @@ struct ReadingSpreadView: View {
                         hideTrailingPage: shouldHidePage(side: .trailing)
                     )
 
-                    if let flipDirection, flipProgress > 0 {
+                    if layoutMode == .spread {
+                        spreadSpine(pageWidth: pageWidth, height: spreadHeight)
+                    }
+
+                    if let flipDirection {
                         turningSheet(
                             direction: flipDirection,
                             pageWidth: pageWidth,
@@ -179,9 +186,13 @@ struct ReadingSpreadView: View {
             .background {
                 Color.clear
                     .onAppear {
+                        lastPageWidth = pageWidth
+                        lastSpreadHeight = spreadHeight
                         updatePageContentSize(width: pageWidth, height: spreadHeight)
                     }
                     .onChange(of: geometry.size) { _ in
+                        lastPageWidth = pageWidth
+                        lastSpreadHeight = spreadHeight
                         updatePageContentSize(width: pageWidth, height: spreadHeight)
                     }
             }
@@ -221,10 +232,8 @@ struct ReadingSpreadView: View {
                 )
                 .opacity(hideLeadingPage ? 0 : 1)
 
-                ZStack(alignment: .top) {
-                    bookSpine
-                    BookInterface.BookmarkRibbon()
-                }
+                Color.clear
+                    .frame(width: spineWidth)
 
                 pagePanel(
                     text: pageText(spreadIndex: spreadIndex, side: .trailing),
@@ -246,56 +255,29 @@ struct ReadingSpreadView: View {
         pageWidth: CGFloat,
         spreadHeight: CGFloat
     ) -> some View {
-        if layoutMode == .fullscreen {
-            turningPageSheet(
-                direction: direction,
-                side: .leading,
-                pageWidth: pageWidth,
-                spreadHeight: spreadHeight,
-                text: fullscreenPageText(at: displayedSpreadIndex),
-                pageNumber: fullscreenPageNumber(at: displayedSpreadIndex),
-                pageCaption: nil
-            )
-            .frame(maxWidth: .infinity, alignment: .center)
-            .allowsHitTesting(false)
-        } else {
-            HStack(spacing: 0) {
-                if direction == .backward {
-                    turningPageSheet(
-                        direction: direction,
-                        side: .leading,
-                        pageWidth: pageWidth,
-                        spreadHeight: spreadHeight,
-                        text: pageText(spreadIndex: displayedSpreadIndex, side: .leading),
-                        pageNumber: pageNumber(spreadIndex: displayedSpreadIndex, side: .leading),
-                        pageCaption: leadingPageCaption
-                    )
-                } else {
-                    Color.clear.frame(width: pageWidth)
-                }
+        let canvasWidth = layoutMode == .spread ? pageWidth * 2 + spineWidth : pageWidth
+        let pageOriginX: CGFloat = {
+            guard layoutMode == .spread else { return 0 }
+            return direction == .forward ? pageWidth + spineWidth : 0
+        }()
 
-                Color.clear.frame(width: spineWidth)
-
-                if direction == .forward {
-                    turningPageSheet(
-                        direction: direction,
-                        side: .trailing,
-                        pageWidth: pageWidth,
-                        spreadHeight: spreadHeight,
-                        text: pageText(spreadIndex: displayedSpreadIndex, side: .trailing),
-                        pageNumber: pageNumber(spreadIndex: displayedSpreadIndex, side: .trailing),
-                        pageCaption: trailingPageCaption
-                    )
-                } else {
-                    Color.clear.frame(width: pageWidth)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .allowsHitTesting(false)
-        }
+        BookPageTurnSheet(
+            progress: flipProgress,
+            direction: direction,
+            pageWidth: pageWidth,
+            height: spreadHeight,
+            canvasWidth: canvasWidth,
+            pageOriginX: pageOriginX,
+            spineOriginX: layoutMode == .spread ? pageWidth : 0,
+            spineWidth: layoutMode == .spread ? spineWidth : 0,
+            snapshot: turningPageSnapshot
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .allowsHitTesting(false)
     }
 
-    private func turningPageSheet(
+    @MainActor
+    private func captureTurningPageSnapshot(
         direction: BookPageTurnDirection,
         side: HorizontalEdge,
         pageWidth: CGFloat,
@@ -303,23 +285,41 @@ struct ReadingSpreadView: View {
         text: String,
         pageNumber: Int?,
         pageCaption: String?
-    ) -> some View {
-        BookPageTurnSheet(
-            progress: flipProgress,
-            direction: direction,
+    ) -> BookPageTurnSnapshot? {
+        let size = CGSize(width: pageWidth, height: spreadHeight)
+        let front = pagePanel(
+            text: text,
+            pageNumber: pageNumber,
+            pageCaption: pageCaption,
+            side: side,
             width: pageWidth,
-            height: spreadHeight
-        ) {
-            pagePanel(
-                text: text,
-                pageNumber: pageNumber,
-                pageCaption: pageCaption,
-                side: side,
-                width: pageWidth,
-                height: spreadHeight,
-                usesSplitTapNavigation: layoutMode == .fullscreen
+            height: spreadHeight,
+            usesSplitTapNavigation: layoutMode == .fullscreen
+        )
+        let reverse = turningPageReverseContent(for: direction)
+        let back: AnyView = {
+            if let reverse {
+                return AnyView(
+                    pagePanel(
+                        text: reverse.text,
+                        pageNumber: reverse.pageNumber,
+                        pageCaption: reverse.pageCaption,
+                        side: reverse.side,
+                        width: pageWidth,
+                        height: spreadHeight,
+                        usesSplitTapNavigation: layoutMode == .fullscreen
+                    )
+                )
+            }
+            return AnyView(
+                BookPageBackSurface(
+                    direction: direction,
+                    width: pageWidth,
+                    height: spreadHeight
+                )
             )
-        }
+        }()
+        return BookPageTurnSnapshotRenderer.render(front: front, back: back, size: size)
     }
 
     private var readingKeyboardShortcuts: some View {
@@ -349,9 +349,9 @@ struct ReadingSpreadView: View {
                 let width = max(pageWidth, 1)
                 if !isDraggingTurn {
                     if value.translation.width < -12, canGoForward {
-                        beginInteractiveTurn(.forward)
+                        beginInteractiveTurn(.forward, pageWidth: width, spreadHeight: lastSpreadHeight)
                     } else if value.translation.width > 12, canGoBackward {
-                        beginInteractiveTurn(.backward)
+                        beginInteractiveTurn(.backward, pageWidth: width, spreadHeight: lastSpreadHeight)
                     } else {
                         return
                     }
@@ -497,6 +497,20 @@ struct ReadingSpreadView: View {
         }
     }
 
+    private func spreadSpine(pageWidth: CGFloat, height: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: pageWidth)
+            ZStack(alignment: .top) {
+                bookSpine
+                BookInterface.BookmarkRibbon()
+            }
+            Color.clear.frame(width: pageWidth)
+        }
+        .frame(width: pageWidth * 2 + spineWidth, height: height)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .allowsHitTesting(false)
+    }
+
     private var bookSpine: some View {
         Rectangle()
             .fill(
@@ -589,7 +603,11 @@ struct ReadingSpreadView: View {
         }
     }
 
-    private func beginInteractiveTurn(_ direction: BookPageTurnDirection) {
+    private func beginInteractiveTurn(
+        _ direction: BookPageTurnDirection,
+        pageWidth: CGFloat,
+        spreadHeight: CGFloat
+    ) {
         switch direction {
         case .forward:
             guard canGoForward else { return }
@@ -598,21 +616,92 @@ struct ReadingSpreadView: View {
             guard canGoBackward else { return }
             targetSpreadIndex = displayedSpreadIndex - 1
         }
+
+        let content = turningPageContent(for: direction)
+        turningPageSnapshot = captureTurningPageSnapshot(
+            direction: direction,
+            side: content.side,
+            pageWidth: pageWidth,
+            spreadHeight: spreadHeight,
+            text: content.text,
+            pageNumber: content.pageNumber,
+            pageCaption: content.pageCaption
+        )
+
         flipDirection = direction
         isDraggingTurn = true
         flipProgress = 0
     }
 
+    private func turningPageContent(for direction: BookPageTurnDirection) -> (
+        side: HorizontalEdge,
+        text: String,
+        pageNumber: Int?,
+        pageCaption: String?
+    ) {
+        switch layoutMode {
+        case .fullscreen:
+            return (
+                .leading,
+                fullscreenPageText(at: displayedSpreadIndex),
+                fullscreenPageNumber(at: displayedSpreadIndex),
+                nil
+            )
+        case .spread:
+            switch direction {
+            case .forward:
+                return (
+                    .trailing,
+                    pageText(spreadIndex: displayedSpreadIndex, side: .trailing),
+                    pageNumber(spreadIndex: displayedSpreadIndex, side: .trailing),
+                    trailingPageCaption
+                )
+            case .backward:
+                return (
+                    .leading,
+                    pageText(spreadIndex: displayedSpreadIndex, side: .leading),
+                    pageNumber(spreadIndex: displayedSpreadIndex, side: .leading),
+                    leadingPageCaption
+                )
+            }
+        }
+    }
+
+    private func turningPageReverseContent(for direction: BookPageTurnDirection) -> (
+        side: HorizontalEdge,
+        text: String,
+        pageNumber: Int?,
+        pageCaption: String?
+    )? {
+        guard layoutMode == .spread, let targetSpreadIndex else { return nil }
+        switch direction {
+        case .forward:
+            return (
+                .leading,
+                pageText(spreadIndex: targetSpreadIndex, side: .leading),
+                pageNumber(spreadIndex: targetSpreadIndex, side: .leading),
+                leadingPageCaption
+            )
+        case .backward:
+            return (
+                .trailing,
+                pageText(spreadIndex: targetSpreadIndex, side: .trailing),
+                pageNumber(spreadIndex: targetSpreadIndex, side: .trailing),
+                trailingPageCaption
+            )
+        }
+    }
+
     private func turnPage(_ direction: BookPageTurnDirection) {
         guard flipDirection == nil else { return }
-        beginInteractiveTurn(direction)
+        beginInteractiveTurn(direction, pageWidth: lastPageWidth, spreadHeight: lastSpreadHeight)
         guard flipDirection != nil else { return }
 
         withAnimation(.bookPageTurn) {
             flipProgress = 1
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.62) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.88) {
             finishTurnState()
         }
     }
@@ -621,7 +710,7 @@ struct ReadingSpreadView: View {
         withAnimation(.bookPageTurn) {
             flipProgress = 1
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.52) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.88) {
             finishTurnState()
         }
     }
@@ -630,10 +719,11 @@ struct ReadingSpreadView: View {
         withAnimation(.bookPageTurn) {
             flipProgress = 0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.52) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.88) {
             flipDirection = nil
             targetSpreadIndex = nil
             flipProgress = 0
+            turningPageSnapshot = nil
         }
     }
 
@@ -648,6 +738,7 @@ struct ReadingSpreadView: View {
         flipDirection = nil
         self.targetSpreadIndex = nil
         isDraggingTurn = false
+        turningPageSnapshot = nil
     }
 
     private var leadingPageCaption: String? { nil }
@@ -699,7 +790,7 @@ struct ReadingSpreadView: View {
     }
 
     private func shouldHidePage(side: HorizontalEdge) -> Bool {
-        guard flipDirection != nil, flipProgress > 0 else { return false }
+        guard flipDirection != nil else { return false }
         switch layoutMode {
         case .spread:
             return side == .leading ? flipDirection == .backward : flipDirection == .forward
