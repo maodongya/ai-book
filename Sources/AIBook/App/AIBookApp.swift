@@ -27,6 +27,11 @@ struct AIBookApp: App {
                     viewModel.openFile()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
+
+                Button("打开目录…") {
+                    viewModel.openDirectory()
+                }
+                .disabled(viewModel.isRunning)
             }
 
             CommandGroup(after: .saveItem) {

@@ -40,6 +40,10 @@ struct ContentView: View {
             BookSettingsView()
                 .bookStyleEnvironment(styleManager)
         }
+        .sheet(isPresented: $viewModel.showDirectoryBrowser) {
+            directoryBrowserSheet
+                .bookStyleEnvironment(styleManager)
+        }
         .frame(minWidth: 960, minHeight: 640)
         .animation(.easeOut(duration: 0.2), value: styleManager.presetID)
         .animation(.easeOut(duration: 0.2), value: learningPaneFocus)
@@ -406,6 +410,13 @@ struct ContentView: View {
             Text("打开")
         }
         .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
+        .disabled(viewModel.isRunning)
+
+        Button {
+            viewModel.openDirectory()
+        } label: {
+            Text("打开目录")
+        }
         .disabled(viewModel.isRunning)
 
         Button {
@@ -1476,10 +1487,10 @@ struct ContentView: View {
         !(viewModel.rightPageTab == .readingAssistant && !isReadingChromeVisible)
     }
 
-    private var rightPageSubtitle: String {
+    private var rightPageSubtitle: String? {
         switch viewModel.rightPageTab {
         case .readingAssistant:
-            return "\(viewModel.readingAssistantPanel.rawValue) · \(settings.bookLLMDisplayLabel)"
+            return nil
         case .aiEvolution:
             let modelLabel = ModelTokenLimits.cursorModelLabel(settings.resolvedCursorModel)
             if let label = viewModel.evolutionStatusLabel {
@@ -1602,6 +1613,31 @@ struct ContentView: View {
             }
         }
         return true
+    }
+
+    private var directoryBrowserSheet: some View {
+        DirectoryBrowserView(
+            sessions: viewModel.directoryBrowserSessions,
+            selectedSessionID: viewModel.selectedDirectorySessionID,
+            onSelectSession: { id in
+                viewModel.selectDirectorySession(id)
+            },
+            onAddDirectory: {
+                viewModel.addDirectoryFromPanel()
+            },
+            onRemoveSession: { id in
+                viewModel.removeDirectorySession(id)
+            },
+            onToggleExpanded: { sessionID, path in
+                viewModel.toggleDirectoryNodeExpanded(sessionID: sessionID, path: path)
+            },
+            onOpen: { url, target in
+                viewModel.openFileFromDirectory(at: url, target: target)
+            },
+            onDismiss: {
+                viewModel.dismissDirectoryBrowser()
+            }
+        )
     }
 
     private var errorBinding: Binding<Bool> {

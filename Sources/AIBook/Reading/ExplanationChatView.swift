@@ -169,10 +169,6 @@ struct ExplanationChatView: View {
 
     private var explanationPanel: some View {
         ZStack(alignment: .topLeading) {
-            if viewModel.chatMessages.count <= 1 && !viewModel.isLoading {
-                explanationPlaceholder
-            }
-
             chatList
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -412,21 +408,6 @@ struct ExplanationChatView: View {
         .buttonStyle(.plain)
     }
 
-    private var explanationPlaceholder: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("选中左页文字后点击「选择讲解」", systemImage: "sparkles.text.clipboard")
-                .font(BookTheme.labelFont)
-                .foregroundStyle(BookTheme.ink.opacity(0.72))
-            Text("也可在顶栏「讲解操作」中使用「全文讲解」；支持新建、保存、打开、全选、清空与朗读。")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
-                .lineSpacing(4)
-        }
-        .padding(.horizontal, 36)
-        .padding(.vertical, 32)
-        .allowsHitTesting(false)
-    }
-
     private var aiEvolutionPage: some View {
         VStack(spacing: 0) {
             configurationNotice
@@ -556,11 +537,18 @@ struct ExplanationChatView: View {
             .allowsHitTesting(false)
     }
 
+    private var displayedChatMessages: [ChatMessage] {
+        if viewModel.rightPageTab == .readingAssistant {
+            return viewModel.explanationDisplayMessages
+        }
+        return viewModel.chatMessages
+    }
+
     private var chatList: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    ForEach(viewModel.chatMessages) { message in
+                    ForEach(displayedChatMessages) { message in
                         chatBubble(for: message)
                             .id(message.id)
                     }
@@ -573,7 +561,7 @@ struct ExplanationChatView: View {
                 .padding(.horizontal, 36)
                 .padding(.vertical, 32)
             }
-            .onChange(of: viewModel.chatMessages.count) { _ in
+            .onChange(of: displayedChatMessages.count) { _ in
                 scrollToBottom(proxy: proxy)
             }
             .onChange(of: viewModel.showsExecutionTrace) { _ in
@@ -600,7 +588,9 @@ struct ExplanationChatView: View {
         Group {
             if message.role == .assistant {
                 VStack(alignment: .leading, spacing: 10) {
-                    assistantMessageHeader(message)
+                    if viewModel.rightPageTab == .aiEvolution {
+                        assistantMessageHeader(message)
+                    }
                     if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
                         AssistantExecutionTraceCard(
                             thinking: message.thinking,
@@ -737,9 +727,11 @@ struct ExplanationChatView: View {
 
     private var streamingBubble: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(assistantLabel, systemImage: "sparkles")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
+            if viewModel.rightPageTab == .aiEvolution {
+                Label(assistantLabel, systemImage: "sparkles")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
+            }
 
             if viewModel.showsExecutionTrace {
                 cursorStreamingContent
@@ -826,7 +818,7 @@ struct ExplanationChatView: View {
             return
         }
 
-        if let last = viewModel.chatMessages.last {
+        if let last = displayedChatMessages.last {
             withAnimation(.easeOut(duration: 0.2)) {
                 proxy.scrollTo(last.id, anchor: .bottom)
             }

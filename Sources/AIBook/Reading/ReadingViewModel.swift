@@ -142,6 +142,9 @@ final class ReadingViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showSettings = false
     @Published var showBookSettings = false
+    @Published var showDirectoryBrowser = false
+    @Published var directoryBrowserSessions: [DirectoryBrowserRootSession] = []
+    @Published var selectedDirectorySessionID: UUID?
     @Published private(set) var isSpeakingExplanation = false
     @Published private(set) var isExplanationSpeechPaused = false
     @Published private(set) var currentSpeechSource: SpeechSource?
@@ -206,6 +209,7 @@ final class ReadingViewModel: ObservableObject {
         syncDisplayedChatMessages()
         refreshTranslationAlignmentStaleState()
         persistChatSession()
+        restoreDirectoryBrowserSessions()
     }
 
     func onAppear() {
@@ -921,6 +925,147 @@ final class ReadingViewModel: ObservableObject {
         loadFile(at: url)
     }
 
+    func openDirectory() {
+        guard !isRunning else { return }
+        if directoryBrowserSessions.isEmpty {
+            guard let url = pickDirectoryURL() else { return }
+            addDirectorySession(for: url)
+        }
+        showDirectoryBrowser = true
+    }
+
+    func addDirectoryFromPanel() {
+        guard !isRunning else { return }
+        guard let url = pickDirectoryURL() else { return }
+        addDirectorySession(for: url)
+        showDirectoryBrowser = true
+    }
+
+    func selectDirectorySession(_ id: UUID) {
+        selectedDirectorySessionID = id
+    }
+
+    func removeDirectorySession(_ id: UUID) {
+        directoryBrowserSessions.removeAll { $0.id == id }
+        if selectedDirectorySessionID == id {
+            selectedDirectorySessionID = directoryBrowserSessions.first?.id
+        }
+        persistDirectoryBrowserSessions()
+    }
+
+    func toggleDirectoryNodeExpanded(sessionID: UUID, path: String) {
+        guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        if directoryBrowserSessions[index].expandedPaths.contains(path) {
+            directoryBrowserSessions[index].expandedPaths.remove(path)
+        } else {
+            directoryBrowserSessions[index].expandedPaths.insert(path)
+        }
+        persistDirectoryBrowserSessions()
+    }
+
+    func dismissDirectoryBrowser() {
+        showDirectoryBrowser = false
+    }
+
+    func openFileFromDirectory(at url: URL, target: DirectoryFileOpenTarget) {
+        switch target {
+        case .original:
+            guard confirmDiscardUnsavedIfNeeded() else { return }
+            loadFile(at: url)
+        case .translation:
+            selectRightPageTab(.readingAssistant)
+            selectReadingAssistantPanel(.translation)
+            loadLessonPlan(at: url)
+        case .explanation:
+            guard !isRunning else { return }
+            selectRightPageTab(.readingAssistant)
+            selectReadingAssistantPanel(.explanation)
+            loadExplanation(at: url)
+        }
+        DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
+    }
+
+    private func pickDirectoryURL() -> URL? {
+        let panel = NSOpenPanel()
+        panel.title = "选择文件夹"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = DocumentExporter.lastDirectoryURL
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        DocumentExporter.lastDirectoryURL = url
+        return url
+    }
+
+    private func addDirectorySession(for url: URL) {
+        let standardized = url.standardizedFileURL
+        if let existing = directoryBrowserSessions.first(where: { $0.rootURL == standardized }) {
+            selectedDirectorySessionID = existing.id
+            if existing.tree == nil, !existing.isLoading {
+                loadDirectoryTree(for: existing.id)
+            }
+            return
+        }
+
+        let session = DirectoryBrowserRootSession.new(url: standardized)
+        directoryBrowserSessions.append(session)
+        selectedDirectorySessionID = session.id
+        persistDirectoryBrowserSessions()
+        loadDirectoryTree(for: session.id)
+    }
+
+    private func restoreDirectoryBrowserSessions() {
+        let stored = DirectoryBrowserPersistence.load()
+        directoryBrowserSessions = stored.map { storedRoot in
+            let url = URL(fileURLWithPath: storedRoot.urlPath, isDirectory: true).standardizedFileURL
+            return DirectoryBrowserRootSession(
+                id: storedRoot.id,
+                rootURL: url,
+                tree: nil,
+                isLoading: false,
+                expandedPaths: Set(storedRoot.expandedPaths),
+                loadError: nil
+            )
+        }
+        selectedDirectorySessionID = directoryBrowserSessions.first?.id
+        for session in directoryBrowserSessions {
+            loadDirectoryTree(for: session.id)
+        }
+    }
+
+    private func persistDirectoryBrowserSessions() {
+        DirectoryBrowserPersistence.save(directoryBrowserSessions)
+    }
+
+    private func loadDirectoryTree(for sessionID: UUID) {
+        guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        let rootURL = directoryBrowserSessions[index].rootURL
+        directoryBrowserSessions[index].isLoading = true
+        directoryBrowserSessions[index].loadError = nil
+
+        Task.detached(priority: .userInitiated) {
+            let tree = DirectoryTreeScanner.scan(root: rootURL)
+            await MainActor.run { [weak self] in
+                guard let self,
+                      let currentIndex = self.directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else {
+                    return
+                }
+                self.directoryBrowserSessions[currentIndex].isLoading = false
+                if let tree {
+                    self.directoryBrowserSessions[currentIndex].tree = tree
+                    self.directoryBrowserSessions[currentIndex].loadError = nil
+                    if self.directoryBrowserSessions[currentIndex].expandedPaths.isEmpty {
+                        self.directoryBrowserSessions[currentIndex].expandedPaths.insert(tree.id)
+                    }
+                } else {
+                    self.directoryBrowserSessions[currentIndex].tree = nil
+                    self.directoryBrowserSessions[currentIndex].loadError = "无法读取目录"
+                }
+                self.persistDirectoryBrowserSessions()
+            }
+        }
+    }
+
     func openDroppedFile(at url: URL) {
         guard url.pathExtension.lowercased() == "txt" || url.pathExtension.isEmpty else {
             errorMessage = "仅支持打开 .txt 文本文件。"
@@ -950,12 +1095,7 @@ final class ReadingViewModel: ObservableObject {
             lastCommittedSelectionRange = nil
             selectedTextRange = nil
             if resetChat {
-                readingPromptMessages = [
-                    ChatMessage(
-                        role: .assistant,
-                        content: "已打开「\(fileName)」。请在左页选中文字后使用「选择讲解」或「全文讲解」，或在下方输入问题让读书助手帮你解析。"
-                    ),
-                ]
+                readingPromptMessages = []
                 evolutionPromptMessages = []
                 syncDisplayedChatMessages()
             }
@@ -1378,19 +1518,28 @@ final class ReadingViewModel: ObservableObject {
         !explanationTranscriptText().isEmpty
     }
 
+    var explanationDisplayMessages: [ChatMessage] {
+        chatMessages.filter { shouldDisplayInExplanationPanel($0) }
+    }
+
+    func shouldDisplayInExplanationPanel(_ message: ChatMessage) -> Bool {
+        if message.role == .user { return false }
+        if isExplanationInstructionMessage(message) { return false }
+        return !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     func explanationTranscriptText() -> String {
         readingPromptMessages
-            .filter { !isReadingWelcomeMessage($0) }
+            .filter { shouldDisplayInExplanationPanel($0) }
             .map { message in
-                let role = message.role == .user ? "用户" : "助手"
-                return "【\(role)】\n\(message.content)"
+                "【助手】\n\(message.content)"
             }
             .joined(separator: "\n\n")
     }
 
     func explanationSpeakableText() -> String {
         readingPromptMessages
-            .filter { $0.role == .assistant && !isReadingWelcomeMessage($0) }
+            .filter { shouldDisplayInExplanationPanel($0) }
             .map(\.content)
             .joined(separator: "\n\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1458,7 +1607,10 @@ final class ReadingViewModel: ObservableObject {
         panel.directoryURL = DocumentExporter.lastDirectoryURL
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        loadExplanation(at: url)
+    }
 
+    func loadExplanation(at url: URL) {
         do {
             let text = try String(contentsOf: url, encoding: .utf8)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1586,7 +1738,17 @@ final class ReadingViewModel: ObservableObject {
     }
 
     private func isReadingWelcomeMessage(_ message: ChatMessage) -> Bool {
-        message.role == .assistant && message.content == ReadingAssistant.welcomeMessage
+        message.id == Self.defaultWelcomeMessage.id
+            || (message.role == .assistant && message.content == ReadingAssistant.welcomeMessage)
+    }
+
+    private func isExplanationInstructionMessage(_ message: ChatMessage) -> Bool {
+        guard message.role == .assistant else { return false }
+        if isReadingWelcomeMessage(message) { return true }
+        let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if content.isEmpty { return true }
+        if content.hasPrefix("已打开「"), content.contains("选择讲解") { return true }
+        return false
     }
 
     private func isEvolutionWelcomeMessage(_ message: ChatMessage) -> Bool {
@@ -1900,12 +2062,7 @@ final class ReadingViewModel: ObservableObject {
 
         let source = selectedText.isEmpty ? fileContent : selectedText
         let replacingSelection = !selectedText.isEmpty
-        let displayText = replacingSelection
-            ? "名著补充 · 选中 \(selectedText.count) 字"
-            : "名著补充 · 全文 \(fileContent.count) 字"
 
-        let userMessage = ChatMessage(role: .user, content: displayText)
-        appendDisplayOnlyMessage(userMessage)
         beginRun(showsExecutionTrace: false)
         errorMessage = nil
 
@@ -2128,7 +2285,10 @@ final class ReadingViewModel: ObservableObject {
         panel.directoryURL = DocumentExporter.lastDirectoryURL
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        loadLessonPlan(at: url)
+    }
 
+    func loadLessonPlan(at url: URL) {
         do {
             let text = try String(contentsOf: url, encoding: .utf8)
             isApplyingAlignment = true
@@ -2193,8 +2353,10 @@ final class ReadingViewModel: ObservableObject {
             : evolutionRunKind
         let settings = AppSettings.shared
         let promptContext: PromptContext = runKind == .none ? .reading : .evolution
-        let userMessage = ChatMessage(role: .user, content: displayText)
-        appendDisplayedMessage(userMessage, to: promptContext)
+        if runKind != .none {
+            let userMessage = ChatMessage(role: .user, content: displayText)
+            appendDisplayedMessage(userMessage, to: promptContext)
+        }
         if runKind == .none {
             selectRightPageTab(.readingAssistant)
             selectReadingAssistantPanel(.explanation)
