@@ -115,7 +115,7 @@ enum TranslationAligner {
         from translation: String,
         source: String
     ) -> ExtractedParagraphs? {
-        var alignment = TranslationAlignmentBuilder.build(
+        let alignment = TranslationAlignmentBuilder.build(
             from: translation,
             source: source,
             mode: .paragraph

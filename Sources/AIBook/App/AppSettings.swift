@@ -145,6 +145,10 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(speechLanguageMode.rawValue, forKey: Keys.speechLanguageMode) }
     }
 
+    @Published var translationTargetLanguage: TranslationTargetLanguage {
+        didSet { TranslationTargetLanguageStore.save(translationTargetLanguage) }
+    }
+
     @Published var appLanguage: BookAppLanguage {
         didSet {
             guard appLanguage != oldValue else { return }
@@ -255,6 +259,7 @@ final class AppSettings: ObservableObject {
         speechEngineMode = SpeechEngineMode.migrated(from: storedSpeechMode)
         let storedLanguageMode = UserDefaults.standard.string(forKey: Keys.speechLanguageMode)
         speechLanguageMode = SpeechLanguageMode(rawValue: storedLanguageMode ?? "") ?? .deep
+        translationTargetLanguage = TranslationTargetLanguageStore.load()
         appLanguage = BookAppLanguage.migrated(from: UserDefaults.standard.string(forKey: Keys.appLanguage))
         normalizeExplanationVoiceSelection()
     }
@@ -274,6 +279,10 @@ final class AppSettings: ObservableObject {
 
     var explanationVoiceLabel: String {
         SpeechVoiceCatalog.option(for: explanationVoiceID)?.displayName ?? "默认"
+    }
+
+    var resolvedTranslationTargetLanguage: TranslationTargetLanguage {
+        translationTargetLanguage.resolved(appLanguage: appLanguage)
     }
 
     var selectedCursorModel: CursorModelOption {

@@ -597,6 +597,23 @@ struct ContentView: View {
     private var translationOperationsMenuContent: some View {
         bookLLMConfigGuideMenuItem
 
+        BookToolbarSubmenu(title: BookL10n.string("translation.target.title")) {
+            ForEach(TranslationTargetLanguage.allCases) { language in
+                Button {
+                    settings.translationTargetLanguage = language
+                } label: {
+                    HStack {
+                        Text(language.localizedName)
+                        if settings.translationTargetLanguage == language {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        }
+
+        BookToolbarMenuDivider()
+
         Button {
             viewModel.selectRightPageTab(.readingAssistant)
             viewModel.generateLessonPlan()
@@ -1344,7 +1361,7 @@ struct ContentView: View {
             .help(BookL10n.string("help.restoreSpread"))
             .keyboardShortcut(.escape, modifiers: [])
 
-            Text(learningPaneFocus == .leading ? viewModel.displayFileName : viewModel.rightPageTab.localizedTitle)
+            Text(learningPaneFullscreenTitle)
                 .font(BookTheme.titleFont)
                 .foregroundStyle(BookTheme.goldSoft)
                 .lineLimit(1)
@@ -1458,7 +1475,10 @@ struct ContentView: View {
                 )
             }
 
-            ExplanationChatView()
+            ExplanationChatView(
+                learningPaneFocus: learningPaneFocus,
+                onLearningPaneFocusChange: setLearningPaneFocus
+            )
         }
         .overlay(alignment: .bottomTrailing) {
             BookInterface.PageCornerFold()
@@ -1470,6 +1490,16 @@ struct ContentView: View {
 
     private var showsRightPageLabel: Bool {
         viewModel.rightPageTab == .aiEvolution
+    }
+
+    private var learningPaneFullscreenTitle: String {
+        if learningPaneFocus == .leading {
+            return viewModel.displayFileName
+        }
+        if viewModel.rightPageTab == .readingAssistant {
+            return viewModel.readingAssistantPanel.toolbarTitle
+        }
+        return viewModel.rightPageTab.localizedTitle
     }
 
     private var bookSpine: some View {

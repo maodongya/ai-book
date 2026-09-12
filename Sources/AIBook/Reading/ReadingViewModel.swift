@@ -2949,7 +2949,8 @@ final class ReadingViewModel: ObservableObject {
             source: source,
             existingPlan: existingPlan,
             instruction: instruction,
-            mode: mode
+            mode: mode,
+            targetLanguage: AppSettings.shared.resolvedTranslationTargetLanguage
         )
     }
 

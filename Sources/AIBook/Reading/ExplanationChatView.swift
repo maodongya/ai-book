@@ -5,6 +5,8 @@ struct ExplanationChatView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
+    var learningPaneFocus: LearningPaneFocus = .both
+    var onLearningPaneFocusChange: ((LearningPaneFocus) -> Void)?
     @AppStorage("aiBook.readingComposerVisible") private var isReadingComposerVisible = true
     @AppStorage("aiBook.readingChromeVisible") private var isReadingChromeVisible = true
 
@@ -129,15 +131,9 @@ struct ExplanationChatView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            Button(action: enterReadingFocusMode) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(BookTheme.leather)
-                    .frame(width: 28, height: 28)
-                    .background { lessonPlanToolbarCapsule }
+            if let onLearningPaneFocusChange {
+                readingAssistantRightFullscreenButton(onChange: onLearningPaneFocusChange)
             }
-            .buttonStyle(.plain)
-            .help(BookL10n.string("help.focusReading"))
         }
         .padding(.horizontal, 14)
         .padding(.top, 6)
@@ -157,11 +153,29 @@ struct ExplanationChatView: View {
         .help(BookL10n.string("help.showToolbar"))
     }
 
-    private func enterReadingFocusMode() {
-        withAnimation(.easeOut(duration: 0.18)) {
-            isReadingChromeVisible = false
-            isReadingComposerVisible = false
+    private func readingAssistantRightFullscreenButton(
+        onChange: @escaping (LearningPaneFocus) -> Void
+    ) -> some View {
+        let isFocused = learningPaneFocus == .trailing
+
+        return Button {
+            onChange(isFocused ? .both : .trailing)
+        } label: {
+            Image(systemName: isFocused ? "rectangle.split.2x1" : "arrow.up.left.and.arrow.down.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(BookTheme.leather.opacity(0.72))
+                .frame(width: 24, height: 24)
+                .background {
+                    Circle()
+                        .fill(BookTheme.pageEdge.opacity(0.35))
+                }
         }
+        .buttonStyle(.plain)
+        .help(
+            isFocused
+                ? BookL10n.string("help.restoreSpreadFromFocus")
+                : BookL10n.string("help.rightFullscreen")
+        )
     }
 
     private func exitReadingFocusMode() {

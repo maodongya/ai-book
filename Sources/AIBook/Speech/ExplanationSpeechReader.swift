@@ -221,7 +221,7 @@ final class ExplanationSpeechReader: NSObject {
     }
 }
 
-extension ExplanationSpeechReader: @preconcurrency AVSpeechSynthesizerDelegate {
+extension ExplanationSpeechReader: AVSpeechSynthesizerDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
             handleUtteranceEnded(on: synthesizer)

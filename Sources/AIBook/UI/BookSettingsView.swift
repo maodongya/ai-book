@@ -172,6 +172,10 @@ struct BookSettingsView: View {
                 LLMProfilesSettingsView(scope: .book)
             }
 
+            settingsSection(title: BookL10n.string("translation.target.title"), icon: "globe") {
+                TranslationLanguageSettingsView()
+            }
+
             settingsSection(title: BookL10n.string("settings.contextPercent"), icon: "text.book.closed") {
                 HStack {
                     Text(BookL10n.string("settings.contextPercent"))

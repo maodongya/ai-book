@@ -5,7 +5,8 @@ enum TranslationPromptBuilder {
         source: String,
         existingPlan: String?,
         instruction: String?,
-        mode: TranslationAlignmentMode
+        mode: TranslationAlignmentMode,
+        targetLanguage: TranslationTargetLanguage
     ) -> String {
         let paragraphCount = countParagraphs(in: source)
         let taskIntro: String
@@ -53,6 +54,7 @@ enum TranslationPromptBuilder {
 
         var sections = [
             "本请求完全自包含：不要依赖任何对话历史。即使刚清空上下文，也必须只根据下面的【左侧文章】完成翻译。",
+            targetLanguageSection(for: targetLanguage),
             taskIntro,
             outputFormat,
             "【左侧文章】\n\(source)",
@@ -66,6 +68,22 @@ enum TranslationPromptBuilder {
         }
 
         return sections.joined(separator: "\n\n")
+    }
+
+    private static func targetLanguageSection(
+        for targetLanguage: TranslationTargetLanguage
+    ) -> String {
+        precondition(targetLanguage != .followAppLanguage)
+        var requirements = [
+            "【目标语言】\(targetLanguage.promptLanguageName)（\(targetLanguage.bcp47Identifier)）",
+            "所有译文、总结、难点和注释必须使用目标语言；JSON 字段名保持不变。",
+        ]
+        if targetLanguage == .zhHans {
+            requirements.append(
+                "输出现代简体中文；原文若为古文、文言文或古典汉语，须译成通顺准确的现代白话文，并仅保留必要的古文词义说明。"
+            )
+        }
+        return requirements.joined(separator: "\n")
     }
 
     static func countParagraphs(in source: String) -> Int {
