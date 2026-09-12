@@ -2,10 +2,22 @@ import Foundation
 
 /// 读书助手右页内的分栏：讲解对话 vs 翻译编辑区。
 enum ReadingAssistantPanel: String, CaseIterable, Identifiable, Codable {
-    case explanation = "讲解结果"
-    case translation = "翻译结果"
+    case explanation
+    case translation
 
     var id: String { rawValue }
+
+    /// Legacy persisted values used Chinese titles before i18n.
+    static func fromPersisted(_ raw: String) -> ReadingAssistantPanel? {
+        switch raw {
+        case explanation.rawValue, "讲解结果":
+            return .explanation
+        case translation.rawValue, "翻译结果":
+            return .translation
+        default:
+            return nil
+        }
+    }
 
     var icon: String {
         switch self {
@@ -20,18 +32,18 @@ enum ReadingAssistantPanel: String, CaseIterable, Identifiable, Codable {
     var toolbarTitle: String {
         switch self {
         case .explanation:
-            return "讲解"
+            return BookL10n.string("panel.explanation")
         case .translation:
-            return "翻译"
+            return BookL10n.string("panel.translation")
         }
     }
 
     var toolbarHelp: String {
         switch self {
         case .explanation:
-            return "切换到右页讲解结果分栏"
+            return BookL10n.string("panel.explanation.help")
         case .translation:
-            return "切换到右页翻译结果分栏"
+            return BookL10n.string("panel.translation.help")
         }
     }
 }

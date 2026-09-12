@@ -145,6 +145,16 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(speechLanguageMode.rawValue, forKey: Keys.speechLanguageMode) }
     }
 
+    @Published var appLanguage: BookAppLanguage {
+        didSet {
+            guard appLanguage != oldValue else { return }
+            UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage)
+            localizationRevision &+= 1
+        }
+    }
+
+    @Published private(set) var localizationRevision = 0
+
     private enum Keys {
         static let provider = "aiBook.provider"
         static let baseURL = "aiBook.baseURL"
@@ -164,6 +174,7 @@ final class AppSettings: ObservableObject {
         static let autoEvolutionEnabled = "aiBook.autoEvolutionEnabled"
         static let speechEngineMode = "aiBook.speechEngineMode"
         static let speechLanguageMode = "aiBook.speechLanguageMode"
+        static let appLanguage = "aiBook.appLanguage"
     }
 
     private var suppressLLMProfilePersistence = false
@@ -244,6 +255,7 @@ final class AppSettings: ObservableObject {
         speechEngineMode = SpeechEngineMode.migrated(from: storedSpeechMode)
         let storedLanguageMode = UserDefaults.standard.string(forKey: Keys.speechLanguageMode)
         speechLanguageMode = SpeechLanguageMode(rawValue: storedLanguageMode ?? "") ?? .deep
+        appLanguage = BookAppLanguage.migrated(from: UserDefaults.standard.string(forKey: Keys.appLanguage))
         normalizeExplanationVoiceSelection()
     }
 

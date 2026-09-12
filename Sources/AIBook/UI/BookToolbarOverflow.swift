@@ -17,11 +17,13 @@ struct BookToolbarOverflowRow<Full: View, Compact: View, Minimal: View>: View {
 
 /// 将一组顶栏菜单项收进「更多」下拉（窄窗口溢出降级）。
 struct BookToolbarOverflowMenu<Content: View>: View {
-    var help: String = "更多顶栏操作"
+    var help: String?
+    @ObservedObject private var settings = AppSettings.shared
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        BookToolbarMenuButton(title: "更多", menuContent: content)
-            .help(help)
+        let _ = settings.localizationRevision
+        BookToolbarMenuButton(title: BookL10n.string("action.more"), menuContent: content)
+            .help(help ?? BookL10n.string("help.toolbarOverflowDefault"))
     }
 }

@@ -10,7 +10,7 @@ struct CursorConfigPanel: View {
             HStack(spacing: 8) {
                 Image(systemName: "key.fill")
                     .foregroundStyle(BookTheme.gold)
-                Text("Cursor API Key（可选）")
+                Text(BookL10n.string("cursor.apiKeyOptional"))
                     .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.ink)
             }
@@ -19,7 +19,7 @@ struct CursorConfigPanel: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
-                    Text("cursor-bridge 与 API Key 已就绪，可使用 Cursor 本地对话")
+                    Text(BookL10n.string("cursor.readyBridge"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkSecondary)
                 }
@@ -28,7 +28,7 @@ struct CursorConfigPanel: View {
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             } else {
-                Text("请填写 Cursor API Key，进化功能仅支持 Cursor 本地桥接。")
+                Text(BookL10n.string("cursor.needKey"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }
@@ -64,7 +64,7 @@ struct CursorConfigPanel: View {
             }
 
             HStack(spacing: 10) {
-                Button("保存 Key") {
+                Button(BookL10n.string("action.saveKey")) {
                     settings.saveCursorAPIKey(draftAPIKey)
                 }
                 .buttonStyle(.plain)
@@ -77,7 +77,7 @@ struct CursorConfigPanel: View {
                 }
                 .disabled(draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Button("从环境变量读取") {
+                Button(BookL10n.string("action.loadFromEnv")) {
                     settings.reloadCursorAPIKey()
                     draftAPIKey = settings.effectiveCursorAPIKey
                 }
@@ -88,7 +88,7 @@ struct CursorConfigPanel: View {
                 Spacer()
             }
 
-            Text("本地桥接通常无需 Key；若需云端能力，可在 Dashboard → Integrations 获取，或写入 ai-book/cursor.local.env。")
+            Text(BookL10n.string("cursor.keyHint"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
         }

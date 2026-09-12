@@ -7,9 +7,9 @@ enum AppGuard {
     static func bookLLMErrorMessage(for settings: AppSettings) -> String? {
         if settings.isBookLLMConfigured { return nil }
         if settings.bookProvider == .ollama {
-            return "请确认 Ollama 已启动（终端执行 ollama serve），并在 book 设置中刷新并选择本地模型。"
+            return BookL10n.string("guard.ollama")
         }
-        return "请先在 book 设置中为「\(settings.bookProvider.rawValue)」配置 API Key。"
+        return BookL10n.format("guard.apiKey", settings.bookProvider.rawValue)
     }
 
     static func evolutionSourceErrorMessage(for settings: AppSettings) -> String? {
@@ -17,7 +17,7 @@ enum AppGuard {
         if !settings.isCursorBridgeReady {
             return settings.cursorBridgeStatusMessage
         }
-        return "请在「进化设置」中配置 Cursor API Key 并确保 cursor-bridge 已安装。"
+        return BookL10n.string("guard.cursorEvolution")
     }
 
     /// Reading + evolution entry points that previously shared one backend.
@@ -32,21 +32,21 @@ enum AppGuard {
 
     static func confirmDiscardUnsavedChanges() -> Bool {
         let alert = NSAlert()
-        alert.messageText = "有未保存的修改"
-        alert.informativeText = "是否放弃当前修改并继续？"
+        alert.messageText = BookL10n.string("alert.discard.title")
+        alert.informativeText = BookL10n.string("alert.discard.message")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "放弃修改")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: BookL10n.string("alert.discard.confirm"))
+        alert.addButton(withTitle: BookL10n.string("alert.cancel"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 
     static func confirmOverwriteExistingFile(at url: URL) -> Bool {
         let alert = NSAlert()
-        alert.messageText = "文件已存在"
-        alert.informativeText = "「\(url.lastPathComponent)」已存在，是否覆盖？"
+        alert.messageText = BookL10n.string("alert.overwrite.title")
+        alert.informativeText = BookL10n.format("alert.overwrite.message", url.lastPathComponent)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "覆盖")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: BookL10n.string("alert.overwrite.confirm"))
+        alert.addButton(withTitle: BookL10n.string("alert.cancel"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 }

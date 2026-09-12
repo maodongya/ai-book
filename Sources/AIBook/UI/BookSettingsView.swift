@@ -9,11 +9,19 @@ struct BookSettingsView: View {
     @State private var selectedTab: BookSettingsTab = .ai
 
     private enum BookSettingsTab: String, CaseIterable, Identifiable {
-        case ai = "AI模型设置"
-        case voice = "语音设置"
-        case appearance = "外观风格"
+        case ai
+        case voice
+        case appearance
 
         var id: String { rawValue }
+
+        var localizedTitle: String {
+            switch self {
+            case .ai: return BookL10n.string("settings.tab.ai")
+            case .voice: return BookL10n.string("settings.tab.voice")
+            case .appearance: return BookL10n.string("settings.tab.appearance")
+            }
+        }
 
         var icon: String {
             switch self {
@@ -42,7 +50,10 @@ struct BookSettingsView: View {
                         case .voice:
                             voiceSettingsContent
                         case .appearance:
-                            settingsSection(title: "预设主题", icon: "paintpalette") {
+                            settingsSection(title: BookL10n.string("settings.language"), icon: "globe") {
+                                BookLanguageSettingsView()
+                            }
+                            settingsSection(title: BookL10n.string("settings.themePresets"), icon: "paintpalette") {
                                 BookStyleSettingsView()
                             }
                         }
@@ -74,21 +85,21 @@ struct BookSettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
             }
 
-            Text("book 设置")
+            Text(BookL10n.string("settings.book"))
                 .font(BookTheme.titleFont)
                 .foregroundStyle(BookTheme.goldSoft)
 
             Spacer()
 
-            BookActionButton(title: "说明书", icon: "book.pages") {
+            BookActionButton(title: BookL10n.string("action.manual"), icon: "book.pages") {
                 dismiss()
                 DispatchQueue.main.async {
                     viewModel.openUserManual()
                 }
             }
-            .help("打开 AIBook 功能说明书")
+            .help(BookL10n.string("help.openManual"))
 
-            BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
+            BookActionButton(title: BookL10n.string("action.done"), icon: "checkmark", isProminent: true) {
                 dismiss()
             }
         }
@@ -129,7 +140,7 @@ struct BookSettingsView: View {
                 selectedTab = tab
             }
         } label: {
-            Label(tab.rawValue, systemImage: tab.icon)
+            Label(tab.localizedTitle, systemImage: tab.icon)
                 .font(BookTheme.labelFont.weight(.semibold))
                 .foregroundStyle(isSelected ? BookTheme.buttonProminentText : BookTheme.menuItemText)
                 .frame(maxWidth: .infinity)
@@ -157,13 +168,13 @@ struct BookSettingsView: View {
 
     private var aiSettingsContent: some View {
         Group {
-            settingsSection(title: "大模型 API（多提供商）", icon: "sparkles") {
+            settingsSection(title: BookL10n.string("settings.llmProviders"), icon: "sparkles") {
                 LLMProfilesSettingsView(scope: .book)
             }
 
-            settingsSection(title: "原文节选", icon: "text.book.closed") {
+            settingsSection(title: BookL10n.string("settings.contextPercent"), icon: "text.book.closed") {
                 HStack {
-                    Text("左页节选占比")
+                    Text(BookL10n.string("settings.contextPercent"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()

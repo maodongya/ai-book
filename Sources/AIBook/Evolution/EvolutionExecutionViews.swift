@@ -67,7 +67,7 @@ struct EvolutionUtilityTabsPanel: View {
             EvolutionCursorModelRow()
 
             Toggle(isOn: $settings.autoEvolutionEnabled) {
-                Text("自动升级")
+                Text(BookL10n.string("settings.autoUpgrade"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkSecondary)
             }
@@ -84,12 +84,12 @@ struct EvolutionUtilityTabsPanel: View {
     @ViewBuilder
     private var statusTrailing: some View {
         if budget.isOverLimit {
-            Label("Token 超限", systemImage: "exclamationmark.triangle.fill")
+            Label(BookL10n.string("evolution.tokenExceeded"), systemImage: "exclamationmark.triangle.fill")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.vermilion)
         } else if isRunning {
             if isAnalyzing {
-                Label("分析中", systemImage: "magnifyingglass")
+                Label(BookL10n.string("evolution.analyzing"), systemImage: "magnifyingglass")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.leather)
             } else if let number = executingCommandNumber {
@@ -109,11 +109,11 @@ struct EvolutionUtilityTabsPanel: View {
                 .lineLimit(1)
         } else if !items.isEmpty {
             let completed = items.filter { $0.status == .completed }.count
-            Text("队列 \(completed)/\(items.count)")
+            Text(BookL10n.format("evolution.queue.simple", completed, items.count))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
         } else if hasPending {
-            Text("有待办")
+            Text(BookL10n.string("evolution.hasPending"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.leather)
         }
@@ -130,7 +130,7 @@ struct EvolutionCursorModelRow: View {
             Image(systemName: "cursorarrow.rays")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(BookTheme.leather)
-            Picker("Cursor 模型", selection: cursorModelBinding) {
+            Picker(BookL10n.string("cursor.modelPicker"), selection: cursorModelBinding) {
                 if catalog.models.isEmpty {
                     ForEach(CursorModelOption.allCases) { model in
                         Text(model.label).tag(model.rawValue)
@@ -148,12 +148,12 @@ struct EvolutionCursorModelRow: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(BookTheme.jade)
-                    .help("Cursor 已就绪")
+                    .help(BookL10n.string("cursor.ready"))
             } else {
                 Image(systemName: "exclamationmark.circle")
                     .font(.system(size: 11))
                     .foregroundStyle(.orange)
-                    .help("请在「进化设置」配置 Cursor API Key")
+                    .help(BookL10n.string("cursor.evolutionKeyHelp"))
             }
         }
         .task {
@@ -201,16 +201,16 @@ struct EvolutionCommandQueuePanel: View {
         VStack(alignment: .leading, spacing: 8) {
             if embeddedInTabs, !items.isEmpty {
                 HStack {
-                    Text("\(completedCount)/\(items.count) 已完成")
+                    Text(BookL10n.format("evolution.completedFraction", completedCount, items.count))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
                     Spacer()
                     if isAnalyzing, isRunning {
-                        Label("分析中", systemImage: "magnifyingglass")
+                        Label(BookL10n.string("evolution.analyzing"), systemImage: "magnifyingglass")
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.leather)
                     } else if isRunning, let executingCommandNumber {
-                        Label("执行 #\(executingCommandNumber)", systemImage: "play.circle.fill")
+                        Label(BookL10n.format("evolution.executing", executingCommandNumber), systemImage: "play.circle.fill")
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.leather)
                     }
@@ -218,7 +218,7 @@ struct EvolutionCommandQueuePanel: View {
             }
 
             if items.isEmpty {
-                Text("在下方输入分析方向（可选），点「分析优化」让 AI 找出可改进处")
+                Text(BookL10n.string("composer.analyzeHint"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             } else {
@@ -238,7 +238,7 @@ struct EvolutionCommandQueuePanel: View {
                             : "arrow.right.circle")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(BookTheme.leather)
-                        Text("下一条：\(next.title)")
+                        Text(BookL10n.format("evolution.nextItem", next.title))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.inkSecondary)
                             .lineLimit(2)
@@ -248,10 +248,10 @@ struct EvolutionCommandQueuePanel: View {
 
             if onAddUserItem != nil {
                 HStack(spacing: 6) {
-                    TextField("手写一条优化…", text: $draftTitle)
+                    TextField(BookL10n.string("evolution.draft.placeholder"), text: $draftTitle)
                         .textFieldStyle(.roundedBorder)
                         .font(BookTheme.captionFont)
-                    Button("添加") {
+                    Button(BookL10n.string("action.add")) {
                         let title = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !title.isEmpty else { return }
                         onAddUserItem?(title)
@@ -298,7 +298,7 @@ struct EvolutionCommandQueuePanel: View {
                         .foregroundStyle(BookTheme.inkSecondary)
                         .lineLimit(2)
                     Spacer(minLength: 0)
-                    Text(item.source == .ai ? "AI" : "手写")
+                    Text(item.source == .ai ? BookL10n.string("evolution.source.ai") : BookL10n.string("evolution.source.manual"))
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(BookTheme.inkMuted)
                 }
@@ -310,7 +310,7 @@ struct EvolutionCommandQueuePanel: View {
                         .font(.system(size: 9))
                         .foregroundStyle(BookTheme.inkMuted)
                     if item.priority == .high {
-                        Text("高优")
+                        Text(BookL10n.string("evolution.highPriority"))
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(BookTheme.vermilion)
                     }
@@ -326,20 +326,20 @@ struct EvolutionCommandQueuePanel: View {
         .contextMenu {
             if item.status == .pending {
                 if let onPin {
-                    Button("置顶") { onPin(item.id) }
+                    Button(BookL10n.string("action.pin")) { onPin(item.id) }
                 }
                 if let onSkip {
-                    Button("跳过") { onSkip(item.id) }
+                    Button(BookL10n.string("action.skip")) { onSkip(item.id) }
                 }
                 if let onDelete {
-                    Button("删除", role: .destructive) { onDelete(item.id) }
+                    Button(BookL10n.string("action.delete"), role: .destructive) { onDelete(item.id) }
                 }
             } else if item.status == .skipped {
                 if let onRestore {
-                    Button("恢复") { onRestore(item.id) }
+                    Button(BookL10n.string("action.restore")) { onRestore(item.id) }
                 }
                 if let onDelete {
-                    Button("删除", role: .destructive) { onDelete(item.id) }
+                    Button(BookL10n.string("action.delete"), role: .destructive) { onDelete(item.id) }
                 }
             }
         }
@@ -368,10 +368,10 @@ struct EvolutionCommandQueuePanel: View {
 
     private func statusLabel(for item: OptimizationItem) -> String {
         switch item.status {
-        case .pending: return "待办"
-        case .running: return "执行中"
-        case .completed: return "已完成"
-        case .skipped: return "已跳过"
+        case .pending: return BookL10n.string("evolution.status.pending")
+        case .running: return BookL10n.string("evolution.status.running")
+        case .completed: return BookL10n.string("evolution.status.completed")
+        case .skipped: return BookL10n.string("evolution.status.skipped")
         }
     }
 
@@ -476,19 +476,22 @@ struct AssistantExecutionTraceCard: View {
     }
 
     private var traceHeaderTitle: String {
-        if isLive { return "Agent 执行中…" }
-        return "Agent 执行过程"
+        if isLive { return BookL10n.string("evolution.agent.running") }
+        return BookL10n.string("evolution.agent.trace")
     }
 
     private var traceSummary: String {
         if isLive, let last = steps.last {
             let label = EvolutionToolLabels.localizedToolName(last.name)
-            return last.status == .running ? "正在 \(label)" : "\(completedToolCount)/\(steps.count) 步"
+            if last.status == .running {
+                return BookL10n.format("evolution.tools.running", label)
+            }
+            return BookL10n.format("evolution.tools.progress", completedToolCount, steps.count)
         }
         if steps.contains(where: { $0.status == .failed }) {
-            return "\(completedToolCount)/\(steps.count) 步 · 含失败"
+            return BookL10n.format("evolution.tools.progressFailed", completedToolCount, steps.count)
         }
-        return "\(steps.count) 个工具"
+        return BookL10n.format("evolution.tools.count", steps.count)
     }
 }
 
@@ -525,7 +528,7 @@ struct EvolutionRebuildBanner: View {
         HStack(spacing: 10) {
             ProgressView().controlSize(.small)
             VStack(alignment: .leading, spacing: 2) {
-                Text("正在自动升级")
+                Text(BookL10n.string("evolution.autoUpgrading"))
                     .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.leather)
                 Text(status)
@@ -620,15 +623,15 @@ struct ExecutionStepsTimeline: View {
     }
 
     private var headerTitle: String {
-        if isLive { return "执行步骤…" }
-        return "执行步骤 (\(steps.count))"
+        if isLive { return BookL10n.string("evolution.steps.title") }
+        return BookL10n.format("evolution.steps.titleCount", steps.count)
     }
 
     private var summaryLabel: String {
         if failedCount > 0 {
-            return "\(completedCount) 完成 · \(failedCount) 失败"
+            return BookL10n.format("evolution.steps.summary", completedCount, failedCount)
         }
-        return "\(completedCount) 个工具"
+        return BookL10n.format("evolution.steps.toolsDone", completedCount)
     }
 }
 
@@ -666,7 +669,7 @@ private struct ExecutionStepRow: View {
                             .foregroundStyle(BookTheme.inkSecondary)
                             .lineLimit(showsDetail ? nil : 2)
                         if step.status == .running {
-                            Text("运行中")
+                            Text(BookL10n.string("evolution.running"))
                                 .font(BookTheme.captionFont)
                                 .foregroundStyle(BookTheme.leather)
                         } else if let duration = step.durationLabel {
@@ -695,13 +698,13 @@ private struct ExecutionStepRow: View {
                     stepActionBar
 
                     if let detail = step.detail, !detail.isEmpty {
-                        detailBlock(title: "输入", text: detail, tint: BookTheme.leather)
+                        detailBlock(title: BookL10n.string("evolution.detail.input"), text: detail, tint: BookTheme.leather)
                     }
                     if let result = step.resultSummary, !result.isEmpty {
-                        detailBlock(title: "结果", text: result, tint: BookTheme.jade)
+                        detailBlock(title: BookL10n.string("evolution.detail.result"), text: result, tint: BookTheme.jade)
                     }
                     if let error = step.errorMessage, !error.isEmpty {
-                        detailBlock(title: "错误", text: error, tint: BookTheme.vermilion)
+                        detailBlock(title: BookL10n.string("evolution.detail.error"), text: error, tint: BookTheme.vermilion)
                     }
                 } else if let detail = step.detail, !detail.isEmpty, step.status == .failed {
                     Text(detail)
@@ -729,7 +732,7 @@ private struct ExecutionStepRow: View {
     private var stepActionBar: some View {
         HStack(spacing: 8) {
             if let input = step.inputPreview {
-                Button("复制输入") {
+                Button(BookL10n.string("action.copyInput")) {
                     copyToPasteboard(input)
                 }
                 .buttonStyle(.plain)
@@ -737,7 +740,7 @@ private struct ExecutionStepRow: View {
                 .foregroundStyle(BookTheme.leather)
             }
             if let result = step.resultSummary, !result.isEmpty {
-                Button("复制结果") {
+                Button(BookL10n.string("action.copyResult")) {
                     copyToPasteboard(result)
                 }
                 .buttonStyle(.plain)
@@ -745,7 +748,7 @@ private struct ExecutionStepRow: View {
                 .foregroundStyle(BookTheme.jade)
             }
             if step.hasFileRevealAction, let path = step.resolvedFilePath {
-                Button("在 Finder 中显示") {
+                Button(BookL10n.string("action.revealFinder")) {
                     revealInFinder(path: path)
                 }
                 .buttonStyle(.plain)
@@ -759,22 +762,22 @@ private struct ExecutionStepRow: View {
     @ViewBuilder
     private var stepContextMenu: some View {
         if let input = step.inputPreview {
-            Button("复制输入") {
+            Button(BookL10n.string("action.copyInput")) {
                 copyToPasteboard(input)
             }
         }
         if let result = step.resultSummary, !result.isEmpty {
-            Button("复制结果") {
+            Button(BookL10n.string("action.copyResult")) {
                 copyToPasteboard(result)
             }
         }
         if step.hasFileRevealAction, let path = step.resolvedFilePath {
-            Button("在 Finder 中显示") {
+            Button(BookL10n.string("action.revealFinder")) {
                 revealInFinder(path: path)
             }
         }
         if step.hasExpandableDetail {
-            Button(showsDetail ? "收起详情" : "展开详情") {
+            Button(showsDetail ? BookL10n.string("evolution.detail.collapse") : BookL10n.string("evolution.detail.expand")) {
                 withAnimation(.easeInOut(duration: 0.18)) {
                     showsDetail.toggle()
                 }
@@ -855,13 +858,13 @@ struct CollapsibleThinkingBlock: View {
                 HStack(spacing: 6) {
                     Image(systemName: "brain.head.profile")
                         .font(.system(size: 11, weight: .semibold))
-                    Text(isLive ? "思考中…" : "思考过程")
+                    Text(isLive ? BookL10n.string("evolution.thinking.live") : BookL10n.string("evolution.thinking"))
                         .font(BookTheme.captionFont)
                     if isLive {
                         ProgressView().controlSize(.mini)
                     }
                     Spacer()
-                    Text("\(text.count) 字")
+                    Text(BookL10n.format("evolution.thinking.chars", text.count))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted.opacity(0.8))
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")

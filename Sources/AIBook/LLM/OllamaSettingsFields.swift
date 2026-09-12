@@ -17,10 +17,10 @@ struct OllamaSettingsFields: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            profileField("API 地址（OpenAI 兼容）", text: baseURLBinding)
+            profileField(BookL10n.string("ollama.openAICompat"), text: baseURLBinding)
 
             HStack(spacing: 8) {
-                Text("服务根地址")
+                Text(BookL10n.string("ollama.serviceURL"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
                 Text(OllamaConfig.resolvedHost(baseURL: profile.baseURL))
@@ -28,7 +28,7 @@ struct OllamaSettingsFields: View {
                     .foregroundStyle(BookTheme.settingsPrimary)
                     .lineLimit(1)
                 Spacer()
-                Button("从环境读取") {
+                Button(BookL10n.string("action.loadFromEnv")) {
                     applyEnvironmentDefaults()
                 }
                 .buttonStyle(.plain)
@@ -71,14 +71,14 @@ struct OllamaSettingsFields: View {
     private var modelSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("本地模型")
+                Text(BookL10n.string("ollama.localModels"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
                 Spacer()
                 Button {
                     Task { await refreshModels(force: true) }
                 } label: {
-                    Label(catalog.isLoading ? "扫描中…" : "刷新模型", systemImage: "arrow.clockwise")
+                    Label(catalog.isLoading ? BookL10n.string("ollama.scanning") : BookL10n.string("action.refreshModels"), systemImage: "arrow.clockwise")
                         .font(BookTheme.captionFont)
                 }
                 .buttonStyle(.plain)
@@ -87,7 +87,7 @@ struct OllamaSettingsFields: View {
             }
 
             if catalog.models.isEmpty && !catalog.isLoading {
-                TextField("模型名称（可手动输入）", text: modelBinding)
+                TextField(BookL10n.string("ollama.modelNameField"), text: modelBinding)
                     .textFieldStyle(.plain)
                     .font(BookTheme.bodyFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
@@ -95,7 +95,7 @@ struct OllamaSettingsFields: View {
                     .padding(.vertical, 10)
                     .ollamaFieldBackground()
             } else {
-                Picker("本地模型", selection: modelBinding) {
+                Picker(BookL10n.string("ollama.localModels"), selection: modelBinding) {
                     ForEach(catalog.modelNamesIncluding(profile.model), id: \.self) { name in
                         if let info = catalog.models.first(where: { $0.name == name }) {
                             Text(modelPickerTitle(info)).tag(name)
@@ -109,18 +109,18 @@ struct OllamaSettingsFields: View {
 
                 if !catalog.models.isEmpty {
                     HStack {
-                        Text("手动输入模型名")
+                        Text(BookL10n.string("ollama.manualModel"))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.settingsPrimary)
                         Spacer()
-                        Toggle("手动输入模型名", isOn: $useCustomModel)
+                        Toggle(BookL10n.string("ollama.manualModel"), isOn: $useCustomModel)
                             .labelsHidden()
                             .tint(BookTheme.gold)
                     }
                 }
 
                 if useCustomModel || catalog.models.isEmpty {
-                    TextField("或手动输入模型 ID", text: modelBinding)
+                    TextField(BookL10n.string("llm.manualModelID"), text: modelBinding)
                         .textFieldStyle(.plain)
                         .font(BookTheme.bodyFont)
                         .foregroundStyle(BookTheme.settingsPrimary)

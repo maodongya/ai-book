@@ -29,39 +29,39 @@ struct BookStyleSettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("装饰细节")
+                Text(BookL10n.string("label.decorations"))
                     .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
-                ornamentToggle("书脊丝带", current: styleManager.tokens.ornaments.showBookmarkRibbon) {
+                ornamentToggle(BookL10n.string("style.ribbon"), current: styleManager.tokens.ornaments.showBookmarkRibbon) {
                     styleManager.setShowBookmarkRibbon($0)
                 }
-                ornamentToggle("折页角", current: styleManager.tokens.ornaments.showPageCornerFold) {
+                ornamentToggle(BookL10n.string("style.cornerFold"), current: styleManager.tokens.ornaments.showPageCornerFold) {
                     styleManager.setShowPageCornerFold($0)
                 }
-                ornamentToggle("纸纹", current: styleManager.tokens.ornaments.showPaperTexture) {
+                ornamentToggle(BookL10n.string("style.paperTexture"), current: styleManager.tokens.ornaments.showPaperTexture) {
                     styleManager.setShowPaperTexture($0)
                 }
-                ornamentToggle("页眉饰线", current: styleManager.tokens.ornaments.showHeaderOrnament) {
+                ornamentToggle(BookL10n.string("style.headerOrnament"), current: styleManager.tokens.ornaments.showHeaderOrnament) {
                     styleManager.setShowHeaderOrnament($0)
                 }
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("正文阅读")
+                Text(BookL10n.string("label.readingTypography"))
                     .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
-                Text("作用于左页原文、右页讲解/翻译，以及阅读模式分页。")
+                Text(BookL10n.string("label.readingTypographyHint"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsSecondary)
 
                 HStack {
-                    Text("字体")
+                    Text(BookL10n.string("label.font"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()
-                    Picker("字体", selection: $styleManager.readingFontFamilyID) {
+                    Picker(BookL10n.string("label.font"), selection: $styleManager.readingFontFamilyID) {
                         ForEach(BookStyleCatalog.readingFontFamilyOptions) { option in
-                            Text(option.displayName).tag(option.id)
+                            Text(option.localizedDisplayName).tag(option.id)
                         }
                     }
                     .labelsHidden()
@@ -70,12 +70,12 @@ struct BookStyleSettingsView: View {
                 }
 
                 HStack {
-                    Text("字号")
+                    Text(BookL10n.string("label.fontSize"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()
-                    Picker("字号", selection: readingSizeBinding) {
-                        Text("跟随主题").tag(Optional<Double>.none)
+                    Picker(BookL10n.string("label.fontSize"), selection: readingSizeBinding) {
+                        Text(BookL10n.string("label.followTheme")).tag(Optional<Double>.none)
                         ForEach(BookStyleCatalog.readingSizes, id: \.self) { size in
                             Text("\(Int(size))").tag(Optional(size))
                         }
@@ -148,7 +148,7 @@ struct BookStylePreviewCard: View {
                     }
 
                     if isSelected {
-                        Text("当前")
+                        Text(BookL10n.string("label.current"))
                             .font(BookTheme.captionFont.weight(.semibold))
                             .foregroundStyle(tokens.colors.buttonProminentText)
                             .padding(.horizontal, 7)

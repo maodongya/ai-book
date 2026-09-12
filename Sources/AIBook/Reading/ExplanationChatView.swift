@@ -9,6 +9,7 @@ struct ExplanationChatView: View {
     @AppStorage("aiBook.readingChromeVisible") private var isReadingChromeVisible = true
 
     var body: some View {
+        let _ = settings.localizationRevision
         VStack(spacing: 0) {
             switch viewModel.rightPageTab {
             case .readingAssistant:
@@ -77,7 +78,7 @@ struct ExplanationChatView: View {
                 }
 
                 BookPageActionButton(
-                    title: "停止",
+                    title: BookL10n.string("action.stop"),
                     icon: "stop.fill",
                     isDisabled: false
                 ) {
@@ -97,7 +98,7 @@ struct ExplanationChatView: View {
                     .foregroundStyle(BookTheme.leather)
             }
             .buttonStyle(.plain)
-            .help("显示输入")
+            .help(BookL10n.string("help.showInput"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -115,12 +116,12 @@ struct ExplanationChatView: View {
 
     private var collapsedRunningStatusText: String {
         let text = viewModel.runningStatusText(for: .readingAssistant)
-        return text.isEmpty ? "大模型生成中…" : text
+        return text.isEmpty ? BookL10n.string("llm.generating") : text
     }
 
     private var readingAssistantPanelSwitcher: some View {
         HStack(spacing: 8) {
-            Picker("右页分栏", selection: $viewModel.readingAssistantPanel) {
+            Picker(BookL10n.string("picker.rightPanel"), selection: $viewModel.readingAssistantPanel) {
                 ForEach(ReadingAssistantPanel.allCases) { panel in
                     Text(panel.toolbarTitle).tag(panel)
                 }
@@ -136,7 +137,7 @@ struct ExplanationChatView: View {
                     .background { lessonPlanToolbarCapsule }
             }
             .buttonStyle(.plain)
-            .help("专注阅读")
+            .help(BookL10n.string("help.focusReading"))
         }
         .padding(.horizontal, 14)
         .padding(.top, 6)
@@ -153,7 +154,7 @@ struct ExplanationChatView: View {
                 .background { lessonPlanToolbarCapsule }
         }
         .buttonStyle(.plain)
-        .help("显示工具栏")
+        .help(BookL10n.string("help.showToolbar"))
     }
 
     private func enterReadingFocusMode() {
@@ -202,41 +203,41 @@ struct ExplanationChatView: View {
 
     private var explanationToolbar: some View {
         HStack(spacing: 8) {
-            explanationToolbarButton(title: "新建") {
+            explanationToolbarButton(title: BookL10n.string("action.new")) {
                 viewModel.newExplanationDocument()
             }
             .disabled(viewModel.isRunning)
 
-            explanationToolbarButton(title: "保存") {
+            explanationToolbarButton(title: BookL10n.string("action.save")) {
                 viewModel.saveExplanationDocument()
             }
             .disabled(!viewModel.hasExplanationContent)
 
-            explanationToolbarButton(title: "打开") {
+            explanationToolbarButton(title: BookL10n.string("action.open")) {
                 viewModel.openExplanationDocument()
             }
             .disabled(viewModel.isRunning)
 
-            explanationToolbarButton(title: "全选") {
+            explanationToolbarButton(title: BookL10n.string("action.selectAll")) {
                 viewModel.selectAllExplanation()
             }
             .disabled(!viewModel.hasExplanationContent || viewModel.isRunning)
 
-            explanationToolbarButton(title: "清空") {
+            explanationToolbarButton(title: BookL10n.string("action.clear")) {
                 viewModel.clearExplanation()
             }
             .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
 
             if viewModel.isSpeakingExplanation && !viewModel.isRunning {
                 explanationToolbarButton(
-                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停"
+                    title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
                 ) {
                     viewModel.toggleExplanationSpeechPause()
                 }
             }
 
             explanationToolbarButton(
-                title: viewModel.isSpeakingExplanation ? "停止" : "朗读"
+                title: viewModel.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
             ) {
                 viewModel.readExplanationAloud()
             }
@@ -318,7 +319,7 @@ struct ExplanationChatView: View {
     private var translationLoadingBadge: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text("正在生成翻译…")
+            Text(BookL10n.string("translation.generating"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.leather)
         }
@@ -333,26 +334,26 @@ struct ExplanationChatView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(.orange)
-                    .help("对齐已失效，点击「对齐原文」恢复")
+                    .help(BookL10n.string("help.alignStale"))
             }
 
-            Toggle("表格对照", isOn: $viewModel.translationTableViewEnabled)
+            Toggle(BookL10n.string("translation.tableCompare"), isOn: $viewModel.translationTableViewEnabled)
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .font(BookTheme.captionFont)
                 .disabled(!viewModel.canUseTranslationTableView)
 
-            translationToolbarButton(title: "对齐原文") {
+            translationToolbarButton(title: BookL10n.string("translation.alignSource")) {
                 viewModel.alignTranslationWithSource()
             }
             .disabled(!viewModel.canAlignTranslationWithSource)
 
             if viewModel.isTranslationAlignmentLocked {
-                translationToolbarButton(title: "解锁对照") {
+                translationToolbarButton(title: BookL10n.string("translation.unlock")) {
                     viewModel.unlockTranslationAlignment()
                 }
             } else if viewModel.canUseTranslationTableView {
-                translationToolbarButton(title: "锁定对照", prominent: true) {
+                translationToolbarButton(title: BookL10n.string("translation.lock"), prominent: true) {
                     viewModel.lockTranslationAlignment()
                 }
             }
@@ -360,7 +361,7 @@ struct ExplanationChatView: View {
             Spacer(minLength: 8)
 
             if !viewModel.showsTranslationTableView {
-                translationToolbarButton(title: "全选") {
+                translationToolbarButton(title: BookL10n.string("action.selectAll")) {
                     viewModel.selectAllRightPage()
                 }
                 .disabled(
@@ -370,14 +371,14 @@ struct ExplanationChatView: View {
 
                 if viewModel.isSpeakingExplanation && !viewModel.isRunning {
                     translationToolbarButton(
-                        title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停"
+                        title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
                     ) {
                         viewModel.toggleExplanationSpeechPause()
                     }
                 }
 
                 translationToolbarButton(
-                    title: viewModel.isSpeakingExplanation ? "停止" : "朗读"
+                    title: viewModel.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
                 ) {
                     if viewModel.isSpeakingExplanation {
                         viewModel.stopExplanationSpeech()
@@ -464,11 +465,11 @@ struct ExplanationChatView: View {
         HStack(spacing: 8) {
             Image(systemName: "book.closed.fill")
                 .foregroundStyle(BookTheme.gold)
-            Text("未配置 book 大模型")
+            Text(BookL10n.string("banner.bookLLM"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkSecondary)
             Spacer(minLength: 8)
-            Button("book设置") {
+            Button(BookL10n.string("settings.book")) {
                 viewModel.openBookSettings()
             }
             .font(BookTheme.captionFont)
@@ -531,7 +532,7 @@ struct ExplanationChatView: View {
     }
 
     private var lessonPlanPlaceholder: some View {
-        Text("点击顶栏「翻译操作」开始翻译")
+        Text(BookL10n.string("translation.emptyHint"))
             .font(BookTheme.captionFont)
             .foregroundStyle(BookTheme.inkMuted)
             .padding(.horizontal, 36)
@@ -605,13 +606,13 @@ struct ExplanationChatView: View {
                 .contextMenu {
                     assistantMessageMenu(for: message)
                 }
-                .help("右键可编辑、保存、朗读、复制或删除此条 AI 输出")
+                .help(BookL10n.string("help.aiMessageContext"))
             } else {
                 bubbleContent(message.content, isUser: true)
                 .contextMenu {
                     userMessageMenu(for: message)
                 }
-                .help("右键可复制或删除此条消息")
+                .help(BookL10n.string("help.chatMessageContext"))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -622,14 +623,14 @@ struct ExplanationChatView: View {
         Button {
             viewModel.saveAssistantMessage(id: message.id)
         } label: {
-            Label("保存 AI 输出", systemImage: "square.and.arrow.down")
+            Label(BookL10n.string("action.saveAIOutput"), systemImage: "square.and.arrow.down")
         }
         .disabled(message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
         Button {
             viewModel.readAssistantMessage(id: message.id)
         } label: {
-            Label(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读此条", systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill")
+            Label(viewModel.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.speechThisMessage"), systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill")
         }
         .disabled(message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
 
@@ -638,7 +639,7 @@ struct ExplanationChatView: View {
         Button {
             copyToPasteboard(message.content)
         } label: {
-            Label("复制内容", systemImage: "doc.on.doc")
+            Label(BookL10n.string("action.copyContent"), systemImage: "doc.on.doc")
         }
         .disabled(message.content.isEmpty)
 
@@ -646,14 +647,14 @@ struct ExplanationChatView: View {
             Button {
                 copyToPasteboard(message.executionTraceText)
             } label: {
-                Label("复制执行过程", systemImage: "timeline.selection")
+                Label(BookL10n.string("action.copyTrace"), systemImage: "timeline.selection")
             }
         }
 
         Button(role: .destructive) {
             viewModel.deleteChatMessage(id: message.id)
         } label: {
-            Label("删除此条 AI 输出", systemImage: "trash")
+            Label(BookL10n.string("action.deleteAIMessage"), systemImage: "trash")
         }
         .disabled(viewModel.isRunning || viewModel.chatMessages.count <= 1)
     }
@@ -663,7 +664,7 @@ struct ExplanationChatView: View {
         Button {
             copyToPasteboard(message.content)
         } label: {
-            Label("复制内容", systemImage: "doc.on.doc")
+            Label(BookL10n.string("action.copyContent"), systemImage: "doc.on.doc")
         }
         .disabled(message.content.isEmpty)
 
@@ -672,7 +673,7 @@ struct ExplanationChatView: View {
         Button(role: .destructive) {
             viewModel.deleteChatMessage(id: message.id)
         } label: {
-            Label("删除此条消息", systemImage: "trash")
+            Label(BookL10n.string("action.deleteMessage"), systemImage: "trash")
         }
         .disabled(viewModel.isRunning || viewModel.chatMessages.count <= 1)
     }
@@ -745,7 +746,7 @@ struct ExplanationChatView: View {
                     && viewModel.streamingToolStatus.isEmpty {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text(viewModel.rightPageTab == .aiEvolution ? "AI 进化执行中…" : "Cursor 正在执行…")
+                Text(viewModel.rightPageTab == .aiEvolution ? BookL10n.string("vm.evolutionRunning") : BookL10n.string("evolution.cursorExecuting"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkSecondary)
             }
@@ -759,7 +760,7 @@ struct ExplanationChatView: View {
         } else {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text("大模型生成中…")
+                Text(BookL10n.string("llm.generating"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkSecondary)
             }

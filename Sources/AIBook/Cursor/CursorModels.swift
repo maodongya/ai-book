@@ -155,8 +155,8 @@ enum CursorContextCalculator {
 
         let conversationHistory = history.filter { message in
             guard message.role == .assistant else { return true }
-            return !message.content.hasPrefix("右页支持两种解析方式")
-                && !message.content.hasPrefix("右页是你的读书助手")
+            return !message.content.hasPrefix(BookL10n.string("vm.chat.legacyReadingHint"))
+                && !BookL10nMarkers.isReadingAssistantWelcome(message.content)
         }
 
         var historyCharacters = 0

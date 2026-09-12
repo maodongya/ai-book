@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "AIBook",
+    defaultLocalization: "zh-Hans",
     platforms: [
         .macOS(.v13),
     ],
@@ -20,13 +21,18 @@ let package = Package(
             dependencies: ["AIBookEvolution"],
             path: "Sources/AIBook",
             resources: [
-                .copy("Resources"),
+                .process("Resources"),
             ]
         ),
         .testTarget(
             name: "AIBookEvolutionTests",
             dependencies: ["AIBookEvolution"],
             path: "Tests/AIBookEvolutionTests"
+        ),
+        .testTarget(
+            name: "AIBookL10nTests",
+            dependencies: ["AIBook"],
+            path: "Tests/AIBookL10nTests"
         ),
     ]
 )

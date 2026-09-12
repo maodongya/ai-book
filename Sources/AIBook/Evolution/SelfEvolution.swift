@@ -3,7 +3,7 @@ import Foundation
 
 /// Self-evolution loop: optimization queue drives AI to change source, rebuild and relaunch.
 enum SelfEvolution {
-    static let capabilityLabel = "自我进化"
+    static var capabilityLabel: String { BookL10n.string("evolution.capabilityLabel") }
     static let shortcutHint = BookKeyboardShortcuts.evolutionHint
 
     static let productDefinition: [String] = [
@@ -25,14 +25,14 @@ enum SelfEvolution {
         let pending = queue.items.filter { $0.status == .pending }
         guard !queue.items.isEmpty else { return nil }
         if pending.isEmpty {
-            return "优化队列已全部完成"
+            return BookL10n.string("evolution.queue.allDone")
         }
         if let next = queue.nextPending() {
             let title = next.title.count > 16 ? String(next.title.prefix(16)) + "…" : next.title
             if isAutoEvolutionEnabled, AutoEvolutionCoordinator.isChainActive {
-                return "自动升级中 · 待 \(pending.count) 条 · 下一条 #\(next.number) \(title)"
+                return BookL10n.format("evolution.queue.autoUpgrading", pending.count, next.number, title)
             }
-            return "待优化 \(pending.count) 条 · 下一条 #\(next.number) \(title)"
+            return BookL10n.format("evolution.queue.pending", pending.count, next.number, title)
         }
         return nil
     }
@@ -46,7 +46,7 @@ enum SelfEvolution {
 
     /// Swift 源码根目录（含 Package.swift），供进化改码与 build-and-install 使用。
     static func sourceProjectPath() -> String {
-        sourceProjectDirectory()?.path ?? "未找到 ai-book 源码目录"
+        sourceProjectDirectory()?.path ?? BookL10n.string("evolution.sourceNotFound")
     }
 
     static var sourceProjectReady: Bool {

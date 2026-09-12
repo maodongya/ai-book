@@ -5,10 +5,11 @@ struct AIBookApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var viewModel = ReadingViewModel()
     @ObservedObject private var styleManager = BookStyleManager.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some Scene {
         WindowGroup {
-            AIBookRootView(viewModel: viewModel, styleManager: styleManager)
+            AIBookRootView(viewModel: viewModel, styleManager: styleManager, settings: settings)
                 .onAppear {
                     appDelegate.readingViewModel = viewModel
                 }
@@ -18,70 +19,74 @@ struct AIBookApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("新建") {
+                Button(BookL10n.string("action.new")) {
                     viewModel.newDocument()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.newDocument)
 
-                Button("打开文本文件…") {
+                Button(BookL10n.string("action.openFile")) {
                     viewModel.openFile()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
 
-                Button("打开目录…") {
+                Button(BookL10n.string("action.openDirectory")) {
                     viewModel.openDirectory()
                 }
                 .disabled(viewModel.isRunning)
             }
 
             CommandGroup(after: .saveItem) {
-                Button("保存") {
+                Button(BookL10n.string("action.save")) {
                     viewModel.save()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.save)
 
-                Button("另存为…") {
+                Button(BookL10n.string("action.saveAs")) {
                     viewModel.saveAs()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.saveAs)
                 .disabled(viewModel.fileContent.isEmpty)
 
-                Button("导出选中为…") {
+                Button(BookL10n.string("action.exportSelection")) {
                     viewModel.saveSelectionAs()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.exportSelection)
                 .disabled(viewModel.selectedText.isEmpty)
 
-                Button("选择讲解") {
+                Button(BookL10n.string("action.explainSelection")) {
                     viewModel.explainSelection()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
 
-                Button("全文讲解") {
+                Button(BookL10n.string("action.explainFull")) {
                     viewModel.explainFullText()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
                 .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Button("全选左页") {
+                Button(BookL10n.string("menu.selectAllLeft")) {
                     viewModel.selectAllLeftPage()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.selectAllLeftPage)
                 .disabled(viewModel.fileContent.isEmpty)
 
-                Button("全选翻译") {
+                Button(BookL10n.string("menu.selectAllTranslation")) {
                     viewModel.selectAllRightPage()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.selectAllTranslation)
                 .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Button(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读原文（选中/全文）") {
+                Button(
+                    viewModel.isSpeakingExplanation
+                        ? BookL10n.string("menu.stopSpeaking")
+                        : BookL10n.string("menu.readOriginalSelectionOrFull")
+                ) {
                     viewModel.readSelectionAloud()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.readOriginalSelectionOrFull)
                 .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
 
-                Button("朗读原文全文") {
+                Button(BookL10n.string("menu.readOriginalFull")) {
                     viewModel.readOriginalFullTextAloud()
                 }
                 .disabled(
@@ -89,12 +94,12 @@ struct AIBookApp: App {
                         || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
 
-                Button("朗读原文选中") {
+                Button(BookL10n.string("menu.readOriginalSelection")) {
                     viewModel.readOriginalSelectionAloud()
                 }
                 .disabled(viewModel.isRunning || viewModel.effectiveSelectedText.isEmpty)
 
-                Button("朗读翻译全文") {
+                Button(BookL10n.string("menu.readTranslationFull")) {
                     viewModel.readTranslationFullTextAloud()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.readTranslationFull)
@@ -104,39 +109,39 @@ struct AIBookApp: App {
                             && !viewModel.isSpeakingExplanation)
                 )
 
-                Button("朗读翻译选择") {
+                Button(BookL10n.string("menu.readTranslationSelection")) {
                     viewModel.readTranslationSelectionAloud()
                 }
                 .disabled(viewModel.isRunning || viewModel.effectiveLessonPlanSelectedText.isEmpty)
 
-                Button("朗读讲解全文") {
+                Button(BookL10n.string("menu.readExplanationFull")) {
                     viewModel.readExplanationFullTextAloud()
                 }
                 .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
 
-                Button("朗读讲解选中") {
+                Button(BookL10n.string("menu.readExplanationSelection")) {
                     viewModel.readExplanationSelectionAloud()
                 }
                 .disabled(viewModel.isRunning || viewModel.effectiveExplanationPanelSelectedText.isEmpty)
 
-                Button(ClassicLiteratureSupplement.capabilityLabel) {
+                Button(ClassicLiteratureSupplement.localizedCapabilityLabel) {
                     viewModel.supplementClassicLiterature()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.classicSupplement)
                 .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
 
-                Button("自我进化") {
+                Button(BookL10n.string("action.evolution")) {
                     viewModel.startEvolution()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.evolution)
             }
 
             CommandGroup(replacing: .help) {
-                Button("AIBook 功能说明书") {
+                Button(BookL10n.string("help.manual")) {
                     viewModel.openUserManual()
                 }
 
-                Button("在访达中显示说明书") {
+                Button(BookL10n.string("help.manual.reveal")) {
                     BookUserManual.revealInFinder()
                 }
                 .disabled(BookUserManual.bundleURL == nil)
@@ -148,10 +153,16 @@ struct AIBookApp: App {
 private struct AIBookRootView: View {
     @ObservedObject var viewModel: ReadingViewModel
     @ObservedObject var styleManager: BookStyleManager
+    @ObservedObject var settings: AppSettings
 
     var body: some View {
+        let _ = settings.localizationRevision
         ContentView()
             .environmentObject(viewModel)
             .bookStyleEnvironment(styleManager)
+            .bookLocalizationEnvironment()
+            .onChange(of: settings.localizationRevision) { _ in
+                viewModel.applyLanguageChange()
+            }
     }
 }

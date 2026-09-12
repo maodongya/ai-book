@@ -2,8 +2,8 @@ import SwiftUI
 
 /// 书籍界面装饰：装帧、纸张纹理、书脊丝带、页角与页码（配合 BookTheme 使用）。
 enum BookInterface {
-    static let leftPageMark = "— 左页 —"
-    static let rightPageMark = "— 右页 —"
+    static var leftPageMark: String { BookL10n.string("ui.pageMark.left") }
+    static var rightPageMark: String { BookL10n.string("ui.pageMark.right") }
 
     /// 打开的书本外框：皮革封面、内凹书页、投影。
     struct SpreadShell<Content: View>: View {
@@ -209,19 +209,19 @@ enum BookInterface {
                 }
 
                 VStack(spacing: 8) {
-                    Text("翻开书页")
+                    Text(BookL10n.string("welcome.openBook"))
                         .font(BookTheme.titleFont)
                         .foregroundStyle(BookTheme.ink.opacity(0.65))
-                    Text("在此输入命令笔记，或从顶栏「文件操作」新建 / 打开")
+                    Text(BookL10n.string("welcome.notesHint"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted.opacity(0.7))
-                    Text("选中文字后点击「选择讲解」，或使用「全文讲解」")
+                    Text(BookL10n.string("welcome.explainHint"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted.opacity(0.55))
                 }
 
                 Button(action: onOpen) {
-                    Label("打开文本文件", systemImage: "folder")
+                    Label(BookL10n.string("welcome.openTextFile"), systemImage: "folder")
                         .font(BookTheme.labelFont)
                         .foregroundStyle(BookTheme.leatherShadow)
                         .padding(.horizontal, 18)

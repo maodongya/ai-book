@@ -115,19 +115,22 @@ extension View {
 }
 
 struct BookToolbarMenuButton<MenuContent: View>: View {
-    var title: String = "更多"
+    var title: String?
     var isDisabled: Bool = false
     @ViewBuilder let menuContent: () -> MenuContent
     @ObservedObject private var styleManager = BookStyleManager.shared
+    @ObservedObject private var settings = AppSettings.shared
     @State private var isHovering = false
     @State private var isPresented = false
 
     var body: some View {
+        let _ = settings.localizationRevision
+        let resolvedTitle = title ?? BookL10n.string("action.more")
         Button {
             isPresented.toggle()
         } label: {
             BookToolbarCapsuleLabel(
-                title: title,
+                title: resolvedTitle,
                 isProminent: false,
                 isCompact: true,
                 isHovering: isHovering
@@ -145,7 +148,7 @@ struct BookToolbarMenuButton<MenuContent: View>: View {
             }
             .bookStyleEnvironment(styleManager)
         }
-        .id("menu-\(title)-\(styleManager.revision)")
+        .id("menu-\(resolvedTitle)-\(styleManager.revision)-\(settings.localizationRevision)")
     }
 }
 

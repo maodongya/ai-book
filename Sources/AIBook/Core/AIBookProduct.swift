@@ -4,7 +4,9 @@ import Foundation
 enum AIBookProduct {
     static let slug = "ai-book"
     static let displayName = "AIBook"
-    static let tagline = "辅助读书"
+    static var tagline: String {
+        BookL10n.string("app.tagline")
+    }
 
     static var windowTitle: String {
         "\(displayName) · \(tagline)"

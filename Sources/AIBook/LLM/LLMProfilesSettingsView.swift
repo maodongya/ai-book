@@ -29,10 +29,10 @@ struct LLMProfilesSettingsView: View {
             summaryRow
 
             HStack(spacing: 10) {
-                Text("当前使用")
+                Text(BookL10n.string("label.currentUse"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
-                Picker("当前提供商", selection: activeProviderBinding) {
+                Picker(BookL10n.string("llm.activeProvider"), selection: activeProviderBinding) {
                     ForEach(LLMProvider.allCases) { provider in
                         Text(providerPickerLabel(provider)).tag(provider)
                     }
@@ -52,8 +52,8 @@ struct LLMProfilesSettingsView: View {
             }
 
             Text(scope == .book
-                ? "读书讲解、翻译与名著补充使用此处模型；可同时保存多家 API Key，切换不会丢失其他配置。"
-                : "以下可同时保存多家 API Key；切换「当前使用」不会丢失其他提供商配置。")
+                ? BookL10n.string("llm.scope.bookHint")
+                : BookL10n.string("llm.scope.generalHint"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.settingsSecondary)
 
@@ -80,7 +80,7 @@ struct LLMProfilesSettingsView: View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
                 .foregroundStyle(configuredProviders.isEmpty ? BookTheme.settingsSecondary : .green)
-            Text("已配置 \(configuredProviders.count)/\(LLMProvider.allCases.count) 家")
+            Text(BookL10n.format("llm.providersConfigured", configuredProviders.count, LLMProvider.allCases.count))
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.settingsPrimary)
             if !configuredProviders.isEmpty {
@@ -127,7 +127,7 @@ struct LLMProfilesSettingsView: View {
                         .foregroundStyle(BookTheme.settingsPrimary)
 
                     if isActive {
-                        Text("当前")
+                        Text(BookL10n.string("label.current"))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.buttonProminentText)
                             .padding(.horizontal, 8)
@@ -165,8 +165,8 @@ struct LLMProfilesSettingsView: View {
                     } else if provider == .ollama {
                         OllamaSettingsFields(profile: profileBinding(for: provider))
                     } else {
-                        profileField("API 地址", text: binding(for: provider, keyPath: \.baseURL))
-                        profileField("模型名称", text: binding(for: provider, keyPath: \.model))
+                        profileField(BookL10n.string("llm.apiAddress"), text: binding(for: provider, keyPath: \.baseURL))
+                        profileField(BookL10n.string("qwen.modelName"), text: binding(for: provider, keyPath: \.model))
                     }
 
                     if provider.showsAPIKeyField {
@@ -175,7 +175,7 @@ struct LLMProfilesSettingsView: View {
                             text: binding(for: provider, keyPath: \.apiKey)
                         )
                         if provider == .ollama {
-                            Text("本地 ollama serve 通常无需 Key；支持 OLLAMA_HOST / OLLAMA_API_KEY 环境变量与 ollama.local.env。保存后点击「刷新模型」可扫描本机已 pull 的模型。")
+                            Text(BookL10n.string("ollama.localHint"))
                                 .font(BookTheme.captionFont)
                                 .foregroundStyle(BookTheme.settingsSecondary)
                         }
@@ -186,7 +186,7 @@ struct LLMProfilesSettingsView: View {
                     }
 
                     HStack(spacing: 10) {
-                        Button("保存此提供商") {
+                        Button(BookL10n.string("action.saveProvider")) {
                             saveProfile(for: provider)
                         }
                         .buttonStyle(.plain)
@@ -197,7 +197,7 @@ struct LLMProfilesSettingsView: View {
                         .background { Capsule().fill(BookTheme.goldGradient) }
 
                         if activeProvider != provider {
-                            Button("设为当前") {
+                            Button(BookL10n.string("action.setActive")) {
                                 setActiveProvider(provider)
                             }
                             .buttonStyle(.plain)
@@ -209,7 +209,7 @@ struct LLMProfilesSettingsView: View {
                             testProfile(for: provider)
                         } label: {
                             Label(
-                                testingProvider == provider ? "测试中…" : "测试连接",
+                                testingProvider == provider ? BookL10n.string("llm.testing") : BookL10n.string("llm.testConnection"),
                                 systemImage: "antenna.radiowaves.left.and.right"
                             )
                             .font(BookTheme.captionFont)
@@ -248,10 +248,10 @@ struct LLMProfilesSettingsView: View {
 
         return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("百炼地域")
+                Text(BookL10n.string("qwen.region"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
-                Picker("百炼地域", selection: Binding(
+                Picker(BookL10n.string("qwen.region"), selection: Binding(
                     get: { region },
                     set: { applyQwenRegion($0, for: provider) }
                 )) {
@@ -265,20 +265,20 @@ struct LLMProfilesSettingsView: View {
                     .foregroundStyle(BookTheme.settingsSecondary)
             }
 
-            profileField("API 地址（Base URL）", text: binding(for: provider, keyPath: \.baseURL))
+            profileField(BookL10n.string("llm.apiAddressBase"), text: binding(for: provider, keyPath: \.baseURL))
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("模型名称")
+                Text(BookL10n.string("qwen.modelName"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
-                Picker("模型", selection: binding(for: provider, keyPath: \.model)) {
+                Picker(BookL10n.string("label.model"), selection: binding(for: provider, keyPath: \.model)) {
                     ForEach(QwenBailianConfig.suggestedModels, id: \.self) { name in
                         Text(name).tag(name)
                     }
                 }
                 .pickerStyle(.menu)
                 .tint(BookTheme.settingsPrimary)
-                TextField("或手动输入模型 ID", text: binding(for: provider, keyPath: \.model))
+                TextField(BookL10n.string("llm.manualModelID"), text: binding(for: provider, keyPath: \.model))
                     .textFieldStyle(.plain)
                     .font(BookTheme.bodyFont)
                     .foregroundStyle(BookTheme.settingsPrimary)
@@ -294,7 +294,7 @@ struct LLMProfilesSettingsView: View {
                     }
             }
 
-            Button("从环境变量 / dashscope.local.env 读取 Key") {
+            Button(BookL10n.string("qwen.loadKeyFromEnv")) {
                 refreshQwenKeyFromEnvironment(for: provider)
             }
             .buttonStyle(.plain)
@@ -305,10 +305,10 @@ struct LLMProfilesSettingsView: View {
 
     private var qwenBailianFooter: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("接口：POST {Base URL}/chat/completions · Authorization: Bearer {API Key}")
+            Text(BookL10n.string("qwen.apiDoc"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.settingsSecondary)
-            Link("打开百炼控制台 API 页", destination: URL(string: QwenBailianConfig.consoleURL)!)
+            Link(BookL10n.string("qwen.consoleLink"), destination: URL(string: QwenBailianConfig.consoleURL)!)
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.settingsPrimary)
         }
@@ -439,7 +439,7 @@ struct LLMProfilesSettingsView: View {
         Task {
             do {
                 try await LLMService().testConnection(configuration: configuration)
-                testResults[provider] = (true, "已连接 \(LLMConnector.displayLabel(provider: provider, model: configuration.model))")
+                testResults[provider] = (true, BookL10n.format("llm.connectedTest", LLMConnector.displayLabel(provider: provider, model: configuration.model)))
             } catch {
                 testResults[provider] = (false, error.localizedDescription)
             }

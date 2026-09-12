@@ -46,21 +46,21 @@ struct SettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
             }
 
-            Text("进化设置")
+            Text(BookL10n.string("settings.evolution"))
                 .font(BookTheme.titleFont)
                 .foregroundStyle(BookTheme.goldSoft)
 
             Spacer()
 
-            BookActionButton(title: "说明书", icon: "book.pages") {
+            BookActionButton(title: BookL10n.string("action.manual"), icon: "book.pages") {
                 dismiss()
                 DispatchQueue.main.async {
                     viewModel.openUserManual()
                 }
             }
-            .help("打开 AIBook 功能说明书")
+            .help(BookL10n.string("help.openManual"))
 
-            BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
+            BookActionButton(title: BookL10n.string("action.done"), icon: "checkmark", isProminent: true) {
                 dismiss()
             }
         }
@@ -79,7 +79,7 @@ struct SettingsView: View {
 
     private var evolutionSettingsContent: some View {
         Group {
-            settingsSection(title: "Cursor 本地对话", icon: "cursorarrow.rays") {
+            settingsSection(title: BookL10n.string("settings.cursorLocal"), icon: "cursorarrow.rays") {
                 labeledSecureField("Cursor API Key", text: $settings.cursorAPIKey)
                     .onSubmit {
                         settings.saveCursorAPIKey(settings.cursorAPIKey)
@@ -89,36 +89,36 @@ struct SettingsView: View {
                     Button {
                         settings.saveCursorAPIKey(settings.cursorAPIKey)
                     } label: {
-                        Label("保存 Cursor Key", systemImage: "key.fill")
+                        Label(BookL10n.string("llm.saveCursorKey"), systemImage: "key.fill")
                     }
                     .settingsPillButton(prominent: true)
 
                     Button {
                         settings.reloadCursorAPIKey()
                     } label: {
-                        Label("从环境变量读取", systemImage: "arrow.down.doc")
+                        Label(BookL10n.string("action.loadFromEnv"), systemImage: "arrow.down.doc")
                     }
                     .settingsPillButton()
                 }
 
                 if settings.isCursorConfigured {
-                    Label("Cursor API Key 已配置", systemImage: "checkmark.circle.fill")
+                    Label(BookL10n.string("llm.cursorKeyConfigured"), systemImage: "checkmark.circle.fill")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(.green)
                 }
 
-                labeledField("Cursor 模型", text: $settings.cursorModel)
-                labeledField("Bridge 目录（可选）", text: $settings.cursorBridgePath)
+                labeledField(BookL10n.string("settings.cursorModel"), text: $settings.cursorModel)
+                labeledField(BookL10n.string("settings.bridgeDir"), text: $settings.cursorBridgePath)
 
             }
 
-            settingsSection(title: "ai-book 自我进化", icon: "arrow.triangle.2.circlepath") {
+            settingsSection(title: BookL10n.string("settings.selfEvolution"), icon: "arrow.triangle.2.circlepath") {
                 HStack {
-                    Text("自动升级")
+                    Text(BookL10n.string("settings.autoUpgrade"))
                         .font(BookTheme.bodyFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()
-                    Toggle("自动升级", isOn: $settings.autoEvolutionEnabled)
+                    Toggle(BookL10n.string("settings.autoUpgrade"), isOn: $settings.autoEvolutionEnabled)
                         .labelsHidden()
                         .tint(BookTheme.gold)
                 }

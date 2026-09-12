@@ -49,7 +49,7 @@ struct BookUserManualView: View {
             }
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("功能说明书")
+                Text(BookL10n.string("manual.title"))
                     .font(BookTheme.titleFont)
                     .foregroundStyle(BookTheme.goldSoft)
                 Text("\(AIBookProduct.displayName) · \(AIBookProduct.tagline)")
@@ -59,11 +59,11 @@ struct BookUserManualView: View {
 
             Spacer()
 
-            BookActionButton(title: "用系统应用打开", icon: "arrow.up.forward.square") {
+            BookActionButton(title: BookL10n.string("action.manual.openSystem"), icon: "arrow.up.forward.square") {
                 BookUserManual.openInDefaultEditor()
             }
 
-            BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
+            BookActionButton(title: BookL10n.string("action.done"), icon: "checkmark", isProminent: true) {
                 dismiss()
             }
         }

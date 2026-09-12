@@ -9,15 +9,15 @@ enum ReadingExperienceMode: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .learning: return "学习模式"
-        case .reading: return "阅读模式"
+        case .learning: return BookL10n.string("mode.learning")
+        case .reading: return BookL10n.string("mode.reading")
         }
     }
 
     var enterButtonTitle: String {
         switch self {
-        case .learning: return "阅读模式"
-        case .reading: return "学习模式"
+        case .learning: return BookL10n.string("mode.reading")
+        case .reading: return BookL10n.string("mode.learning")
         }
     }
 }
@@ -31,8 +31,8 @@ enum ReadingLayoutMode: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .spread: return "双页"
-        case .fullscreen: return "全屏"
+        case .spread: return BookL10n.string("layout.spread")
+        case .fullscreen: return BookL10n.string("layout.fullscreen")
         }
     }
 }
@@ -47,9 +47,9 @@ enum LearningPaneFocus: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .both: return "双页"
-        case .leading: return "左全屏"
-        case .trailing: return "右全屏"
+        case .both: return BookL10n.string("layout.spread")
+        case .leading: return BookL10n.string("layout.leftFullscreen")
+        case .trailing: return BookL10n.string("layout.rightFullscreen")
         }
     }
 }

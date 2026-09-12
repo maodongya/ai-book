@@ -48,16 +48,28 @@ enum BookKeyboardShortcuts {
     static let evolutionHint = "⌘E"
     static let readingModeHint = "⌘⇧P"
 
-    static let documentMenuSummary =
-        "\(newDocumentHint) 新建 · \(openDocumentHint) 打开 · \(saveHint) 保存 · \(saveAsHint) 另存为 · \(selectAllLeftPageHint) 全选 · \(classicSupplementHint) 名著补充"
-    static let explanationMenuSummary =
-        "\(explainSelectionHint) 选择讲解 · \(explainFullTextHint) 全文讲解"
-    static let translationMenuSummary =
-        "\(readTranslationFullHint) 朗读翻译 · \(selectAllTranslationHint) 全选翻译"
-    static let speechMenuSummary =
-        "\(readOriginalHint) 朗读原文（选中/全文） · \(readTranslationFullHint) 朗读翻译全文"
-    static let evolutionMenuSummary =
-        "\(evolutionHint) 进化"
+    static var documentMenuSummary: String {
+        BookL10n.format(
+            "menuSummary.document",
+            newDocumentHint, openDocumentHint, saveHint, saveAsHint, selectAllLeftPageHint, classicSupplementHint
+        )
+    }
+
+    static var explanationMenuSummary: String {
+        BookL10n.format("menuSummary.explanation", explainSelectionHint, explainFullTextHint)
+    }
+
+    static var translationMenuSummary: String {
+        BookL10n.format("menuSummary.translation", readTranslationFullHint, selectAllTranslationHint)
+    }
+
+    static var speechMenuSummary: String {
+        BookL10n.format("menuSummary.speech", readOriginalHint, readTranslationFullHint)
+    }
+
+    static var evolutionMenuSummary: String {
+        BookL10n.format("menuSummary.evolution", evolutionHint)
+    }
 }
 
 extension View {

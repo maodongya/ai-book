@@ -90,7 +90,7 @@ struct LLMComposerView: View {
             Button {
                 viewModel.openBookSettings()
             } label: {
-                Text("book设置")
+                Text(BookL10n.string("settings.book"))
                     .font(BookTheme.captionFont)
             }
             .buttonStyle(.plain)
@@ -105,7 +105,7 @@ struct LLMComposerView: View {
                         .foregroundStyle(BookTheme.leather)
                 }
                 .buttonStyle(.plain)
-                .help("隐藏输入")
+                .help(BookL10n.string("composer.hideInput"))
             }
         }
         .font(BookTheme.captionFont)
@@ -127,7 +127,7 @@ struct LLMComposerView: View {
                     .font(BookTheme.captionFont)
                     .frame(maxWidth: 120)
             } else {
-                Picker("模型", selection: $settings.model) {
+                Picker(BookL10n.string("label.model"), selection: $settings.model) {
                     ForEach(ollamaCatalog.modelNamesIncluding(settings.model), id: \.self) { name in
                         Text(name).tag(name)
                     }
@@ -151,7 +151,7 @@ struct LLMComposerView: View {
             .buttonStyle(.plain)
             .foregroundStyle(BookTheme.leather)
             .disabled(ollamaCatalog.isLoading)
-            .help("重新扫描本机 Ollama 已安装模型")
+            .help(BookL10n.string("composer.rescanOllama"))
         }
     }
 
@@ -161,19 +161,19 @@ struct LLMComposerView: View {
                 Image(systemName: "cpu")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(BookTheme.leather)
-                Text("提供商")
+                Text(BookL10n.string("label.provider"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                Picker("提供商", selection: $settings.provider) {
+                Picker(BookL10n.string("label.provider"), selection: $settings.provider) {
                     if !settings.configuredLLMProviders.isEmpty {
-                        Section("已配置") {
+                        Section(BookL10n.string("llm.section.configured")) {
                             ForEach(settings.configuredLLMProviders) { provider in
                                 Text(providerLabel(provider)).tag(provider)
                             }
                         }
                         let unconfigured = LLMProvider.allCases.filter { !settings.configuredLLMProviders.contains($0) }
                         if !unconfigured.isEmpty {
-                            Section("未配置") {
+                            Section(BookL10n.string("llm.section.unconfigured")) {
                                 ForEach(unconfigured) { provider in
                                     Text(provider.rawValue).tag(provider)
                                 }
@@ -193,11 +193,11 @@ struct LLMComposerView: View {
             }
 
             HStack(spacing: 6) {
-                Text("模型")
+                Text(BookL10n.string("label.model"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                 if settings.provider == .qwen {
-                    Picker("模型", selection: $settings.model) {
+                    Picker(BookL10n.string("label.model"), selection: $settings.model) {
                         ForEach(QwenBailianConfig.suggestedModels, id: \.self) { name in
                             Text(name).tag(name)
                         }
@@ -229,13 +229,13 @@ struct LLMComposerView: View {
             if settings.isLLMConfigured {
                 let count = settings.configuredLLMProviders.count
                 Label(
-                    count > 1 ? "已连接 · \(count) 家" : "已连接",
+                    count > 1 ? BookL10n.format("llm.connectedMulti", count) : BookL10n.string("llm.connectedSingle"),
                     systemImage: "checkmark.circle.fill"
                 )
                 .font(BookTheme.captionFont)
                 .foregroundStyle(.green)
             } else {
-                Label("未配置 Key", systemImage: "exclamationmark.circle")
+                Label(BookL10n.string("llm.notConfiguredKey"), systemImage: "exclamationmark.circle")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(.orange)
             }
@@ -249,7 +249,7 @@ struct LLMComposerView: View {
     private var contextUsageControls: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("原文节选占比")
+                Text(BookL10n.string("context.label.excerpt"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                 Spacer()
@@ -257,7 +257,7 @@ struct LLMComposerView: View {
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.leather)
                 if contextUsage.fileTotalCharacters > 0 {
-                    Text("· \(contextUsage.fileCharacters)/\(contextUsage.fileTotalCharacters) 字")
+                    Text(BookL10n.format("context.usage.chars", contextUsage.fileCharacters, contextUsage.fileTotalCharacters))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
                 }
@@ -267,13 +267,13 @@ struct LLMComposerView: View {
                 .tint(BookTheme.gold)
 
             if contextUsage.usesSelectionAnchor {
-                Label("节选围绕左页选中内容", systemImage: "scope")
+                Label(BookL10n.string("composer.scopeSelection"), systemImage: "scope")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.leather.opacity(0.85))
             }
 
             HStack {
-                Text("总上下文占用")
+                Text(BookL10n.string("context.label.total"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                 Spacer()
@@ -297,10 +297,10 @@ struct LLMComposerView: View {
             .frame(height: 8)
 
             HStack(spacing: 16) {
-                usageChip(title: "原文", value: contextUsage.fileCharacters)
-                usageChip(title: "对话", value: contextUsage.historyCharacters)
-                usageChip(title: "选中", value: contextUsage.selectionCharacters)
-                usageChip(title: "输入", value: contextUsage.inputCharacters)
+                usageChip(title: BookL10n.string("context.label.source"), value: contextUsage.fileCharacters)
+                usageChip(title: BookL10n.string("context.label.chat"), value: contextUsage.historyCharacters)
+                usageChip(title: BookL10n.string("context.label.selection"), value: contextUsage.selectionCharacters)
+                usageChip(title: BookL10n.string("context.label.input"), value: contextUsage.inputCharacters)
             }
         }
     }
@@ -311,7 +311,7 @@ struct LLMComposerView: View {
                 evolutionTokenCompactMeter
             } else {
                 HStack(spacing: 6) {
-                    Text("上下文 \(Int(contextUsage.percentage))%")
+                    Text(BookL10n.format("context.usage.percent", Int(contextUsage.percentage)))
                         .foregroundStyle(contextColor)
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
@@ -337,7 +337,7 @@ struct LLMComposerView: View {
         HStack(spacing: 6) {
             Text("Token \(evolutionTokenBudget.formattedUsed)/\(evolutionTokenBudget.formattedLimit)")
                 .foregroundStyle(evolutionTokenMeterColor)
-            Text("剩 \(evolutionTokenBudget.formattedRemaining)")
+            Text(BookL10n.format("token.remaining", evolutionTokenBudget.formattedRemaining))
                 .foregroundStyle(BookTheme.inkMuted)
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
@@ -407,7 +407,7 @@ struct LLMComposerView: View {
         HStack(spacing: 8) {
             if mode == .aiEvolution {
                 BookPageActionButton(
-                    title: "分析优化",
+                    title: BookL10n.string("action.analyze"),
                     icon: "magnifyingglass",
                     isProminent: canAnalyze,
                     isDisabled: !canAnalyze
@@ -417,7 +417,7 @@ struct LLMComposerView: View {
             }
 
             BookPageActionButton(
-                title: "发送",
+                title: BookL10n.string("action.send"),
                 icon: "paperplane.fill",
                 isProminent: canSend,
                 isDisabled: !canSend
@@ -427,7 +427,7 @@ struct LLMComposerView: View {
 
             if viewModel.isSpeakingExplanation && !viewModel.isRunning {
                 BookPageActionButton(
-                    title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+                    title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
                     icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
                     isDisabled: false
                 ) {
@@ -435,7 +435,7 @@ struct LLMComposerView: View {
                 }
 
                 BookPageActionButton(
-                    title: "停止",
+                    title: BookL10n.string("action.stop"),
                     icon: "stop.fill",
                     isDisabled: false
                 ) {
@@ -443,7 +443,7 @@ struct LLMComposerView: View {
                 }
             } else {
                 BookPageActionButton(
-                    title: "停止",
+                    title: BookL10n.string("action.stop"),
                     icon: "stop.fill",
                     isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
                 ) {
@@ -452,7 +452,7 @@ struct LLMComposerView: View {
             }
 
             BookPageActionButton(
-                title: "清空读书上下文",
+                title: BookL10n.string("action.clearReadingContext"),
                 icon: "text.book.closed",
                 isDisabled: viewModel.isRunning || !viewModel.canClearReadingContext
             ) {
@@ -460,7 +460,7 @@ struct LLMComposerView: View {
             }
 
             BookPageActionButton(
-                title: "清空 AI 上下文",
+                title: BookL10n.string("action.clearAIContext"),
                 icon: "cpu",
                 isDisabled: viewModel.isRunning || !viewModel.canClearAIContext
             ) {
@@ -469,7 +469,7 @@ struct LLMComposerView: View {
 
             Spacer()
 
-            Text("⌘↩ 发送")
+            Text(BookL10n.string("composer.sendHint"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
 
@@ -485,7 +485,7 @@ struct LLMComposerView: View {
                     Image(systemName: viewModel.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(BookTheme.leather)
-                    Text(viewModel.isExplanationSpeechPaused ? "朗读已暂停" : "正在朗读讲解…")
+                    Text(viewModel.isExplanationSpeechPaused ? BookL10n.string("speech.paused") : BookL10n.string("speech.speakingExplanation"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.leather)
                 }
@@ -495,7 +495,7 @@ struct LLMComposerView: View {
 
     private var runningStatusText: String {
         let text = viewModel.runningStatusText(for: mode)
-        return text.isEmpty ? "大模型生成中…" : text
+        return text.isEmpty ? BookL10n.string("llm.generating") : text
     }
 
     private var composerPlaceholder: String {
@@ -503,12 +503,12 @@ struct LLMComposerView: View {
         case .readingAssistant:
             switch viewModel.readingAssistantPanel {
             case .explanation:
-                return "输入讲解追问，例如：这一段主旨是什么、和上文有何联系"
+                return BookL10n.string("placeholder.explanation")
             case .translation:
-                return "输入翻译要求，例如：翻成白话文、保留古文词义、第二段整段翻译"
+                return BookL10n.string("placeholder.translation")
             }
         case .aiEvolution:
-            return "输入分析方向（可选），例如：读书助手讲解可见性、翻译入口；留空则全面分析。也可输入进化追问"
+            return BookL10n.string("placeholder.evolution")
         }
     }
 
@@ -554,7 +554,7 @@ struct LLMComposerView: View {
         if settings.isLLMConfigured {
             return settings.llmDisplayLabel
         }
-        return "\(settings.provider.rawValue) · 未配置 Key"
+        return BookL10n.format("llm.providerUnconfiguredSuffix", settings.provider.rawValue)
     }
 
     private func usageChip(title: String, value: Int) -> some View {

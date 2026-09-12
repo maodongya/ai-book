@@ -94,7 +94,7 @@ struct TranslationTableView: View {
 
     private var summaryHeader: some View {
         HStack {
-            Text("补充说明")
+            Text(BookL10n.string("label.note"))
                 .font(BookTheme.captionFont.weight(.semibold))
                 .foregroundStyle(BookTheme.inkSecondary)
             Spacer()
@@ -142,12 +142,12 @@ struct TranslationTableColumnHeader: View {
                 showsNotes: showsNotes
             )
             HStack(alignment: .top, spacing: 0) {
-                headerCell("原文", width: layout.source)
+                headerCell(BookL10n.string("translation.header.source"), width: layout.source)
                 tableDivider
-                headerCell("译文", width: layout.translation)
+                headerCell(BookL10n.string("translation.header.translation"), width: layout.translation)
                 if showsNotes {
                     tableDivider
-                    headerCell("说明", width: layout.note)
+                    headerCell(BookL10n.string("translation.header.note"), width: layout.note)
                 }
             }
             .padding(.horizontal, 12)
@@ -437,10 +437,12 @@ private struct TranslationTableSummaryRow: View {
         onUpdate(trimmed)
     }
 
+    private static let difficultSourceMarker = "难点词语"
+
     private func summaryTitle(for block: TranslationBlock) -> String {
         let source = block.sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if source == "难点词语" { return "难点词语" }
-        return "一句话总译"
+        if source == Self.difficultSourceMarker { return BookL10n.string("translation.row.difficult") }
+        return BookL10n.string("translation.row.summary")
     }
 }
 

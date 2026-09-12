@@ -6,6 +6,7 @@ struct ReadingSpreadView: View {
 
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var styleManager = BookStyleManager.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     @State private var pageContentSize: CGSize = .zero
     @State private var displayedSpreadIndex: Int = 0
@@ -60,7 +61,7 @@ struct ReadingSpreadView: View {
         HStack(spacing: 12) {
             Button(action: { viewModel.exitReadingMode() }) {
                 BookToolbarCapsuleLabel(
-                    title: "学习模式",
+                    title: BookL10n.string("mode.learning"),
                     isProminent: true,
                     isCompact: false,
                     isHovering: false
@@ -68,11 +69,11 @@ struct ReadingSpreadView: View {
             }
             .buttonStyle(.plain)
             .fixedSize()
-            .help("返回学习模式：讲解、翻译与 AI 助手")
+            .help(BookL10n.string("help.readingSpreadBack"))
             .keyboardShortcut(.escape, modifiers: [])
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("阅读模式")
+                Text(BookL10n.string("mode.reading"))
                     .font(BookTheme.titleFont)
                     .foregroundStyle(BookTheme.goldSoft)
                 Text(viewModel.displayFileName)
@@ -113,7 +114,8 @@ struct ReadingSpreadView: View {
     }
 
     private var layoutModePicker: some View {
-        HStack(spacing: 4) {
+        let _ = settings.localizationRevision
+        return HStack(spacing: 4) {
             ForEach(ReadingLayoutMode.allCases) { mode in
                 Button {
                     setLayoutMode(mode)
@@ -136,7 +138,7 @@ struct ReadingSpreadView: View {
                         }
                 }
                 .buttonStyle(.plain)
-                .help(mode == .spread ? "左右双页翻页" : "单页占满屏幕")
+                .help(mode == .spread ? BookL10n.string("help.readingSpreadLayout") : BookL10n.string("help.readingSinglePage"))
             }
         }
         .fixedSize()
@@ -324,15 +326,15 @@ struct ReadingSpreadView: View {
 
     private var readingKeyboardShortcuts: some View {
         Group {
-            Button("上一页") { turnPage(.backward) }
+            Button(BookL10n.string("reading.prevPage")) { turnPage(.backward) }
                 .keyboardShortcut(.leftArrow, modifiers: [])
-            Button("下一页") { turnPage(.forward) }
+            Button(BookL10n.string("reading.nextPage")) { turnPage(.forward) }
                 .keyboardShortcut(.rightArrow, modifiers: [])
-            Button("学习模式") { viewModel.exitReadingMode() }
+            Button(BookL10n.string("mode.learning")) { viewModel.exitReadingMode() }
                 .keyboardShortcut(.escape, modifiers: [])
-            Button("双页") { setLayoutMode(.spread) }
+            Button(BookL10n.string("layout.spread")) { setLayoutMode(.spread) }
                 .keyboardShortcut("1", modifiers: [.command, .option])
-            Button("全屏") { setLayoutMode(.fullscreen) }
+            Button(BookL10n.string("layout.fullscreen")) { setLayoutMode(.fullscreen) }
                 .keyboardShortcut("2", modifiers: [.command, .option])
         }
         .opacity(0)
@@ -421,7 +423,7 @@ struct ReadingSpreadView: View {
 
             Text(text)
                 .font(BookTheme.readingContentFont)
-                .foregroundStyle(pageCaption == "译文" && text == "本页暂无译文" ? BookTheme.inkMuted : BookTheme.ink)
+                .foregroundStyle(pageCaption == BookL10n.string("page.translationCaption") && text == BookL10n.string("page.noTranslationOnPage") ? BookTheme.inkMuted : BookTheme.ink)
                 .lineSpacing(BookTheme.readingLineSpacing)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -806,7 +808,7 @@ struct ReadingSpreadView: View {
         case .fullscreen:
             let page = min(max(1, spreadIndex + 1), max(viewModel.readingPageCount, 1))
             let total = max(viewModel.readingPageCount, 1)
-            return "第 \(page) 页 / 共 \(total) 页"
+            return BookL10n.format("vm.page.single", page, total)
         }
     }
 }

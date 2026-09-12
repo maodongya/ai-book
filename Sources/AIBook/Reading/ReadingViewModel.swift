@@ -11,18 +11,6 @@ enum SpeechSource: Equatable {
     case explanationSelection
     case aiReply
 
-    var label: String {
-        switch self {
-        case .originalFull: return "原文全文"
-        case .originalSelection: return "原文选中"
-        case .translationFull: return "翻译全文"
-        case .translationSelection: return "翻译选中"
-        case .explanationFull: return "讲解全文"
-        case .explanationSelection: return "讲解选中"
-        case .aiReply: return "AI 回复"
-        }
-    }
-
     var icon: String {
         switch self {
         case .originalFull, .originalSelection: return "text.book.closed"
@@ -35,6 +23,9 @@ enum SpeechSource: Equatable {
 
 @MainActor
 final class ReadingViewModel: ObservableObject {
+    static let untitledMarker = "未命名"
+
+
     private enum PromptContext {
         case reading
         case evolution
@@ -56,7 +47,7 @@ final class ReadingViewModel: ObservableObject {
             }
         }
     }
-    @Published var fileName = "未命名"
+    @Published var fileName = ReadingViewModel.untitledMarker
     @Published private(set) var isDocumentOpen = false
     @Published var selectedText = ""
     /// 最近一次非空选区；点击顶栏时系统常会清空高亮，朗读/讲解仍用此缓存。
@@ -186,15 +177,13 @@ final class ReadingViewModel: ObservableObject {
     private var readingPromptMessages: [ChatMessage] = [ReadingViewModel.defaultWelcomeMessage]
     private var evolutionPromptMessages: [ChatMessage] = []
 
-    private static let defaultWelcomeMessage = ChatMessage(
-        role: .assistant,
-        content: ReadingAssistant.welcomeMessage
-    )
+    private static var defaultWelcomeMessage: ChatMessage {
+        ChatMessage(role: .assistant, content: ReadingAssistant.welcomeMessage)
+    }
 
-    private static let defaultEvolutionWelcomeMessage = ChatMessage(
-        role: .assistant,
-        content: EvolutionAssistant.welcomeMessage
-    )
+    private static var defaultEvolutionWelcomeMessage: ChatMessage {
+        ChatMessage(role: .assistant, content: EvolutionAssistant.welcomeMessage)
+    }
 
     init() {
         translationScrollSync.sourceView = sourceTextScrollProxy
@@ -223,7 +212,7 @@ final class ReadingViewModel: ObservableObject {
                 readmeNotesStore.loadInitialContent()
             )
         } catch {
-            errorMessage = "无法加载优化队列：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.loadQueue", error.localizedDescription)
             optimizationQueue = .empty
         }
     }
@@ -232,13 +221,13 @@ final class ReadingViewModel: ObservableObject {
         do {
             try optimizationQueueStore.save(optimizationQueue)
         } catch {
-            errorMessage = "无法保存优化队列：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.saveQueue", error.localizedDescription)
         }
     }
 
     var displayFileName: String {
         guard isDocumentOpen || currentFileURL != nil || !fileContent.isEmpty else {
-            return "未打开文件"
+            return BookL10n.string("vm.noFileOpen")
         }
         let name = currentFileURL?.lastPathComponent ?? fileName
         return isDirty ? "\(name) •" : name
@@ -282,9 +271,9 @@ final class ReadingViewModel: ObservableObject {
         let left = leftPageIndex(forSpread: spreadIndex) + 1
         let total = max(readingPageCount, 1)
         if let rightIndex = rightPageIndex(forSpread: spreadIndex) {
-            return "第 \(left)–\(rightIndex + 1) 页 / 共 \(total) 页"
+            return BookL10n.format("vm.page.range", left, rightIndex + 1, total)
         }
-        return "第 \(left) 页 / 共 \(total) 页"
+        return BookL10n.format("vm.page.single", left, total)
     }
 
     var canAlignTranslationWithSource: Bool {
@@ -301,11 +290,11 @@ final class ReadingViewModel: ObservableObject {
     var translationAlignmentStatusText: String? {
         guard let alignment = translationAlignment else { return nil }
         if alignment.isStale {
-            return "对齐失效"
+            return BookL10n.string("vm.align.stale")
         }
-        var parts = ["\(alignment.anchoredBlockCount)/\(alignment.blocks.count) 已锚定"]
+        var parts = [BookL10n.format("vm.align.anchored", alignment.anchoredBlockCount, alignment.blocks.count)]
         if alignment.isLocked {
-            parts.append("已锁定")
+            parts.append(BookL10n.string("vm.align.locked"))
         }
         return parts.joined(separator: " · ")
     }
@@ -399,7 +388,7 @@ final class ReadingViewModel: ObservableObject {
         if let path = currentFileURL?.path {
             return readingPositionKeyPrefix + path
         }
-        if isDocumentOpen, fileName != "未命名" {
+        if isDocumentOpen, fileName != Self.untitledMarker {
             return readingPositionKeyPrefix + "draft:" + fileName
         }
         return nil
@@ -409,7 +398,7 @@ final class ReadingViewModel: ObservableObject {
         if let path = currentFileURL?.path {
             return readingSourcePageKeyPrefix + path
         }
-        if isDocumentOpen, fileName != "未命名" {
+        if isDocumentOpen, fileName != Self.untitledMarker {
             return readingSourcePageKeyPrefix + "draft:" + fileName
         }
         return nil
@@ -464,15 +453,15 @@ final class ReadingViewModel: ObservableObject {
         if let last = streamingToolSteps.last {
             let name = EvolutionToolLabels.localizedToolName(last.name)
             if last.status == .running {
-                return "正在 \(name)…"
+                return BookL10n.format("vm.tool.running", name)
             }
-            return "已完成 \(name)"
+            return BookL10n.format("vm.tool.done", name)
         }
         if !streamingToolStatus.isEmpty {
             return streamingToolStatus
         }
         if !streamingThinking.isEmpty {
-            return "思考中…"
+            return BookL10n.string("vm.thinking")
         }
         return nil
     }
@@ -737,8 +726,8 @@ final class ReadingViewModel: ObservableObject {
         }
 
         streamingToolStatus = stepStatus == .running
-            ? "正在调用 \(EvolutionToolLabels.localizedToolName(name))…"
-            : "已完成 \(EvolutionToolLabels.localizedToolName(name))"
+            ? BookL10n.format("vm.tool.running", EvolutionToolLabels.localizedToolName(name))
+            : BookL10n.format("vm.tool.done", EvolutionToolLabels.localizedToolName(name))
     }
 
     private func resolvedToolStepsForMessage() -> [ExecutionStep]? {
@@ -767,7 +756,7 @@ final class ReadingViewModel: ObservableObject {
         }
         if wasRunning {
             appendDisplayedMessage(
-                ChatMessage(role: .assistant, content: "已停止执行。"),
+                ChatMessage(role: .assistant, content: BookL10n.string("vm.stopped")),
                 to: activePromptContext
             )
         }
@@ -778,6 +767,19 @@ final class ReadingViewModel: ObservableObject {
         if optimizationQueue.revertRunningToPending(id: item.id) {
             persistOptimizationQueue()
         }
+    }
+
+    /// Refresh welcome chrome after interface language changes (keeps session data).
+    func applyLanguageChange() {
+        if evolutionPromptMessages.count == 1,
+           evolutionPromptMessages[0].role == .assistant,
+           BookL10nMarkers.isEvolutionWelcome(evolutionPromptMessages[0].content) {
+            let existing = evolutionPromptMessages[0]
+            evolutionPromptMessages = [
+                ChatMessage(id: existing.id, role: .assistant, content: EvolutionAssistant.welcomeMessage),
+            ]
+        }
+        syncDisplayedChatMessages()
     }
 
     func clearReadingContext() {
@@ -813,15 +815,15 @@ final class ReadingViewModel: ObservableObject {
     /// 将优化队列导出为本地编号命令文本文件。
     func saveEvolutionCommands() {
         guard !optimizationQueue.items.isEmpty else {
-            errorMessage = "优化队列为空，无可保存的进化命令。"
+            errorMessage = BookL10n.string("vm.error.queueEmptySave")
             return
         }
         let formatted = NumberedNoteFormatter.format(optimizationQueue)
         exportEvolutionCommands(
             formatted,
-            panelTitle: "保存进化命令",
-            panelMessage: "将优化队列导出为编号命令文本（UTF-8）",
-            successPrefix: "已保存进化命令"
+            panelTitle: BookL10n.string("vm.panel.saveEvolutionCommands"),
+            panelMessage: BookL10n.string("vm.panel.saveEvolutionCommandsMsg"),
+            successPrefix: BookL10n.string("vm.saved.evolutionCommands")
         )
     }
 
@@ -830,8 +832,8 @@ final class ReadingViewModel: ObservableObject {
         guard !isRunning else { return }
 
         let panel = NSOpenPanel()
-        panel.title = "打开进化命令"
-        panel.message = "选择包含编号命令行的 UTF-8 文本文件"
+        panel.title = BookL10n.string("vm.panel.openEvolutionCommands")
+        panel.message = BookL10n.string("vm.panel.openEvolutionCommandsMsg")
         panel.allowedContentTypes = [.plainText]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -843,11 +845,11 @@ final class ReadingViewModel: ObservableObject {
             let text = try String(contentsOf: url, encoding: .utf8)
             let imported = OptimizationQueue.importFromNotes(text)
             guard !imported.items.isEmpty else {
-                errorMessage = "文件中未找到有效的编号命令行（如「1、…」）。"
+                errorMessage = BookL10n.string("vm.error.noValidCommands")
                 return
             }
             if optimizationQueue.items.contains(where: { $0.status == .running }) {
-                errorMessage = "当前有进化任务正在执行，请先停止后再打开。"
+                errorMessage = BookL10n.string("vm.error.evolutionRunningOpen")
                 return
             }
             if !optimizationQueue.items.isEmpty,
@@ -861,9 +863,9 @@ final class ReadingViewModel: ObservableObject {
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             errorMessage = nil
             let count = imported.items.count
-            showTransientSaveMessage("已打开 \(count) 条进化命令：\(url.lastPathComponent)")
+            showTransientSaveMessage(BookL10n.format("vm.opened.evolutionCommands", count, url.lastPathComponent))
         } catch {
-            errorMessage = "无法打开进化命令：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.openEvolutionCommands", error.localizedDescription)
         }
     }
 
@@ -898,7 +900,7 @@ final class ReadingViewModel: ObservableObject {
         stopExplanationSpeech()
         fileContent = ""
         savedContent = ""
-        fileName = "未命名"
+        fileName = Self.untitledMarker
         currentFileURL = nil
         isDocumentOpen = true
         isDirty = false
@@ -921,7 +923,7 @@ final class ReadingViewModel: ObservableObject {
         guard confirmDiscardUnsavedIfNeeded() else { return }
 
         let panel = NSOpenPanel()
-        panel.title = "打开文本文件"
+        panel.title = BookL10n.string("vm.panel.openTextFile")
         panel.allowedContentTypes = [.plainText]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -992,7 +994,7 @@ final class ReadingViewModel: ObservableObject {
 
     private func pickDirectoryURL() -> URL? {
         let panel = NSOpenPanel()
-        panel.title = "选择文件夹"
+        panel.title = BookL10n.string("vm.panel.chooseFolder")
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
@@ -1064,7 +1066,7 @@ final class ReadingViewModel: ObservableObject {
                     }
                 } else {
                     self.directoryBrowserSessions[currentIndex].tree = nil
-                    self.directoryBrowserSessions[currentIndex].loadError = "无法读取目录"
+                    self.directoryBrowserSessions[currentIndex].loadError = BookL10n.string("vm.error.readDirectory")
                 }
                 self.persistDirectoryBrowserSessions()
             }
@@ -1073,7 +1075,7 @@ final class ReadingViewModel: ObservableObject {
 
     func openDroppedFile(at url: URL) {
         guard url.pathExtension.lowercased() == "txt" || url.pathExtension.isEmpty else {
-            errorMessage = "仅支持打开 .txt 文本文件。"
+            errorMessage = BookL10n.string("vm.error.txtOnly")
             return
         }
         guard confirmDiscardUnsavedIfNeeded() else { return }
@@ -1108,7 +1110,7 @@ final class ReadingViewModel: ObservableObject {
             persistChatSession()
             refreshTranslationAlignmentAfterSourceChange()
         } catch {
-            errorMessage = "无法读取文件：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.readFile", error.localizedDescription)
         }
     }
 
@@ -1124,33 +1126,33 @@ final class ReadingViewModel: ObservableObject {
     func saveAs() {
         exportContent(
             fileContent,
-            panelTitle: "另存为文本文件",
-            panelMessage: "选择保存位置与文件名（UTF-8 文本）",
+            panelTitle: BookL10n.string("vm.panel.saveAsText"),
+            panelMessage: BookL10n.string("vm.panel.saveAsTextMsg"),
             suggestedName: DocumentExporter.suggestedFileName(
                 currentFileURL: currentFileURL,
                 fileName: fileName
             ),
-            successPrefix: "已另存为"
+            successPrefix: BookL10n.string("vm.saved.as")
         )
     }
 
     func saveSelectionAs() {
         let selection = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !selection.isEmpty else {
-            errorMessage = "请先在左页选中要导出的文字。"
+            errorMessage = BookL10n.string("vm.error.selectExportText")
             return
         }
 
         exportContent(
             selection,
-            panelTitle: "导出选中文字",
-            panelMessage: "将左页选中内容保存为新 .txt 文件",
+            panelTitle: BookL10n.string("vm.panel.exportSelection"),
+            panelMessage: BookL10n.string("vm.panel.exportSelectionMsg"),
             suggestedName: DocumentExporter.suggestedFileName(
                 currentFileURL: currentFileURL,
                 fileName: fileName,
                 selectionSuffix: true
             ),
-            successPrefix: "已导出选中"
+            successPrefix: BookL10n.string("vm.saved.exportSelection")
         )
     }
 
@@ -1196,16 +1198,16 @@ final class ReadingViewModel: ObservableObject {
         }
         let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else {
-            errorMessage = "当前 AI 输出为空，无法保存。"
+            errorMessage = BookL10n.string("vm.error.aiOutputEmptySave")
             return
         }
 
         exportContent(
             content,
-            panelTitle: "保存 AI 输出",
-            panelMessage: "将右侧 AI 查询内容保存为 UTF-8 文本",
+            panelTitle: BookL10n.string("vm.panel.saveAIOutput"),
+            panelMessage: BookL10n.string("vm.panel.saveAIOutputMsg"),
             suggestedName: assistantOutputFileName(for: message),
-            successPrefix: "已保存 AI 输出"
+            successPrefix: BookL10n.string("vm.saved.aiOutput")
         )
     }
 
@@ -1220,7 +1222,7 @@ final class ReadingViewModel: ObservableObject {
         }
         let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else {
-            errorMessage = "当前 AI 输出为空，无法朗读。"
+            errorMessage = BookL10n.string("vm.error.aiOutputEmptySpeak")
             return
         }
 
@@ -1229,7 +1231,7 @@ final class ReadingViewModel: ObservableObject {
 
     func openAssistantMessageFile() {
         let panel = NSOpenPanel()
-        panel.title = "打开 AI 输出文本"
+        panel.title = BookL10n.string("vm.panel.openAIOutput")
         panel.allowedContentTypes = [.plainText]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -1241,16 +1243,16 @@ final class ReadingViewModel: ObservableObject {
             let text = try String(contentsOf: url, encoding: .utf8)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else {
-                errorMessage = "打开的 AI 输出文本为空。"
+                errorMessage = BookL10n.string("vm.error.aiOutputOpenEmpty")
                 return
             }
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             let message = ChatMessage(role: .assistant, content: text)
             appendDisplayedMessage(message, to: .reading)
             errorMessage = nil
-            showTransientSaveMessage("已打开 AI 输出 \(url.lastPathComponent)")
+            showTransientSaveMessage(BookL10n.format("vm.opened.aiOutput", url.lastPathComponent))
         } catch {
-            errorMessage = "无法打开 AI 输出：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.openAIOutput", error.localizedDescription)
         }
     }
 
@@ -1287,7 +1289,7 @@ final class ReadingViewModel: ObservableObject {
             errorMessage = nil
             showTransientSaveMessage("\(successPrefix) \(destination.lastPathComponent)")
         } catch {
-            errorMessage = "无法保存文件：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.saveFile", error.localizedDescription)
         }
     }
 
@@ -1317,9 +1319,9 @@ final class ReadingViewModel: ObservableObject {
             syncLeftPageWithEvolutionCommands(from: destination, formatted: content)
             errorMessage = nil
             let count = optimizationQueue.items.count
-            showTransientSaveMessage("\(successPrefix) \(count) 条 → \(destination.lastPathComponent)")
+            showTransientSaveMessage(BookL10n.format("vm.saved.itemsTo", successPrefix, count, destination.lastPathComponent))
         } catch {
-            errorMessage = "无法保存进化命令：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.saveEvolutionCommands", error.localizedDescription)
         }
     }
 
@@ -1333,7 +1335,7 @@ final class ReadingViewModel: ObservableObject {
         do {
             try readmeNotesStore.save(formatted)
         } catch {
-            errorMessage = "无法同步命令笔记：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.syncCommandNotes", error.localizedDescription)
         }
     }
 
@@ -1350,7 +1352,7 @@ final class ReadingViewModel: ObservableObject {
         do {
             try readmeNotesStore.save(formatted)
         } catch {
-            errorMessage = "无法同步命令笔记：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.syncCommandNotes", error.localizedDescription)
         }
         if let url = currentFileURL {
             try? DocumentExporter.write(formatted, to: url)
@@ -1369,11 +1371,11 @@ final class ReadingViewModel: ObservableObject {
 
     private func confirmReplaceOptimizationQueue() -> Bool {
         let alert = NSAlert()
-        alert.messageText = "替换当前优化队列？"
-        alert.informativeText = "打开文件将覆盖现有 \(optimizationQueue.items.count) 条进化命令。"
+        alert.messageText = BookL10n.string("vm.alert.replaceQueueTitle")
+        alert.informativeText = BookL10n.format("vm.alert.replaceQueueMsg", optimizationQueue.items.count)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "替换")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: BookL10n.string("action.replace"))
+        alert.addButton(withTitle: BookL10n.string("alert.cancel"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 
@@ -1415,7 +1417,7 @@ final class ReadingViewModel: ObservableObject {
             errorMessage = nil
             syncOptimizationQueueFromLeftPageIfNeeded()
         } catch {
-            errorMessage = "无法保存命令笔记：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.saveCommandNotes", error.localizedDescription)
         }
     }
 
@@ -1424,7 +1426,7 @@ final class ReadingViewModel: ObservableObject {
         do {
             try readmeNotesStore.save(fileContent)
         } catch {
-            errorMessage = "无法同步命令笔记：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.syncCommandNotes", error.localizedDescription)
         }
     }
 
@@ -1437,9 +1439,9 @@ final class ReadingViewModel: ObservableObject {
             isDirty = false
             errorMessage = nil
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
-            showTransientSaveMessage("已保存 \(url.lastPathComponent)")
+            showTransientSaveMessage(BookL10n.format("vm.saved.file", url.lastPathComponent))
         } catch {
-            errorMessage = "无法保存文件：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.saveFile", error.localizedDescription)
         }
     }
 
@@ -1503,7 +1505,7 @@ final class ReadingViewModel: ObservableObject {
 
     func selectAllLeftPage() {
         guard !fileContent.isEmpty else {
-            errorMessage = "当前没有可选中的文本。"
+            errorMessage = BookL10n.string("vm.error.noSelectableText")
             return
         }
         leftSelectAllSignal = UUID()
@@ -1513,7 +1515,7 @@ final class ReadingViewModel: ObservableObject {
         selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.translation)
         guard !lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "当前翻译为空，无法全选。"
+            errorMessage = BookL10n.string("vm.error.translationEmptySelectAll")
             return
         }
         rightSelectAllSignal = UUID()
@@ -1587,15 +1589,15 @@ final class ReadingViewModel: ObservableObject {
         persistChatSession()
         let content = explanationTranscriptText()
         guard !content.isEmpty else {
-            errorMessage = "当前没有可保存的讲解内容。"
+            errorMessage = BookL10n.string("vm.error.noExplanationToSave")
             return
         }
         exportContent(
             content,
-            panelTitle: "保存讲解",
-            panelMessage: "将讲解对话保存为 UTF-8 文本",
+            panelTitle: BookL10n.string("vm.panel.saveExplanation"),
+            panelMessage: BookL10n.string("vm.panel.saveExplanationMsg"),
             suggestedName: explanationFileName(),
-            successPrefix: "已保存讲解"
+            successPrefix: BookL10n.string("vm.saved.explanation")
         )
     }
 
@@ -1605,7 +1607,7 @@ final class ReadingViewModel: ObservableObject {
         selectReadingAssistantPanel(.explanation)
 
         let panel = NSOpenPanel()
-        panel.title = "打开讲解内容"
+        panel.title = BookL10n.string("vm.panel.openExplanation")
         panel.allowedContentTypes = [.plainText]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -1620,15 +1622,15 @@ final class ReadingViewModel: ObservableObject {
             let text = try String(contentsOf: url, encoding: .utf8)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else {
-                errorMessage = "打开的讲解文本为空。"
+                errorMessage = BookL10n.string("vm.error.explanationOpenEmpty")
                 return
             }
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             applyImportedExplanationText(text)
             errorMessage = nil
-            showTransientSaveMessage("已打开讲解 \(url.lastPathComponent)")
+            showTransientSaveMessage(BookL10n.format("vm.opened.explanation", url.lastPathComponent))
         } catch {
-            errorMessage = "无法打开讲解内容：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.openExplanation", error.localizedDescription)
         }
     }
 
@@ -1637,7 +1639,7 @@ final class ReadingViewModel: ObservableObject {
         selectReadingAssistantPanel(.explanation)
         let text = explanationTranscriptText()
         guard !text.isEmpty else {
-            errorMessage = "当前没有可选中的讲解内容。"
+            errorMessage = BookL10n.string("vm.error.noExplanationSelection")
             return
         }
         explanationSelectionText = text
@@ -1653,7 +1655,7 @@ final class ReadingViewModel: ObservableObject {
 
         let text = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
-            errorMessage = "当前没有可朗读的原文内容，请先输入或打开文本。"
+            errorMessage = BookL10n.string("vm.error.noSourceToSpeak")
             return
         }
 
@@ -1665,7 +1667,7 @@ final class ReadingViewModel: ObservableObject {
 
         let text = effectiveSelectedText
         guard !text.isEmpty else {
-            errorMessage = "请先在左页选中要朗读的文字。"
+            errorMessage = BookL10n.string("vm.error.selectSourceToSpeak")
             return
         }
 
@@ -1680,7 +1682,7 @@ final class ReadingViewModel: ObservableObject {
 
         let text = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
-            errorMessage = "当前翻译为空，请先生成或打开翻译内容。"
+            errorMessage = BookL10n.string("vm.error.translationEmptySpeak")
             return
         }
 
@@ -1695,7 +1697,7 @@ final class ReadingViewModel: ObservableObject {
 
         let text = effectiveLessonPlanSelectedText
         guard !text.isEmpty else {
-            errorMessage = "请先在翻译区选中要朗读的文字。"
+            errorMessage = BookL10n.string("vm.error.selectTranslationToSpeak")
             return
         }
 
@@ -1710,7 +1712,7 @@ final class ReadingViewModel: ObservableObject {
 
         let text = explanationSpeakableText()
         guard !text.isEmpty else {
-            errorMessage = "当前没有可朗读的讲解内容。"
+            errorMessage = BookL10n.string("vm.error.noExplanationToSpeak")
             return
         }
 
@@ -1726,7 +1728,7 @@ final class ReadingViewModel: ObservableObject {
 
         let text = effectiveExplanationPanelSelectedText
         guard !text.isEmpty else {
-            errorMessage = "请先在讲解区选中要朗读的文字（可先点全选）。"
+            errorMessage = BookL10n.string("vm.error.selectExplanationToSpeak")
             return
         }
 
@@ -1762,8 +1764,8 @@ final class ReadingViewModel: ObservableObject {
 
     private func explanationFileName() -> String {
         let stem = (fileName as NSString).deletingPathExtension
-        let base = stem.isEmpty || stem == "未命名" ? "文章" : stem
-        return "\(base)-讲解.txt"
+        let base = stem.isEmpty || stem == Self.untitledMarker ? BookL10n.string("file.articleStem") : stem
+        return "\(base)\(BookL10n.string("vm.filename.explanationSuffix"))"
     }
 
     private func syncExplanationSelectionText() {
@@ -1813,7 +1815,7 @@ final class ReadingViewModel: ObservableObject {
 
     private func defaultImportedExplanationMessages(for text: String) -> [ChatMessage] {
         [
-            ChatMessage(role: .user, content: "已导入讲解文稿"),
+            ChatMessage(role: .user, content: BookL10n.string("vm.imported.explanationDraft")),
             ChatMessage(role: .assistant, content: text),
         ]
     }
@@ -1840,9 +1842,9 @@ final class ReadingViewModel: ObservableObject {
         if mode == .aiEvolution, showsExecutionTrace {
             if !streamingToolStatus.isEmpty { return streamingToolStatus }
             if let label = evolutionLiveToolLabel { return label }
-            return "AI 进化执行中…"
+            return BookL10n.string("vm.evolutionRunning")
         }
-        return "处理中…"
+        return BookL10n.string("vm.processing")
     }
 
     /// AI 进化页是否展示 Agent 执行轨迹（Cursor）。
@@ -1861,7 +1863,7 @@ final class ReadingViewModel: ObservableObject {
         }
 
         guard let pending = optimizationQueue.nextPending() else {
-            errorMessage = "请先点「分析优化」，或在队列中手写一条。"
+            errorMessage = BookL10n.string("vm.needAnalyzeFirst")
             AutoEvolutionCoordinator.clearChain()
             return
         }
@@ -1872,7 +1874,7 @@ final class ReadingViewModel: ObservableObject {
         }
 
         guard SelfEvolution.sourceProjectReady else {
-            errorMessage = "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。请确认 \(SelfEvolution.sourceProjectPath()) 存在。"
+            errorMessage = BookL10n.format("vm.error.sourceProjectMissing", SelfEvolution.sourceProjectPath())
             return
         }
 
@@ -1882,7 +1884,7 @@ final class ReadingViewModel: ObservableObject {
             pending: pending,
             projectPath: projectPath
         )
-        guard guardEvolutionTokenLimit(for: prompt, action: "执行进化") else { return }
+        guard guardEvolutionTokenLimit(for: prompt, action: BookL10n.string("vm.action.evolve")) else { return }
 
         guard optimizationQueue.markRunning(id: pending.id) else { return }
         persistOptimizationQueue()
@@ -1890,7 +1892,7 @@ final class ReadingViewModel: ObservableObject {
 
         sendMessage(
             prompt,
-            displayText: "自我进化 · 第 \(pending.number) 条",
+            displayText: BookL10n.format("vm.display.evolutionItem", pending.number),
             isEvolution: true,
             evolutionCommandNumber: pending.number,
             triggerEvolutionRebuild: true,
@@ -1909,7 +1911,7 @@ final class ReadingViewModel: ObservableObject {
             return
         }
         guard SelfEvolution.sourceProjectReady else {
-            errorMessage = "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。请确认 \(SelfEvolution.sourceProjectPath()) 存在。"
+            errorMessage = BookL10n.format("vm.error.sourceProjectMissing", SelfEvolution.sourceProjectPath())
             return
         }
 
@@ -1923,12 +1925,12 @@ final class ReadingViewModel: ObservableObject {
             projectPath: SelfEvolution.sourceProjectPath(),
             direction: direction.isEmpty ? nil : direction
         )
-        guard guardEvolutionTokenLimit(for: prompt, action: "分析优化") else { return }
+        guard guardEvolutionTokenLimit(for: prompt, action: BookL10n.string("vm.action.analyze")) else { return }
 
         evolutionRunKind = .analysis
         sendMessage(
             prompt,
-            displayText: direction.isEmpty ? "分析优化" : "分析优化：\(direction)",
+            displayText: direction.isEmpty ? BookL10n.string("vm.display.analyze") : BookL10n.format("vm.display.analyzeWith", direction),
             isEvolution: true,
             evolutionCommandNumber: nil,
             triggerEvolutionRebuild: false,
@@ -1976,7 +1978,7 @@ final class ReadingViewModel: ObservableObject {
 
         let selection = effectiveSelectedText
         guard !selection.isEmpty else {
-            errorMessage = "请先在左页选中一段文字。"
+            errorMessage = BookL10n.string("vm.error.selectParagraph")
             return
         }
 
@@ -1998,7 +2000,7 @@ final class ReadingViewModel: ObservableObject {
 
         sendMessage(
             prompt,
-            displayText: "选择讲解（\(selection.count) 字）",
+            displayText: BookL10n.format("vm.display.explainSelection", selection.count),
             speakReplyWhenDone: true
         )
     }
@@ -2009,7 +2011,7 @@ final class ReadingViewModel: ObservableObject {
 
         let fullText = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !fullText.isEmpty else {
-            errorMessage = "请先在左页输入或打开文章内容。"
+            errorMessage = BookL10n.string("vm.error.openArticleFirst")
             return
         }
 
@@ -2027,7 +2029,7 @@ final class ReadingViewModel: ObservableObject {
 
         sendMessage(
             prompt,
-            displayText: "全文讲解（\(fullText.count) 字）",
+            displayText: BookL10n.format("vm.display.explainFull", fullText.count),
             speakReplyWhenDone: true
         )
     }
@@ -2041,7 +2043,7 @@ final class ReadingViewModel: ObservableObject {
         let fullText = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = selected.isEmpty ? fullText : selected
         guard !text.isEmpty else {
-            errorMessage = "当前没有可朗读内容，请先输入或打开文本。"
+            errorMessage = BookL10n.string("vm.error.noReadableContent")
             return
         }
 
@@ -2056,12 +2058,12 @@ final class ReadingViewModel: ObservableObject {
     func supplementClassicLiterature() {
         let trimmed = fileContent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            errorMessage = "请先在左页粘贴或打开名著节选文本。"
+            errorMessage = BookL10n.string("vm.error.classicsPasteFirst")
             return
         }
 
         guard AppSettings.shared.isBookLLMConfigured else {
-            errorMessage = "名著补充需配置读书大模型，请在 book 设置中选择本地模型。"
+            errorMessage = BookL10n.string("vm.error.classicsNeedLLM")
             return
         }
 
@@ -2113,7 +2115,7 @@ final class ReadingViewModel: ObservableObject {
                 appendDisplayOnlyMessage(
                     ChatMessage(
                         role: .assistant,
-                        content: "名著补充完成，已写入左页（\(finalText.count) 字）并保存。"
+                        content: BookL10n.format("vm.classics.done", finalText.count)
                     )
                 )
             } catch {
@@ -2122,7 +2124,7 @@ final class ReadingViewModel: ObservableObject {
                     let message = LLMServiceErrorPresenter.message(for: error, provider: settings.bookProvider)
                     errorMessage = message
                     appendDisplayOnlyMessage(
-                        ChatMessage(role: .assistant, content: "名著补充失败：\(message)")
+                        ChatMessage(role: .assistant, content: BookL10n.format("vm.classics.failed", message))
                     )
                 }
             }
@@ -2207,7 +2209,7 @@ final class ReadingViewModel: ObservableObject {
 
         evolutionChatInput = ""
         let prompt = buildEvolutionChatPrompt(for: text)
-        guard guardEvolutionTokenLimit(for: prompt, action: "发送追问") else { return }
+        guard guardEvolutionTokenLimit(for: prompt, action: BookL10n.string("vm.action.followUp")) else { return }
         sendMessage(
             prompt,
             displayText: text,
@@ -2220,13 +2222,13 @@ final class ReadingViewModel: ObservableObject {
     func generateLessonPlan() {
         let source = lessonPlanSourceText()
         guard !source.isEmpty else {
-            errorMessage = "请先在左页输入、打开或选中要翻译的文章内容。"
+            errorMessage = BookL10n.string("vm.error.translationSourceFirst")
             return
         }
         selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.translation)
         runLessonPlanTask(
-            displayText: "生成逐字翻译",
+            displayText: BookL10n.string("vm.display.wordTranslation"),
             mode: .wordByWord,
             prompt: buildLessonPlanPrompt(
                 source: source,
@@ -2240,14 +2242,14 @@ final class ReadingViewModel: ObservableObject {
     func refineLessonPlan(instruction: String? = nil) {
         let source = lessonPlanSourceText()
         guard !source.isEmpty else {
-            errorMessage = "请先在左页输入、打开或选中要翻译的文章内容。"
+            errorMessage = BookL10n.string("vm.error.translationSourceFirst")
             return
         }
         selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.translation)
         let trimmedInstruction = instruction?.trimmingCharacters(in: .whitespacesAndNewlines)
         runLessonPlanTask(
-            displayText: "生成整段翻译",
+            displayText: BookL10n.string("vm.display.paragraphTranslation"),
             mode: .paragraph,
             prompt: buildLessonPlanPrompt(
                 source: source,
@@ -2269,21 +2271,21 @@ final class ReadingViewModel: ObservableObject {
     func saveLessonPlan() {
         let content = lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else {
-            errorMessage = "当前翻译为空，无法保存。"
+            errorMessage = BookL10n.string("vm.error.translationEmptySave")
             return
         }
         exportContent(
             content,
-            panelTitle: "保存翻译内容",
-            panelMessage: "将右侧翻译内容保存为 UTF-8 文本",
+            panelTitle: BookL10n.string("vm.panel.saveTranslation"),
+            panelMessage: BookL10n.string("vm.panel.saveTranslationMsg"),
             suggestedName: lessonPlanFileName(),
-            successPrefix: "已保存翻译"
+            successPrefix: BookL10n.string("vm.saved.translation")
         )
     }
 
     func openLessonPlanFile() {
         let panel = NSOpenPanel()
-        panel.title = "打开翻译内容"
+        panel.title = BookL10n.string("vm.panel.openTranslation")
         panel.allowedContentTypes = [.plainText]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -2302,9 +2304,9 @@ final class ReadingViewModel: ObservableObject {
             _ = alignTranslationWithSource(showFeedback: false)
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             errorMessage = nil
-            showTransientSaveMessage("已打开翻译 \(url.lastPathComponent)")
+            showTransientSaveMessage(BookL10n.format("vm.opened.translation", url.lastPathComponent))
         } catch {
-            errorMessage = "无法打开翻译内容：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.openTranslation", error.localizedDescription)
         }
     }
 
@@ -2337,7 +2339,7 @@ final class ReadingViewModel: ObservableObject {
             if AppGuard.evolutionSourceErrorMessage(for: settings) != nil { return }
             guard self.canRunEvolution else {
                 AutoEvolutionCoordinator.clearChain()
-                self.errorMessage = self.evolutionTokenBudget.blockMessage(for: "自动进化")
+                self.errorMessage = self.evolutionTokenBudget.blockMessage(for: BookL10n.string("vm.action.autoEvolve"))
                 return
             }
             self.startEvolution()
@@ -2442,7 +2444,7 @@ final class ReadingViewModel: ObservableObject {
                     applyEvolutionQueueUpdate(reply: resolvedReply, commandNumber: commandNumber)
 
                     guard let projectURL = SelfEvolution.sourceProjectDirectory() else {
-                        errorMessage = "未找到 ai-book 源码目录（需含 Package.swift 与 Sources/AIBook）。"
+                        errorMessage = BookL10n.string("vm.error.sourceProjectMissingShort")
                         AutoEvolutionCoordinator.clearChain()
                         return
                     }
@@ -2455,8 +2457,8 @@ final class ReadingViewModel: ObservableObject {
                         ChatMessage(
                             role: .assistant,
                             content: stillPending
-                                ? "第 \(commandNumber ?? 0) 条进化已完成。正在自动升级并继续下一条…"
-                                : "全部优化项已完成。正在自动升级并重启 AIBook…"
+                                ? BookL10n.format("vm.evolution.commandDoneUpgrade", commandNumber ?? 0)
+                                : BookL10n.string("vm.evolution.allDoneUpgrade")
                         ),
                         to: .evolution
                     )
@@ -2475,7 +2477,7 @@ final class ReadingViewModel: ObservableObject {
                 if !(error is CancellationError) {
                     let message = message(for: error, isEvolution: runKind != .none)
                     errorMessage = message
-                    let failureMessage = ChatMessage(role: .assistant, content: "解析失败：\(message)")
+                    let failureMessage = ChatMessage(role: .assistant, content: BookL10n.format("vm.error.parseFailed", message))
                     appendDisplayedMessage(failureMessage, to: promptContext)
                 }
             }
@@ -2553,7 +2555,7 @@ final class ReadingViewModel: ObservableObject {
     func alignTranslationWithSource(showFeedback: Bool = true) -> Bool {
         if translationAlignment?.isLocked == true {
             if showFeedback {
-                errorMessage = "对照关系已锁定。请先解锁后再整体对齐。"
+                errorMessage = BookL10n.string("vm.error.alignLocked")
             }
             return false
         }
@@ -2563,14 +2565,14 @@ final class ReadingViewModel: ObservableObject {
         guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             if showFeedback {
-                errorMessage = "请先在左页打开或输入原文，并在右页加载或输入译文。"
+                errorMessage = BookL10n.string("vm.error.alignNeedBoth")
             }
             return false
         }
 
         guard let outcome = TranslationAligner.align(source: source, translation: content) else {
             if showFeedback {
-                errorMessage = "无法从当前译文建立对齐。请确认译文为整段/逐字格式，或与原文段落数相近。"
+                errorMessage = BookL10n.string("vm.error.alignBuildFailed")
             }
             return false
         }
@@ -2588,9 +2590,9 @@ final class ReadingViewModel: ObservableObject {
 
         if showFeedback {
             let alignment = outcome.alignment
-            let resegmented = outcome.renderedContent != nil ? "，译文已按原文段落重新分割" : ""
+            let resegmented = outcome.renderedContent != nil ? BookL10n.string("vm.align.resegmentedSuffix") : ""
             showTransientSaveMessage(
-                "已对齐 \(alignment.anchoredBlockCount)/\(alignment.blocks.count) 段\(resegmented)"
+                BookL10n.format("vm.align.done", alignment.anchoredBlockCount, alignment.blocks.count, resegmented)
             )
         }
         return true
@@ -2645,7 +2647,7 @@ final class ReadingViewModel: ObservableObject {
         alignment.isLocked = true
         translationAlignment = alignment
         persistChatSession()
-        showTransientSaveMessage("对照关系已锁定并保存")
+        showTransientSaveMessage(BookL10n.string("vm.align.savedLocked"))
     }
 
     func unlockTranslationAlignment() {
@@ -2653,7 +2655,7 @@ final class ReadingViewModel: ObservableObject {
         alignment.isLocked = false
         translationAlignment = alignment
         persistChatSession()
-        showTransientSaveMessage("已解锁，可继续整体调整")
+        showTransientSaveMessage(BookL10n.string("vm.align.unlocked"))
     }
 
     func updateTranslationTableBlock(
@@ -2727,7 +2729,7 @@ final class ReadingViewModel: ObservableObject {
         guard !before.isEmpty || !after.isEmpty else { return }
 
         guard let nextIndex = nextTranslationTableEntryIndex(after: index, in: alignment.blocks) else {
-            showTransientSaveMessage("已是最后一行，无法向下合并")
+            showTransientSaveMessage(BookL10n.string("vm.align.cannotMergeDown"))
             return
         }
 
@@ -2953,14 +2955,14 @@ final class ReadingViewModel: ObservableObject {
 
     private func lessonPlanFileName() -> String {
         let stem = (fileName as NSString).deletingPathExtension
-        let base = stem.isEmpty || stem == "未命名" ? "文章" : stem
-        return "\(base)-翻译.txt"
+        let base = stem.isEmpty || stem == Self.untitledMarker ? BookL10n.string("file.articleStem") : stem
+        return "\(base)\(BookL10n.string("vm.filename.translationSuffix"))"
     }
 
     private func handleEvolutionRebuild(projectPath: String, continueChain: Bool = true) async {
         await MainActor.run {
             isEvolutionRebuilding = true
-            evolutionRebuildStatus = "正在执行 scripts/build-and-install.sh …"
+            evolutionRebuildStatus = BookL10n.string("vm.rebuild.running")
         }
 
         let result = await AppRelauncher.rebuildAndRelaunch(
@@ -2976,12 +2978,12 @@ final class ReadingViewModel: ObservableObject {
         guard !result.succeeded else { return }
 
         await MainActor.run {
-            let message = result.message ?? "自动升级构建失败，请查看构建脚本输出。"
+            let message = result.message ?? BookL10n.string("vm.rebuild.failedDefault")
             errorMessage = message
             appendDisplayedMessage(
                 ChatMessage(
                     role: .assistant,
-                    content: "自动升级构建失败，已停止重启链路：\(message)"
+                    content: BookL10n.format("vm.rebuild.failedStop", message)
                 ),
                 to: .evolution
             )
@@ -3245,23 +3247,19 @@ final class ReadingViewModel: ObservableObject {
         contextHistory(for: context).filter { message in
             switch context {
             case .reading:
-                if message.content.hasPrefix("名著补充") { return false }
-                if message.content.hasPrefix("右页是你的读书助手") { return false }
+                if BookL10nMarkers.isClassicSupplementIntro(message.content) { return false }
+                if BookL10nMarkers.isReadingAssistantWelcome(message.content) { return false }
                 if isTranslationHistoryMessage(message) { return false }
                 return true
             case .evolution:
                 guard message.role == .assistant else { return true }
-                return !message.content.hasPrefix("这是 AI 进化选项卡")
+                return !BookL10nMarkers.isEvolutionWelcome(message.content)
             }
         }
     }
 
     private func isTranslationHistoryMessage(_ message: ChatMessage) -> Bool {
-        let content = message.content
-        return content.hasPrefix("生成逐字翻译")
-            || content.hasPrefix("生成整段翻译")
-            || content.contains("【生成逐字翻译】")
-            || content.contains("【生成整段翻译】")
+        BookL10nMarkers.isTranslationTaskMessage(message.content)
     }
 
     private func contextHistory(for context: PromptContext) -> [ChatMessage] {
@@ -3348,7 +3346,7 @@ final class ReadingViewModel: ObservableObject {
         do {
             session = try chatSessionStore.load()
         } catch {
-            errorMessage = "无法恢复上次对话：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.restoreChat", error.localizedDescription)
             session = nil
         }
 
@@ -3382,7 +3380,7 @@ final class ReadingViewModel: ObservableObject {
         }
         syncTranslationScrollPresentation()
         if let panelName = session.readingAssistantPanel,
-           let panel = ReadingAssistantPanel(rawValue: panelName) {
+           let panel = ReadingAssistantPanel.fromPersisted(panelName) {
             readingAssistantPanel = panel
         }
         syncDisplayedChatMessages()
@@ -3413,7 +3411,7 @@ final class ReadingViewModel: ObservableObject {
                 translationTableViewEnabled: translationTableViewEnabled
             )
         } catch {
-            errorMessage = "无法保存对话会话：\(error.localizedDescription)"
+            errorMessage = BookL10n.format("vm.error.saveChat", error.localizedDescription)
         }
     }
 
@@ -3423,7 +3421,7 @@ final class ReadingViewModel: ObservableObject {
         else { return }
 
         let summary = EvolutionPlanner.parseCompletionSummary(from: reply, number: number)
-            ?? "第 \(number) 条自我进化已执行。"
+            ?? BookL10n.format("vm.evolution.itemExecuted", number)
 
         if item.status == .running {
             _ = optimizationQueue.markCompleted(id: item.id, summary: summary)
@@ -3442,7 +3440,7 @@ final class ReadingViewModel: ObservableObject {
             appendDisplayedMessage(
                 ChatMessage(
                     role: .assistant,
-                    content: "分析过程修改了源码，已放弃入队。请用 git 恢复后重试。"
+                    content: BookL10n.string("vm.evolution.analysisDirty")
                 ),
                 to: .evolution
             )
@@ -3452,7 +3450,7 @@ final class ReadingViewModel: ObservableObject {
         let drafts = EvolutionAnalyzer.parseItems(from: reply)
         if drafts.isEmpty {
             appendDisplayedMessage(
-                ChatMessage(role: .assistant, content: "未发现新的优化项。"),
+                ChatMessage(role: .assistant, content: BookL10n.string("vm.evolution.noNewItems")),
                 to: .evolution
             )
             return
@@ -3508,7 +3506,7 @@ final class ReadingViewModel: ObservableObject {
             mode: settings.speechLanguageMode
         )
         guard !units.isEmpty else {
-            errorMessage = "无法朗读：当前文本处理后没有可合成的内容。"
+            errorMessage = BookL10n.string("vm.error.speechEmpty")
             return
         }
 

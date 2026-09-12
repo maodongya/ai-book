@@ -7,14 +7,14 @@ struct ExplanationVoiceSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("使用 macOS 系统语音朗读，无需下载或联网。", systemImage: "speaker.wave.2")
+            Label(BookL10n.string("speech.systemVoiceHint"), systemImage: "speaker.wave.2")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.settingsPrimary)
 
-            settingsCard(title: "朗读节奏", icon: "waveform") {
-                Picker("朗读节奏", selection: $settings.speechEngineMode) {
+            settingsCard(title: BookL10n.string("speech.pace"), icon: "waveform") {
+                Picker(BookL10n.string("speech.pace"), selection: $settings.speechEngineMode) {
                     ForEach(SpeechEngineMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.localizedName).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -25,10 +25,10 @@ struct ExplanationVoiceSettingsView: View {
                     .foregroundStyle(BookTheme.settingsSecondary)
             }
 
-            settingsCard(title: "语言处理", icon: "textformat.alt") {
-                Picker("语言处理", selection: $settings.speechLanguageMode) {
+            settingsCard(title: BookL10n.string("speech.languageProcessing"), icon: "textformat.alt") {
+                Picker(BookL10n.string("speech.languageProcessing"), selection: $settings.speechLanguageMode) {
                     ForEach(SpeechLanguageMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.localizedName).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -39,8 +39,8 @@ struct ExplanationVoiceSettingsView: View {
                     .foregroundStyle(BookTheme.settingsSecondary)
             }
 
-            settingsCard(title: "讲解声音", icon: "person.wave.2") {
-                Picker("讲解声音", selection: $settings.explanationVoiceID) {
+            settingsCard(title: BookL10n.string("speech.voice"), icon: "person.wave.2") {
+                Picker(BookL10n.string("speech.voice"), selection: $settings.explanationVoiceID) {
                     ForEach(SpeechVoiceCatalog.groupedSelectableOptions(), id: \.title) { group in
                         Section(group.title) {
                             ForEach(group.voices) { voice in
@@ -66,7 +66,7 @@ struct ExplanationVoiceSettingsView: View {
                 Button {
                     previewSelectedVoice()
                 } label: {
-                    Label("试听当前声音", systemImage: "play.circle.fill")
+                    Label(BookL10n.string("action.previewVoice"), systemImage: "play.circle.fill")
                 }
                 .settingsPillButton(prominent: true)
             }
@@ -109,32 +109,16 @@ struct ExplanationVoiceSettingsView: View {
     }
 
     private var engineModeDescription: String {
-        switch settings.speechEngineMode {
-        case .fast:
-            return "快速：语速较快，适合浏览式收听。"
-        case .balanced:
-            return "平衡：语速与停顿适中，推荐默认。"
-        case .natural:
-            return "自然：略慢、咬字更清晰，适合讲解。"
-        case .relaxed:
-            return "舒缓：语速较慢、停顿更长，适合细读。"
-        }
+        settings.speechEngineMode.localizedDescription
     }
 
     private var languageModeDescription: String {
-        switch settings.speechLanguageMode {
-        case .efficient:
-            return "语言处理 · 高效：更少改写，切句更长，适合追求速度。"
-        case .balanced:
-            return "语言处理 · 平衡：速度与表达清晰度均衡，推荐默认。"
-        case .deep:
-            return "语言处理 · 深度：更短分句、标点停顿、缩写拆读与可读化，减少吞字和长句含混。"
-        }
+        settings.speechLanguageMode.localizedDescription
     }
 
     private func previewSelectedVoice() {
         errorMessage = nil
-        statusMessage = "正在试听…"
+        statusMessage = BookL10n.string("speech.preview.running")
 
         Task {
             do {
@@ -142,7 +126,7 @@ struct ExplanationVoiceSettingsView: View {
                 while ExplanationSpeechReader.shared.isBusy {
                     try await Task.sleep(nanoseconds: 200_000_000)
                 }
-                statusMessage = "试听完成"
+                statusMessage = BookL10n.string("speech.preview.done")
             } catch {
                 errorMessage = error.localizedDescription
                 statusMessage = nil

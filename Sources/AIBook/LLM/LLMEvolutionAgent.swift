@@ -236,7 +236,7 @@ final class LLMEvolutionAgent {
 
         let filteredHistory = history.filter { message in
             guard message.role == .assistant else { return true }
-            return !message.content.hasPrefix("这是 AI 进化选项卡")
+            return !BookL10nMarkers.isEvolutionWelcome(message.content)
         }
 
         for item in filteredHistory {

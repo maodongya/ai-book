@@ -13,7 +13,7 @@ struct LLMConfigPanel: View {
             HStack(spacing: 8) {
                 Image(systemName: "cpu")
                     .foregroundStyle(BookTheme.gold)
-                Text("大模型连接")
+                Text(BookL10n.string("llm.connection"))
                     .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.ink)
             }
@@ -24,24 +24,24 @@ struct LLMConfigPanel: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                     if configuredCount > 1 {
-                        Text("已配置 \(configuredCount) 家 · 当前 \(settings.llmDisplayLabel)")
+                        Text(BookL10n.format("llm.configuredSummary", configuredCount, settings.llmDisplayLabel))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.inkSecondary)
                             .lineLimit(1)
                     } else {
-                        Text("已连接 \(settings.llmDisplayLabel)")
+                        Text(BookL10n.format("llm.connectedLabel", settings.llmDisplayLabel))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.inkSecondary)
                             .lineLimit(1)
                     }
                 }
             } else {
-                Text("请在设置中同时配置多家 API Key，或在此选择提供商并保存。")
+                Text(BookL10n.string("llm.configureHint"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }
 
-            Picker("提供商", selection: $settings.provider) {
+            Picker(BookL10n.string("label.provider"), selection: $settings.provider) {
                 ForEach(settings.configuredLLMProviders.isEmpty ? LLMProvider.allCases : settings.configuredLLMProviders + LLMProvider.allCases.filter { !settings.configuredLLMProviders.contains($0) }) { provider in
                     let configured = settings.configuredLLMProviders.contains(provider)
                     Text(configured ? "\(provider.rawValue) ✓" : provider.rawValue).tag(provider)
@@ -58,7 +58,7 @@ struct LLMConfigPanel: View {
 
             if settings.provider.showsAPIKeyField {
                 if settings.provider == .ollama {
-                    Text("API Key 可选：本地服务通常无需填写；启用 OLLAMA_API_KEY 或远程实例时再填。")
+                    Text(BookL10n.string("llm.apiKeyOptionalHint"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
                 }
@@ -66,9 +66,9 @@ struct LLMConfigPanel: View {
                 HStack(spacing: 8) {
                     Group {
                         if showAPIKey {
-                            TextField(settings.provider == .ollama ? "可选 API Key" : "sk-...", text: $draftAPIKey)
+                            TextField(settings.provider == .ollama ? BookL10n.string("llm.optionalAPIKey") : "sk-...", text: $draftAPIKey)
                         } else {
-                            SecureField(settings.provider == .ollama ? "可选 API Key" : "sk-...", text: $draftAPIKey)
+                            SecureField(settings.provider == .ollama ? BookL10n.string("llm.optionalAPIKey") : "sk-...", text: $draftAPIKey)
                         }
                     }
                     .textFieldStyle(.plain)
@@ -93,7 +93,7 @@ struct LLMConfigPanel: View {
                     .buttonStyle(.plain)
                 }
 
-                Button(settings.provider == .ollama ? "保存配置" : "保存 API Key") {
+                Button(settings.provider == .ollama ? BookL10n.string("llm.saveConfig") : BookL10n.string("llm.saveAPIKey")) {
                     settings.apiKey = draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
                 .buttonStyle(.plain)
@@ -111,7 +111,7 @@ struct LLMConfigPanel: View {
                 Button {
                     testConnection()
                 } label: {
-                    Label(isTesting ? "测试中…" : "测试连接", systemImage: "antenna.radiowaves.left.and.right")
+                    Label(isTesting ? BookL10n.string("llm.testing") : BookL10n.string("llm.testConnection"), systemImage: "antenna.radiowaves.left.and.right")
                         .font(BookTheme.labelFont)
                         .foregroundStyle(BookTheme.leatherShadow)
                         .padding(.horizontal, 14)
@@ -131,7 +131,7 @@ struct LLMConfigPanel: View {
                 }
             }
 
-            Text("支持 \(LLMConnector.supportedSummary)。设置页可同时配置多家 API，切换提供商不会丢失其他 Key。")
+            Text(BookL10n.format("llm.supportedSummary", LLMConnector.supportedSummary))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
         }
@@ -157,7 +157,7 @@ struct LLMConfigPanel: View {
             do {
                 try await LLMService().testConnection(configuration: configuration)
                 testSucceeded = true
-                testResult = "已连接 \(LLMConnector.displayLabel(provider: configuration.provider, model: configuration.model))"
+                testResult = BookL10n.format("llm.connectedTest", LLMConnector.displayLabel(provider: configuration.provider, model: configuration.model))
             } catch {
                 testSucceeded = false
                 testResult = error.localizedDescription

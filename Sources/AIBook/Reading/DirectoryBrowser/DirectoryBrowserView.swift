@@ -62,10 +62,10 @@ struct DirectoryBrowserView: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("目录浏览")
+                Text(BookL10n.string("directory.title"))
                     .font(BookTheme.titleFont)
                     .foregroundStyle(BookTheme.ink)
-                Text("已记住 \(sessions.count) 个目录，可继续添加并在其间切换")
+                Text(BookL10n.format("directory.summary", sessions.count))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }
@@ -78,14 +78,14 @@ struct DirectoryBrowserView: View {
                     .foregroundStyle(BookTheme.inkMuted.opacity(0.55))
             }
             .buttonStyle(.plain)
-            .help("关闭")
+            .help(BookL10n.string("directory.help.close"))
         }
     }
 
     private var sessionSidebar: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("已打开目录")
+                Text(BookL10n.string("directory.opened"))
                     .font(BookTheme.labelFont)
                     .foregroundStyle(BookTheme.inkSecondary)
                 Spacer(minLength: 0)
@@ -95,13 +95,13 @@ struct DirectoryBrowserView: View {
                         .foregroundStyle(BookTheme.gold)
                 }
                 .buttonStyle(.plain)
-                .help("添加目录")
+                .help(BookL10n.string("directory.help.add"))
             }
 
             ScrollView {
                 VStack(spacing: 4) {
                     if sessions.isEmpty {
-                        Text("暂无目录\n点击 + 添加")
+                        Text(BookL10n.string("directory.emptyList"))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.inkMuted.opacity(0.7))
                             .multilineTextAlignment(.center)
@@ -172,7 +172,7 @@ struct DirectoryBrowserView: View {
                     .padding(6)
             }
             .buttonStyle(.plain)
-            .help("从列表移除")
+            .help(BookL10n.string("directory.help.remove"))
         }
     }
 
@@ -192,7 +192,7 @@ struct DirectoryBrowserView: View {
                         Spacer()
                         VStack(spacing: 10) {
                             ProgressView()
-                            Text("正在读取目录…")
+                            Text(BookL10n.string("directory.loading"))
                                 .font(BookTheme.captionFont)
                                 .foregroundStyle(BookTheme.inkMuted)
                         }
@@ -223,7 +223,7 @@ struct DirectoryBrowserView: View {
                     }
                 } else {
                     Spacer(minLength: 0)
-                    Text("目录为空")
+                    Text(BookL10n.string("directory.empty"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkMuted)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -231,7 +231,7 @@ struct DirectoryBrowserView: View {
                 }
             } else {
                 Spacer(minLength: 0)
-                Text("请添加一个目录")
+                Text(BookL10n.string("directory.addPrompt"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -302,7 +302,7 @@ struct DirectoryBrowserView: View {
 
     private var targetPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("打开到")
+            Text(BookL10n.string("directory.openTarget"))
                 .font(BookTheme.labelFont)
                 .foregroundStyle(BookTheme.inkSecondary)
 
@@ -353,21 +353,21 @@ struct DirectoryBrowserView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             } else {
-                Text("请选择一个文本文件")
+                Text(BookL10n.string("directory.pickFile"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted.opacity(0.7))
             }
 
             Spacer(minLength: 0)
 
-            Button("关闭", action: onDismiss)
+            Button(BookL10n.string("action.close"), action: onDismiss)
                 .buttonStyle(.plain)
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkMuted)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
 
-            Button("打开") {
+            Button(BookL10n.string("action.open")) {
                 openSelectedFile()
             }
             .buttonStyle(.plain)

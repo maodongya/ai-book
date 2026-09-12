@@ -11,6 +11,7 @@ struct ContentView: View {
     private let learningSpineWidth: CGFloat = 34
 
     var body: some View {
+        let _ = settings.localizationRevision
         ZStack {
             BookTheme.deskGradient
                 .ignoresSafeArea()
@@ -26,8 +27,8 @@ struct ContentView: View {
                 .padding(24)
             }
         }
-        .alert("提示", isPresented: errorBinding) {
-            Button("确定", role: .cancel) {}
+        .alert(BookL10n.string("alert.title.hint"), isPresented: errorBinding) {
+            Button(BookL10n.string("action.ok"), role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -35,19 +36,23 @@ struct ContentView: View {
             SettingsView()
                 .environmentObject(viewModel)
                 .bookStyleEnvironment(styleManager)
+                .bookLocalizationEnvironment()
         }
         .sheet(isPresented: $viewModel.showBookSettings) {
             BookSettingsView()
                 .environmentObject(viewModel)
                 .bookStyleEnvironment(styleManager)
+                .bookLocalizationEnvironment()
         }
         .sheet(isPresented: $viewModel.showUserManual) {
             BookUserManualView()
                 .bookStyleEnvironment(styleManager)
+                .bookLocalizationEnvironment()
         }
         .sheet(isPresented: $viewModel.showDirectoryBrowser) {
             directoryBrowserSheet
                 .bookStyleEnvironment(styleManager)
+                .bookLocalizationEnvironment()
         }
         .frame(minWidth: 960, minHeight: 640)
         .animation(.easeOut(duration: 0.2), value: styleManager.presetID)
@@ -95,25 +100,25 @@ struct ContentView: View {
     private var learningModeKeyboardShortcuts: some View {
         Group {
             if viewModel.experienceMode == .learning {
-                Button("双页") { setLearningPaneFocus(.both) }
+                Button(BookL10n.string("layout.spread")) { setLearningPaneFocus(.both) }
                     .keyboardShortcut("1", modifiers: [.command, .option])
-                Button("左全屏") { setLearningPaneFocus(.leading) }
+                Button(BookL10n.string("layout.leftFullscreen")) { setLearningPaneFocus(.leading) }
                     .keyboardShortcut("2", modifiers: [.command, .option])
-                Button("右全屏") { setLearningPaneFocus(.trailing) }
+                Button(BookL10n.string("layout.rightFullscreen")) { setLearningPaneFocus(.trailing) }
                     .keyboardShortcut("3", modifiers: [.command, .option])
             }
             if viewModel.canEnterReadingMode, viewModel.experienceMode == .learning {
-                Button("阅读模式") {
+                Button(BookL10n.string("mode.reading")) {
                     viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
                 }
                 .keyboardShortcut(BookKeyboardShortcuts.readingMode)
             }
             if viewModel.experienceMode == .reading {
-                Button("学习模式") {
+                Button(BookL10n.string("mode.learning")) {
                     viewModel.exitReadingMode()
                 }
                 .keyboardShortcut(.escape, modifiers: [])
-                Button("退出阅读模式") {
+                Button(BookL10n.string("mode.exitReading")) {
                     viewModel.exitReadingMode()
                 }
                 .keyboardShortcut(BookKeyboardShortcuts.readingMode)
@@ -166,20 +171,20 @@ struct ContentView: View {
                         .foregroundStyle(BookTheme.goldSoft)
                     if viewModel.rightPageTab == .readingAssistant {
                         BookStatusPill(
-                            title: settings.isBookLLMConfigured ? settings.bookLLMDisplayLabel : "book 未配置",
+                            title: settings.isBookLLMConfigured ? settings.bookLLMDisplayLabel : BookL10n.string("status.bookLLM.unconfigured"),
                             icon: "book.closed.fill",
                             tint: Color.white.opacity(0.52)
                         )
-                        .help("读书大模型（book 设置）")
+                        .help(BookL10n.string("help.bookLLMSettings"))
                     } else if viewModel.rightPageTab == .aiEvolution {
                         BookStatusPill(
                             title: settings.isCursorRunnable
                                 ? ModelTokenLimits.cursorModelLabel(settings.resolvedCursorModel)
-                                : "Cursor 未就绪",
+                                : BookL10n.string("status.cursor.notReady"),
                             icon: "cursorarrow.rays",
                             tint: Color.white.opacity(0.66)
                         )
-                        .help("AI 进化 Cursor 模型")
+                        .help(BookL10n.string("help.evolutionCursorModel"))
                     }
 
                     Spacer(minLength: 12)
@@ -200,8 +205,8 @@ struct ContentView: View {
     private var headerModeAndSourceControls: some View {
         HStack(spacing: 8) {
             if viewModel.isDirty {
-                BookStatusPill(title: "未保存", icon: "circle.fill", tint: Color.orange.opacity(0.95))
-                    .help("有未保存的修改")
+                BookStatusPill(title: BookL10n.string("status.unsaved"), icon: "circle.fill", tint: Color.orange.opacity(0.95))
+                    .help(BookL10n.string("help.unsavedChanges"))
             }
         }
         .fixedSize(horizontal: true, vertical: false)
@@ -209,12 +214,12 @@ struct ContentView: View {
 
     private var bookLLMToolbarHelp: String {
         AppGuard.bookLLMErrorMessage(for: settings)
-            ?? "配置读书助手大模型（推荐本机 Ollama）"
+            ?? BookL10n.string("help.configureBookLLM")
     }
 
     private var evolutionToolbarHelp: String {
         AppGuard.evolutionErrorMessage(for: settings)
-            ?? (viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置")
+            ?? (viewModel.evolutionStatusLabel ?? BookL10n.string("help.evolutionDefault"))
     }
 
     @ViewBuilder
@@ -223,7 +228,7 @@ struct ContentView: View {
             Button {
                 viewModel.openBookSettings()
             } label: {
-                Text("未配置 book 大模型 · 点击设置")
+                Text(BookL10n.string("guide.bookLLMSetup"))
             }
             BookToolbarMenuDivider()
         }
@@ -235,7 +240,7 @@ struct ContentView: View {
             Button {
                 viewModel.openSettings()
             } label: {
-                Text("Cursor 未就绪 · 点击进化设置")
+                Text(BookL10n.string("guide.cursorSetup"))
             }
             BookToolbarMenuDivider()
         }
@@ -356,36 +361,36 @@ struct ContentView: View {
 
     private var readingAssistantTabButton: some View {
         BookActionButton(
-            title: RightPageTab.readingAssistant.rawValue,
+            title: RightPageTab.readingAssistant.localizedTitle,
             isProminent: viewModel.rightPageTab == .readingAssistant,
             isCompact: true
         ) {
             viewModel.selectRightPageTab(.readingAssistant)
         }
-        .help("切换到读书助手：讲解、朗读与文章翻译")
+        .help(BookL10n.string("help.switchReadingAssistant"))
     }
 
     private var readingModeToolbarButton: some View {
         BookActionButton(
-            title: "阅读模式",
+            title: BookL10n.string("mode.reading"),
             isProminent: false,
             isCompact: true
         ) {
             viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
         }
         .disabled(!viewModel.canEnterReadingMode || viewModel.isRunning)
-        .help("进入全屏阅读：左右双页翻页 · \(BookKeyboardShortcuts.readingModeHint)")
+        .help(BookL10n.format("help.enterReadingMode", BookKeyboardShortcuts.readingModeHint))
     }
 
     private var bookSettingsToolbarButton: some View {
         BookActionButton(
-            title: "book设置",
+            title: BookL10n.string("settings.book"),
             isProminent: false,
             isCompact: true
         ) {
             viewModel.openBookSettings()
         }
-        .help("配置读书助手大模型（推荐本机 Ollama）")
+        .help(BookL10n.string("help.configureBookLLM"))
     }
 
     @ViewBuilder
@@ -395,7 +400,7 @@ struct ContentView: View {
         Button {
             viewModel.newDocument()
         } label: {
-            Text("新建")
+            Text(BookL10n.string("action.new"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.newDocument)
         .disabled(viewModel.isRunning)
@@ -403,7 +408,7 @@ struct ContentView: View {
         Button {
             viewModel.openFile()
         } label: {
-            Text("打开")
+            Text(BookL10n.string("action.open"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
         .disabled(viewModel.isRunning)
@@ -411,14 +416,14 @@ struct ContentView: View {
         Button {
             viewModel.openDirectory()
         } label: {
-            Text("打开目录")
+            Text(BookL10n.string("action.openDirectoryShort"))
         }
         .disabled(viewModel.isRunning)
 
         Button {
             viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
         } label: {
-            Text("阅读模式")
+            Text(BookL10n.string("mode.reading"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.readingMode)
         .disabled(!viewModel.canEnterReadingMode || viewModel.isRunning)
@@ -428,7 +433,7 @@ struct ContentView: View {
         Button {
             viewModel.save()
         } label: {
-            Text("保存")
+            Text(BookL10n.string("action.save"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.save)
         .disabled(viewModel.fileContent.isEmpty && !viewModel.isDirty)
@@ -436,7 +441,7 @@ struct ContentView: View {
         Button {
             viewModel.saveAs()
         } label: {
-            Text("另存为")
+            Text(BookL10n.string("action.saveAs"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.saveAs)
         .disabled(viewModel.fileContent.isEmpty)
@@ -444,7 +449,7 @@ struct ContentView: View {
         Button {
             viewModel.selectAllLeftPage()
         } label: {
-            Text("原文全选")
+            Text(BookL10n.string("action.selectAllSource"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.selectAllLeftPage)
         .disabled(viewModel.fileContent.isEmpty)
@@ -461,42 +466,42 @@ struct ContentView: View {
     }
 
     private var documentOperationsMenu: some View {
-        BookToolbarMenuButton(title: "原文操作") {
+        BookToolbarMenuButton(title: BookL10n.string("menu.document")) {
             documentOperationsMenuContent
         }
-        .help(requiresBookLLM ? bookLLMToolbarHelp : "新建、打开、保存、另存为、全选与名著补充 · \(BookKeyboardShortcuts.documentMenuSummary)")
+        .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.documentMenu", BookKeyboardShortcuts.documentMenuSummary))
     }
 
     @ViewBuilder
     private func documentToolbarOverflowMenu(includeDocumentMenu: Bool) -> some View {
-        BookToolbarOverflowMenu(help: "原文、讲解、翻译与朗读等操作") {
+        BookToolbarOverflowMenu(help: BookL10n.string("help.toolbarDocOverflow")) {
             if isReadingToolbarContext {
                 Button {
                     viewModel.openBookSettings()
                 } label: {
-                    Text("book设置")
+                    Text(BookL10n.string("settings.book"))
                 }
                 BookToolbarMenuDivider()
             }
 
             if includeDocumentMenu {
-                BookToolbarSubmenu(title: "原文操作") {
+                BookToolbarSubmenu(title: BookL10n.string("menu.document")) {
                     documentOperationsMenuContent
                 }
             }
 
             if isReadingToolbarContext {
                 if includeDocumentMenu || viewModel.readingAssistantPanel != .explanation {
-                    BookToolbarSubmenu(title: "讲解操作") {
+                    BookToolbarSubmenu(title: BookL10n.string("menu.explanation")) {
                         explanationOperationsMenuContent
                     }
                 }
                 if includeDocumentMenu || viewModel.readingAssistantPanel != .translation {
-                    BookToolbarSubmenu(title: "翻译操作") {
+                    BookToolbarSubmenu(title: BookL10n.string("menu.translation")) {
                         translationOperationsMenuContent
                     }
                 }
-                BookToolbarSubmenu(title: "朗读功能") {
+                BookToolbarSubmenu(title: BookL10n.string("menu.speech")) {
                     speechOperationsMenuContent
                 }
             }
@@ -504,10 +509,10 @@ struct ContentView: View {
     }
 
     private var explanationOperationsMenu: some View {
-        BookToolbarMenuButton(title: "讲解操作") {
+        BookToolbarMenuButton(title: BookL10n.string("menu.explanation")) {
             explanationOperationsMenuContent
         }
-        .help(requiresBookLLM ? bookLLMToolbarHelp : "选择/全文讲解、文稿管理与朗读 · \(BookKeyboardShortcuts.explanationMenuSummary)")
+        .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.explanationMenu", BookKeyboardShortcuts.explanationMenuSummary))
     }
 
     @ViewBuilder
@@ -517,7 +522,7 @@ struct ContentView: View {
         Button {
             viewModel.explainSelection()
         } label: {
-            Text("选择讲解")
+            Text(BookL10n.string("action.explainSelection"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
         .disabled(requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
@@ -525,7 +530,7 @@ struct ContentView: View {
         Button {
             viewModel.explainFullText()
         } label: {
-            Text("全文讲解")
+            Text(BookL10n.string("action.explainFull"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
         .disabled(
@@ -539,35 +544,35 @@ struct ContentView: View {
         Button {
             viewModel.newExplanationDocument()
         } label: {
-            Text("新建")
+            Text(BookL10n.string("action.new"))
         }
         .disabled(viewModel.isRunning)
 
         Button {
             viewModel.openExplanationDocument()
         } label: {
-            Text("打开")
+            Text(BookL10n.string("action.open"))
         }
         .disabled(viewModel.isRunning)
 
         Button {
             viewModel.saveExplanationDocument()
         } label: {
-            Text("保存")
+            Text(BookL10n.string("action.save"))
         }
         .disabled(!viewModel.hasExplanationContent)
 
         Button {
             viewModel.selectAllExplanation()
         } label: {
-            Text("全选")
+            Text(BookL10n.string("action.selectAll"))
         }
         .disabled(!viewModel.hasExplanationContent)
 
         Button(role: .destructive) {
             viewModel.clearExplanation()
         } label: {
-            Text("清空讲解")
+            Text(BookL10n.string("action.clearExplanation"))
         }
         .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
 
@@ -576,16 +581,16 @@ struct ContentView: View {
         Button {
             viewModel.readExplanationAloud()
         } label: {
-            Text(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读讲解")
+            Text(viewModel.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readExplanation"))
         }
         .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
     }
 
     private var translationOperationsMenu: some View {
-        BookToolbarMenuButton(title: "翻译操作") {
+        BookToolbarMenuButton(title: BookL10n.string("menu.translation")) {
             translationOperationsMenuContent
         }
-        .help(requiresBookLLM ? bookLLMToolbarHelp : "逐字/整段翻译、朗读与翻译文件管理 · \(BookKeyboardShortcuts.translationMenuSummary)")
+        .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.translationMenu", BookKeyboardShortcuts.translationMenuSummary))
     }
 
     @ViewBuilder
@@ -596,7 +601,7 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.readingAssistant)
             viewModel.generateLessonPlan()
         } label: {
-            Text("逐字翻译")
+            Text(BookL10n.string("action.wordTranslation"))
         }
         .disabled(
             requiresBookLLM
@@ -608,7 +613,7 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.readingAssistant)
             viewModel.refineLessonPlan()
         } label: {
-            Text("整段翻译")
+            Text(BookL10n.string("action.paragraphTranslation"))
         }
         .disabled(
             requiresBookLLM
@@ -620,7 +625,7 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.readingAssistant)
             viewModel.readLessonPlanAloud()
         } label: {
-            Text(viewModel.isSpeakingExplanation ? "停止朗读" : "朗读翻译")
+            Text(viewModel.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readTranslation"))
         }
         .bookMenuShortcut(
             viewModel.isSpeakingExplanation ? nil : BookKeyboardShortcuts.readTranslationFull
@@ -634,7 +639,7 @@ struct ContentView: View {
         Button {
             viewModel.selectAllRightPage()
         } label: {
-            Text("全选翻译")
+            Text(BookL10n.string("action.selectAllTranslation"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.selectAllTranslation)
         .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -646,7 +651,7 @@ struct ContentView: View {
             viewModel.selectReadingAssistantPanel(.translation)
             viewModel.openLessonPlanFile()
         } label: {
-            Text("打开翻译")
+            Text(BookL10n.string("action.openTranslation"))
         }
         .disabled(viewModel.isRunning)
 
@@ -655,7 +660,7 @@ struct ContentView: View {
             viewModel.selectReadingAssistantPanel(.translation)
             viewModel.alignTranslationWithSource()
         } label: {
-            Text("对齐原文")
+            Text(BookL10n.string("translation.alignSource"))
         }
         .disabled(!viewModel.canAlignTranslationWithSource)
 
@@ -664,7 +669,7 @@ struct ContentView: View {
             viewModel.selectReadingAssistantPanel(.translation)
             viewModel.saveLessonPlan()
         } label: {
-            Text("保存翻译")
+            Text(BookL10n.string("action.saveTranslation"))
         }
         .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
@@ -673,16 +678,16 @@ struct ContentView: View {
             viewModel.selectReadingAssistantPanel(.translation)
             viewModel.clearLessonPlan()
         } label: {
-            Text("清空翻译")
+            Text(BookL10n.string("action.clearTranslation"))
         }
         .disabled(viewModel.isRunning || viewModel.lessonPlanContent.isEmpty)
     }
 
     private var speechOperationsMenu: some View {
-        BookToolbarMenuButton(title: "朗读功能") {
+        BookToolbarMenuButton(title: BookL10n.string("menu.speech")) {
             speechOperationsMenuContent
         }
-        .help("原文、翻译与讲解的选中/全文朗读；朗读中请使用顶栏中部播控 · \(BookKeyboardShortcuts.speechMenuSummary)")
+        .help(BookL10n.format("help.speechMenu", BookKeyboardShortcuts.speechMenuSummary))
     }
 
     @ViewBuilder
@@ -690,7 +695,7 @@ struct ContentView: View {
         Button {
             viewModel.readOriginalFullTextAloud()
         } label: {
-            Text("朗读原文全文")
+            Text(BookL10n.string("menu.readOriginalFull"))
         }
         .disabled(
             viewModel.isRunning
@@ -701,7 +706,7 @@ struct ContentView: View {
         Button {
             viewModel.readOriginalSelectionAloud()
         } label: {
-            Text("朗读原文选中")
+            Text(BookL10n.string("menu.readOriginalSelection"))
         }
         .disabled(
             viewModel.isRunning
@@ -713,7 +718,7 @@ struct ContentView: View {
         Button {
             viewModel.readTranslationFullTextAloud()
         } label: {
-            Text("朗读翻译全文")
+            Text(BookL10n.string("menu.readTranslationFull"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.readTranslationFull)
         .disabled(
@@ -725,7 +730,7 @@ struct ContentView: View {
         Button {
             viewModel.readTranslationSelectionAloud()
         } label: {
-            Text("朗读翻译选择")
+            Text(BookL10n.string("menu.readTranslationSelection"))
         }
         .disabled(
             viewModel.isRunning
@@ -737,7 +742,7 @@ struct ContentView: View {
         Button {
             viewModel.readExplanationFullTextAloud()
         } label: {
-            Text("朗读讲解全文")
+            Text(BookL10n.string("menu.readExplanationFull"))
         }
         .disabled(
             viewModel.isRunning
@@ -747,7 +752,7 @@ struct ContentView: View {
         Button {
             viewModel.readExplanationSelectionAloud()
         } label: {
-            Text("朗读讲解选中")
+            Text(BookL10n.string("menu.readExplanationSelection"))
         }
         .disabled(
             viewModel.isRunning
@@ -818,7 +823,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private func readingPrimaryOverflowMenu(includePanelSwitcher: Bool) -> some View {
-        BookToolbarOverflowMenu(help: "讲解/翻译分栏与一键操作") {
+        BookToolbarOverflowMenu(help: BookL10n.string("help.panelOverflow")) {
             if includePanelSwitcher {
                 ForEach(ReadingAssistantPanel.allCases) { panel in
                     Button {
@@ -836,7 +841,7 @@ struct ContentView: View {
                 Button {
                     viewModel.explainSelection()
                 } label: {
-                    Text("选择讲解")
+                    Text(BookL10n.string("action.explainSelection"))
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
                 .disabled(requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
@@ -844,7 +849,7 @@ struct ContentView: View {
                 Button {
                     viewModel.explainFullText()
                 } label: {
-                    Text("全文讲解")
+                    Text(BookL10n.string("action.explainFull"))
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
                 .disabled(
@@ -856,7 +861,7 @@ struct ContentView: View {
                 Button {
                     viewModel.generateLessonPlan()
                 } label: {
-                    Text("逐字翻译")
+                    Text(BookL10n.string("action.wordTranslation"))
                 }
                 .disabled(
                     requiresBookLLM
@@ -867,7 +872,7 @@ struct ContentView: View {
                 Button {
                     viewModel.refineLessonPlan()
                 } label: {
-                    Text("整段翻译")
+                    Text(BookL10n.string("action.paragraphTranslation"))
                 }
                 .disabled(
                     requiresBookLLM
@@ -908,13 +913,13 @@ struct ContentView: View {
     private var evolutionPrimaryActionBarCompact: some View {
         HStack(spacing: 8) {
             BookActionButton(
-                title: "进化",
+                title: BookL10n.string("action.evolve"),
                 isCompact: true,
                 isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
                 viewModel.startEvolution()
             }
-            .help(requiresEvolutionBackend ? evolutionToolbarHelp : "执行下一条优化队列（\(BookKeyboardShortcuts.evolutionHint)）")
+            .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.format("help.runNextEvolution", BookKeyboardShortcuts.evolutionHint))
 
             evolutionPrimaryOverflowMenu(includeEvolution: false)
         }
@@ -930,12 +935,12 @@ struct ContentView: View {
 
     @ViewBuilder
     private func evolutionPrimaryOverflowMenu(includeEvolution: Bool) -> some View {
-        BookToolbarOverflowMenu(help: "进化、分析与停止") {
+        BookToolbarOverflowMenu(help: BookL10n.string("help.evolutionOverflow")) {
             if includeEvolution {
                 Button {
                     viewModel.startEvolution()
                 } label: {
-                    Text("进化")
+                    Text(BookL10n.string("action.evolve"))
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.evolution)
                 .disabled(requiresEvolutionBackend || viewModel.isRunning)
@@ -944,7 +949,7 @@ struct ContentView: View {
             Button {
                 viewModel.analyzeOptimizations()
             } label: {
-                Text("分析优化")
+                Text(BookL10n.string("action.analyze"))
             }
             .disabled(requiresEvolutionBackend || viewModel.isRunning)
 
@@ -952,7 +957,7 @@ struct ContentView: View {
                 Button {
                     viewModel.stopCurrentRun()
                 } label: {
-                    Text("停止")
+                    Text(BookL10n.string("action.stop"))
                 }
             }
         }
@@ -990,46 +995,46 @@ struct ContentView: View {
                 icon: source.icon,
                 tint: BookTheme.goldSoft
             )
-            .help("当前朗读：\(source.label)")
+            .help(BookL10n.format("help.currentSpeech", source.label))
         } else {
             BookStatusPill(
-                title: "朗读中",
+                title: BookL10n.string("status.speaking"),
                 icon: "speaker.wave.2.fill",
                 tint: BookTheme.goldSoft
             )
-            .help("正在朗读")
+            .help(BookL10n.string("help.speakingNow"))
         }
     }
 
     private var speechPauseResumeButton: some View {
         BookActionButton(
-            title: viewModel.isExplanationSpeechPaused ? "继续" : "暂停",
+            title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
             isCompact: true,
             isDisabled: viewModel.isRunning
         ) {
             viewModel.toggleExplanationSpeechPause()
         }
-        .help(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
+        .help(viewModel.isExplanationSpeechPaused ? BookL10n.string("help.resumeSpeech") : BookL10n.string("help.pauseSpeech"))
     }
 
     private var speechStopButton: some View {
         BookActionButton(
-            title: "停止",
+            title: BookL10n.string("action.stop"),
             isCompact: true,
             isDisabled: viewModel.isRunning
         ) {
             viewModel.stopExplanationSpeech()
         }
-        .help("停止朗读")
+        .help(BookL10n.string("help.stopSpeech"))
     }
 
     @ViewBuilder
     private func speechPlaybackOverflowMenu(includeSource: Bool) -> some View {
-        BookToolbarOverflowMenu(help: "朗读播控") {
+        BookToolbarOverflowMenu(help: BookL10n.string("help.speechControls")) {
             if includeSource, let source = viewModel.currentSpeechSource {
-                BookToolbarMenuCaption(title: "当前朗读：\(source.label)")
+                BookToolbarMenuCaption(title: BookL10n.format("help.currentSpeech", source.label))
             } else if includeSource {
-                BookToolbarMenuCaption(title: "正在朗读")
+                BookToolbarMenuCaption(title: BookL10n.string("status.speaking"))
             }
             if includeSource {
                 BookToolbarMenuDivider()
@@ -1038,14 +1043,14 @@ struct ContentView: View {
             Button {
                 viewModel.toggleExplanationSpeechPause()
             } label: {
-                Text(viewModel.isExplanationSpeechPaused ? "继续朗读" : "暂停朗读")
+                Text(viewModel.isExplanationSpeechPaused ? BookL10n.string("help.resumeSpeech") : BookL10n.string("help.pauseSpeech"))
             }
             .disabled(viewModel.isRunning)
 
             Button {
                 viewModel.stopExplanationSpeech()
             } label: {
-                Text("停止朗读")
+                Text(BookL10n.string("menu.stopSpeaking"))
             }
             .disabled(viewModel.isRunning)
         }
@@ -1054,16 +1059,16 @@ struct ContentView: View {
     private var explanationPrimaryActionButtons: some View {
         Group {
             BookActionButton(
-                title: "选择讲解",
+                title: BookL10n.string("action.explainSelection"),
                 isCompact: true,
                 isDisabled: requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning
             ) {
                 viewModel.explainSelection()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "讲解左页选中文字（\(BookKeyboardShortcuts.explainSelectionHint)）")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.explainSelection", BookKeyboardShortcuts.explainSelectionHint))
 
             BookActionButton(
-                title: "全文讲解",
+                title: BookL10n.string("action.explainFull"),
                 isCompact: true,
                 isDisabled: requiresBookLLM
                     || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -1071,14 +1076,14 @@ struct ContentView: View {
             ) {
                 viewModel.explainFullText()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "讲解左页全文（\(BookKeyboardShortcuts.explainFullTextHint)）")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.explainFull", BookKeyboardShortcuts.explainFullTextHint))
         }
     }
 
     private var translationPrimaryActionButtons: some View {
         Group {
             BookActionButton(
-                title: "逐字翻译",
+                title: BookL10n.string("action.wordTranslation"),
                 isCompact: true,
                 isDisabled: requiresBookLLM
                     || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -1086,10 +1091,10 @@ struct ContentView: View {
             ) {
                 viewModel.generateLessonPlan()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成逐字翻译，输出带对齐结构的 JSON")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.string("help.wordTranslationJSON"))
 
             BookActionButton(
-                title: "整段翻译",
+                title: BookL10n.string("action.paragraphTranslation"),
                 isCompact: true,
                 isDisabled: requiresBookLLM
                     || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -1097,40 +1102,40 @@ struct ContentView: View {
             ) {
                 viewModel.refineLessonPlan()
             }
-            .help(requiresBookLLM ? bookLLMToolbarHelp : "按左页原文生成整段翻译，输出按段落对齐的 JSON")
+            .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.string("help.paragraphTranslationJSON"))
         }
     }
 
     private var evolutionPrimaryActionButtons: some View {
         Group {
             BookActionButton(
-                title: "进化",
+                title: BookL10n.string("action.evolve"),
                 isCompact: true,
                 isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
                 viewModel.startEvolution()
             }
-            .help(requiresEvolutionBackend ? evolutionToolbarHelp : "执行下一条优化队列（\(BookKeyboardShortcuts.evolutionHint)）")
+            .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.format("help.runNextEvolution", BookKeyboardShortcuts.evolutionHint))
 
             BookActionButton(
-                title: "分析优化",
+                title: BookL10n.string("action.analyze"),
                 isCompact: true,
                 isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
                 viewModel.analyzeOptimizations()
             }
-            .help(requiresEvolutionBackend ? evolutionToolbarHelp : "AI 分析源码并写入优化队列")
+            .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.string("help.analyzeSource"))
         }
     }
 
     private var evolutionStopButton: some View {
         BookActionButton(
-            title: "停止",
+            title: BookL10n.string("action.stop"),
             isCompact: true
         ) {
             viewModel.stopCurrentRun()
         }
-        .help("停止当前进化或分析任务")
+        .help(BookL10n.string("help.stopEvolutionTask"))
     }
 
     private var utilityActionBar: some View {
@@ -1176,13 +1181,13 @@ struct ContentView: View {
 
     private var aiEvolutionTabButton: some View {
         BookActionButton(
-            title: RightPageTab.aiEvolution.rawValue,
+            title: RightPageTab.aiEvolution.localizedTitle,
             isProminent: viewModel.rightPageTab == .aiEvolution,
             isCompact: true
         ) {
             viewModel.selectRightPageTab(.aiEvolution)
         }
-        .help("切换到 AI 进化：分析优化队列并升级 ai-book")
+        .help(BookL10n.string("help.switchEvolution"))
     }
 
     @ViewBuilder
@@ -1190,19 +1195,19 @@ struct ContentView: View {
         BookToolbarOverflowMenu(
             help: requiresEvolutionBackend
                 ? evolutionToolbarHelp
-                : (viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置 · \(BookKeyboardShortcuts.evolutionMenuSummary)")
+                : (viewModel.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary))
         ) {
             if includeTab {
                 Button {
                     viewModel.selectRightPageTab(.aiEvolution)
                 } label: {
-                    Text(RightPageTab.aiEvolution.rawValue)
+                    Text(RightPageTab.aiEvolution.localizedTitle)
                 }
                 BookToolbarMenuDivider()
             }
 
             BookToolbarSubmenu(
-                title: RightPageTab.aiEvolution.toolbarMenuTitle ?? RightPageTab.aiEvolution.rawValue
+                title: RightPageTab.aiEvolution.toolbarMenuTitle ?? RightPageTab.aiEvolution.localizedTitle
             ) {
                 evolutionOperationsMenuContent
             }
@@ -1215,7 +1220,7 @@ struct ContentView: View {
         ) {
             evolutionOperationsMenuContent
         }
-        .help(requiresEvolutionBackend ? evolutionToolbarHelp : (viewModel.evolutionStatusLabel ?? "进化、保存/打开命令、清空上下文与设置 · \(BookKeyboardShortcuts.evolutionMenuSummary)"))
+        .help(requiresEvolutionBackend ? evolutionToolbarHelp : (viewModel.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary)))
     }
 
     @ViewBuilder
@@ -1226,7 +1231,7 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.aiEvolution)
             viewModel.startEvolution()
         } label: {
-            Text("进化")
+            Text(BookL10n.string("action.evolve"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.evolution)
         .disabled(requiresEvolutionBackend || viewModel.isRunning)
@@ -1235,14 +1240,14 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.aiEvolution)
             viewModel.analyzeOptimizations()
         } label: {
-            Text("分析优化")
+            Text(BookL10n.string("action.analyze"))
         }
         .disabled(requiresEvolutionBackend || viewModel.isRunning)
 
         Button {
             viewModel.openSettings()
         } label: {
-            Text("进化设置")
+            Text(BookL10n.string("settings.evolution"))
         }
 
         BookToolbarMenuDivider()
@@ -1250,14 +1255,14 @@ struct ContentView: View {
         Button {
             viewModel.saveEvolutionCommands()
         } label: {
-            Text("保存进化命令")
+            Text(BookL10n.string("action.saveEvolutionCommands"))
         }
         .disabled(!viewModel.canSaveEvolutionCommands)
 
         Button {
             viewModel.openEvolutionCommands()
         } label: {
-            Text("打开进化命令")
+            Text(BookL10n.string("action.openEvolutionCommands"))
         }
         .disabled(!viewModel.canOpenEvolutionCommands)
 
@@ -1265,7 +1270,7 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.aiEvolution)
             viewModel.clearAIContext()
         } label: {
-            Text("清空 AI 上下文")
+            Text(BookL10n.string("action.clearAIContext"))
         }
         .disabled(viewModel.isRunning || !viewModel.canClearAIContext)
 
@@ -1275,7 +1280,7 @@ struct ContentView: View {
             Button {
                 viewModel.stopCurrentRun()
             } label: {
-                Text("停止")
+                Text(BookL10n.string("action.stop"))
             }
         }
     }
@@ -1328,7 +1333,7 @@ struct ContentView: View {
         HStack(spacing: 12) {
             Button(action: { setLearningPaneFocus(.both) }) {
                 BookToolbarCapsuleLabel(
-                    title: "双页",
+                    title: BookL10n.string("layout.spread"),
                     isProminent: true,
                     isCompact: false,
                     isHovering: false
@@ -1336,10 +1341,10 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .fixedSize()
-            .help("恢复左右双页布局")
+            .help(BookL10n.string("help.restoreSpread"))
             .keyboardShortcut(.escape, modifiers: [])
 
-            Text(learningPaneFocus == .leading ? viewModel.displayFileName : viewModel.rightPageTab.rawValue)
+            Text(learningPaneFocus == .leading ? viewModel.displayFileName : viewModel.rightPageTab.localizedTitle)
                 .font(BookTheme.titleFont)
                 .foregroundStyle(BookTheme.goldSoft)
                 .lineLimit(1)
@@ -1362,7 +1367,7 @@ struct ContentView: View {
 
     private var learningPaneFullscreenShortcuts: some View {
         Group {
-            Button("双页") { setLearningPaneFocus(.both) }
+            Button(BookL10n.string("layout.spread")) { setLearningPaneFocus(.both) }
                 .keyboardShortcut(.escape, modifiers: [])
         }
         .opacity(0)
@@ -1374,7 +1379,7 @@ struct ContentView: View {
     private var leftPage: some View {
         VStack(spacing: 0) {
             pageLabel(
-                title: "原文",
+                title: BookL10n.string("page.source"),
                 icon: "text.book.closed",
                 paneSide: .leading
             )
@@ -1416,19 +1421,19 @@ struct ContentView: View {
     private var leftPageFooter: some View {
         HStack(spacing: 16) {
             BookInterface.PageMark(label: BookInterface.leftPageMark)
-            Label("\(viewModel.fileContent.count) 字", systemImage: "character.cursor.ibeam")
+            Label(BookL10n.format("footer.characters", viewModel.fileContent.count), systemImage: "character.cursor.ibeam")
             if !viewModel.effectiveSelectedText.isEmpty {
-                Label("已选 \(viewModel.effectiveSelectedText.count) 字", systemImage: "highlighter")
+                Label(BookL10n.format("footer.selected", viewModel.effectiveSelectedText.count), systemImage: "highlighter")
             }
             Spacer()
-            Button("全选") {
+            Button(BookL10n.string("action.selectAll")) {
                 viewModel.selectAllLeftPage()
             }
             .buttonStyle(.plain)
             .font(BookTheme.captionFont)
             .foregroundStyle(BookTheme.leather)
             .disabled(viewModel.fileContent.isEmpty)
-            .help("全选左页文本")
+            .help(BookL10n.string("help.selectAllLeftPage"))
             Text(leftPageSaveStatus)
                 .foregroundStyle(viewModel.isDirty ? Color.orange : BookTheme.inkMuted)
         }
@@ -1447,7 +1452,7 @@ struct ContentView: View {
         VStack(spacing: 0) {
             if showsRightPageLabel {
                 pageLabel(
-                    title: viewModel.rightPageTab.rawValue,
+                    title: viewModel.rightPageTab.localizedTitle,
                     icon: viewModel.rightPageTab.icon,
                     paneSide: .trailing
                 )
@@ -1553,7 +1558,7 @@ struct ContentView: View {
                 }
         }
         .buttonStyle(.plain)
-        .help(isFocused ? "恢复双页" : side == .leading ? "原文占满桌面" : "右页占满桌面")
+        .help(isFocused ? BookL10n.string("help.restoreSpreadFromFocus") : side == .leading ? BookL10n.string("help.leftFullscreen") : BookL10n.string("help.rightFullscreen"))
     }
 
     private var leftPageSaveStatus: String {
@@ -1561,9 +1566,9 @@ struct ContentView: View {
             return message
         }
         if viewModel.isEditingNotes {
-            return viewModel.isDirty ? "保存中…" : "已自动保存"
+            return viewModel.isDirty ? BookL10n.string("status.saving") : BookL10n.string("status.autosaved")
         }
-        return viewModel.isDirty ? "未保存" : "已保存"
+        return viewModel.isDirty ? BookL10n.string("status.unsaved") : BookL10n.string("status.saved")
     }
 
     private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {

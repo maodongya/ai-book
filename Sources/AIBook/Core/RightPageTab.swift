@@ -1,10 +1,19 @@
 import Foundation
 
 enum RightPageTab: String, CaseIterable, Identifiable {
-    case readingAssistant = "读书助手"
-    case aiEvolution = "AI进化"
+    case readingAssistant
+    case aiEvolution
 
     var id: String { rawValue }
+
+    var localizedTitle: String {
+        switch self {
+        case .readingAssistant:
+            return BookL10n.string("tab.readingAssistant")
+        case .aiEvolution:
+            return BookL10n.string("tab.aiEvolution")
+        }
+    }
 
     var icon: String {
         switch self {
@@ -16,9 +25,9 @@ enum RightPageTab: String, CaseIterable, Identifiable {
     var pageSubtitle: String {
         switch self {
         case .readingAssistant:
-            return "讲解对话与翻译内容分栏展示"
+            return BookL10n.string("tab.readingAssistant.subtitle")
         case .aiEvolution:
-            return "Cursor Agent 风格 · 思考过程与工具步骤追踪"
+            return BookL10n.string("tab.aiEvolution.subtitle")
         }
     }
 
@@ -28,7 +37,7 @@ enum RightPageTab: String, CaseIterable, Identifiable {
         case .readingAssistant:
             return nil
         case .aiEvolution:
-            return "进化操作"
+            return BookL10n.string("evolution.operations")
         }
     }
 }
