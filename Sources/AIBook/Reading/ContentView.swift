@@ -7,7 +7,6 @@ struct ContentView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
     @State private var learningPaneFocus: LearningPaneFocus = .both
-    @AppStorage("aiBook.readingChromeVisible") private var isReadingChromeVisible = true
 
     private let learningSpineWidth: CGFloat = 34
 
@@ -34,10 +33,16 @@ struct ContentView: View {
         }
         .sheet(isPresented: $viewModel.showSettings) {
             SettingsView()
+                .environmentObject(viewModel)
                 .bookStyleEnvironment(styleManager)
         }
         .sheet(isPresented: $viewModel.showBookSettings) {
             BookSettingsView()
+                .environmentObject(viewModel)
+                .bookStyleEnvironment(styleManager)
+        }
+        .sheet(isPresented: $viewModel.showUserManual) {
+            BookUserManualView()
                 .bookStyleEnvironment(styleManager)
         }
         .sheet(isPresented: $viewModel.showDirectoryBrowser) {
@@ -159,15 +164,6 @@ struct ContentView: View {
                     Text(AIBookProduct.displayName)
                         .font(BookTheme.titleFont)
                         .foregroundStyle(BookTheme.goldSoft)
-                    BookStatusPill(title: AIBookProduct.slug, tint: Color.white.opacity(0.58))
-                        .help(AIBookProduct.positioning.trimmingCharacters(in: .whitespacesAndNewlines))
-                    BookStatusPill(title: AIBookProduct.tagline, tint: Color.white.opacity(0.58))
-                    BookStatusPill(title: SwiftPlatform.implementationLabel, tint: Color.white.opacity(0.50))
-                        .help(SwiftPlatform.runtimeDescription)
-                    if viewModel.evolutionStatusLabel != nil {
-                        BookStatusPill(title: SelfEvolution.capabilityLabel, icon: "arrow.triangle.2.circlepath", tint: Color.white.opacity(0.52))
-                            .help(viewModel.evolutionStatusLabel ?? "")
-                    }
                     if viewModel.rightPageTab == .readingAssistant {
                         BookStatusPill(
                             title: settings.isBookLLMConfigured ? settings.bookLLMDisplayLabel : "book 未配置",
@@ -1343,23 +1339,13 @@ struct ContentView: View {
             .help("恢复左右双页布局")
             .keyboardShortcut(.escape, modifiers: [])
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(learningPaneFocus == .leading ? "原文全屏" : "右页全屏")
-                    .font(BookTheme.titleFont)
-                    .foregroundStyle(BookTheme.goldSoft)
-                Text(learningPaneFocus == .leading ? viewModel.displayFileName : viewModel.rightPageTab.rawValue)
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.chromeMuted)
-                    .lineLimit(1)
-            }
-            .layoutPriority(-1)
+            Text(learningPaneFocus == .leading ? viewModel.displayFileName : viewModel.rightPageTab.rawValue)
+                .font(BookTheme.titleFont)
+                .foregroundStyle(BookTheme.goldSoft)
+                .lineLimit(1)
+                .layoutPriority(-1)
 
             Spacer(minLength: 8)
-
-            BookStatusPill(
-                title: learningPaneFocus == .leading ? "原文 / 命令笔记" : viewModel.rightPageTab.rawValue,
-                icon: learningPaneFocus == .leading ? "text.book.closed" : viewModel.rightPageTab.icon
-            )
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
@@ -1388,13 +1374,8 @@ struct ContentView: View {
     private var leftPage: some View {
         VStack(spacing: 0) {
             pageLabel(
-                title: "原文 / 命令笔记",
+                title: "原文",
                 icon: "text.book.closed",
-                subtitle: viewModel.fileContent.isEmpty
-                    ? "可直接输入，或 \(BookKeyboardShortcuts.newDocumentHint) 新建 / \(BookKeyboardShortcuts.openDocumentHint) 打开 .txt · \(BookKeyboardShortcuts.saveHint) 保存"
-                    : viewModel.isEditingNotes
-                        ? "可编辑 · 命令笔记自动保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文"
-                        : "可编辑 · \(BookKeyboardShortcuts.saveHint) 保存 · \(BookKeyboardShortcuts.classicSupplementHint) 名著补充 · \(BookKeyboardShortcuts.explainSelectionHint) 选择讲解 · \(BookKeyboardShortcuts.explainFullTextHint) 全文讲解 · \(BookKeyboardShortcuts.readOriginalHint) 朗读原文",
                 paneSide: .leading
             )
 
@@ -1468,7 +1449,6 @@ struct ContentView: View {
                 pageLabel(
                     title: viewModel.rightPageTab.rawValue,
                     icon: viewModel.rightPageTab.icon,
-                    subtitle: rightPageSubtitle,
                     paneSide: .trailing
                 )
             }
@@ -1484,20 +1464,7 @@ struct ContentView: View {
     }
 
     private var showsRightPageLabel: Bool {
-        !(viewModel.rightPageTab == .readingAssistant && !isReadingChromeVisible)
-    }
-
-    private var rightPageSubtitle: String? {
-        switch viewModel.rightPageTab {
-        case .readingAssistant:
-            return nil
-        case .aiEvolution:
-            let modelLabel = ModelTokenLimits.cursorModelLabel(settings.resolvedCursorModel)
-            if let label = viewModel.evolutionStatusLabel {
-                return "\(label) · \(modelLabel)"
-            }
-            return "\(viewModel.rightPageTab.pageSubtitle) · \(modelLabel)"
-        }
+        viewModel.rightPageTab == .aiEvolution
     }
 
     private var bookSpine: some View {

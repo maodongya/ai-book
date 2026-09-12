@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Reading (book) settings: LLM profiles for讲解/翻译 and voice for朗读.
 struct BookSettingsView: View {
+    @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
     @Environment(\.dismiss) private var dismiss
@@ -22,16 +23,6 @@ struct BookSettingsView: View {
             }
         }
 
-        var subtitle: String {
-            switch self {
-            case .ai:
-                return "读书讲解、翻译与名著补充使用的大模型（推荐本机 Ollama）"
-            case .voice:
-                return "朗读节奏、语言处理与讲解声音"
-            case .appearance:
-                return "切换书桌、纸页与按钮的视觉主题"
-            }
-        }
     }
 
     var body: some View {
@@ -83,18 +74,19 @@ struct BookSettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
             }
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text("book 设置")
-                    .font(BookTheme.titleFont)
-                    .foregroundStyle(BookTheme.goldSoft)
-                Text(selectedTab.subtitle)
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.goldSoft)
-            }
+            Text("book 设置")
+                .font(BookTheme.titleFont)
+                .foregroundStyle(BookTheme.goldSoft)
 
             Spacer()
 
-            BookStatusPill(title: selectedTab.rawValue, icon: selectedTab.icon)
+            BookActionButton(title: "说明书", icon: "book.pages") {
+                dismiss()
+                DispatchQueue.main.async {
+                    viewModel.openUserManual()
+                }
+            }
+            .help("打开 AIBook 功能说明书")
 
             BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
                 dismiss()
@@ -171,7 +163,7 @@ struct BookSettingsView: View {
 
             settingsSection(title: "原文节选", icon: "text.book.closed") {
                 HStack {
-                    Text("讲解与追问时附带给模型的左页节选占比")
+                    Text("左页节选占比")
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()
@@ -182,33 +174,11 @@ struct BookSettingsView: View {
                 Slider(value: $settings.bookContextPercent, in: 10 ... 100, step: 5)
                     .tint(BookTheme.gold)
             }
-
-            settingsSection(title: "说明", icon: "info.circle") {
-                Text("读书助手、讲解、翻译与名著补充均使用此处配置的模型，与 AI 进化互不影响。")
-                    .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.settingsSecondary)
-                Text("大模型 API 支持 \(LLMConnector.supportedSummary) 等 OpenAI 兼容接口；Ollama 本地默认可不填 Key。")
-                    .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.settingsSecondary)
-            }
         }
     }
 
     private var voiceSettingsContent: some View {
-        Group {
-            settingsSection(title: "讲解朗读", icon: "waveform") {
-                ExplanationVoiceSettingsView()
-            }
-
-            settingsSection(title: "关于语音", icon: "music.note") {
-                Text("在本页可切换朗读节奏、语言处理策略和讲解声音。")
-                    .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.settingsSecondary)
-                Text("建议：快速浏览使用「快速 + 高效」，细读讲解使用「舒缓 + 深度」。")
-                    .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.settingsSecondary)
-            }
-        }
+        ExplanationVoiceSettingsView()
     }
 
     private func settingsSection<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {

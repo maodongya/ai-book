@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Evolution-focused system settings (Cursor, auto-upgrade).
 struct SettingsView: View {
+    @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var styleManager = BookStyleManager.shared
     @Environment(\.dismiss) private var dismiss
@@ -45,16 +46,19 @@ struct SettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
             }
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text("进化设置")
-                    .font(BookTheme.titleFont)
-                    .foregroundStyle(BookTheme.goldSoft)
-                Text("Cursor 本地、自动升级链；读书模型与语音请使用顶栏「book设置」")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.goldSoft)
-            }
+            Text("进化设置")
+                .font(BookTheme.titleFont)
+                .foregroundStyle(BookTheme.goldSoft)
 
             Spacer()
+
+            BookActionButton(title: "说明书", icon: "book.pages") {
+                dismiss()
+                DispatchQueue.main.async {
+                    viewModel.openUserManual()
+                }
+            }
+            .help("打开 AIBook 功能说明书")
 
             BookActionButton(title: "完成", icon: "checkmark", isProminent: true) {
                 dismiss()
@@ -106,39 +110,18 @@ struct SettingsView: View {
                 labeledField("Cursor 模型", text: $settings.cursorModel)
                 labeledField("Bridge 目录（可选）", text: $settings.cursorBridgePath)
 
-                Text("也可创建 ai-book/cursor.local.env，内容：CURSOR_API_KEY=你的密钥")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.settingsSecondary)
-                Text("或运行：./scripts/setup-cursor-key.sh")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.settingsSecondary)
             }
 
             settingsSection(title: "ai-book 自我进化", icon: "arrow.triangle.2.circlepath") {
                 HStack {
-                    Text("自动升级（有待办时自动进化并重启）")
+                    Text("自动升级")
                         .font(BookTheme.bodyFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                     Spacer()
-                    Toggle("自动升级（有待办时自动进化并重启）", isOn: $settings.autoEvolutionEnabled)
+                    Toggle("自动升级", isOn: $settings.autoEvolutionEnabled)
                         .labelsHidden()
                         .tint(BookTheme.gold)
                 }
-                Text("开启后，在本次会话中点击过「进化」且队列仍有待办时，将自动执行进化、打包安装并继续下一条。冷启动不会自动开始。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.settingsSecondary)
-                Text("模型在 AI 进化页顶栏选择；Cursor Key 与桥接见上方「Cursor 本地对话」。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.settingsSecondary)
-            }
-
-            settingsSection(title: "说明", icon: "info.circle") {
-                Text("左页「\(ClassicLiteratureSupplement.capabilityLabel)」可识别名著节选并由大模型补全为完整篇章，自动保存。")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.settingsSecondary)
-                Text("读书讲解、翻译与朗读声音在顶栏「book设置」中配置，与进化互不影响。")
-                    .font(BookTheme.bodyFont)
-                    .foregroundStyle(BookTheme.settingsSecondary)
             }
         }
     }

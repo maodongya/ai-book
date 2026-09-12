@@ -142,6 +142,7 @@ final class ReadingViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showSettings = false
     @Published var showBookSettings = false
+    @Published var showUserManual = false
     @Published var showDirectoryBrowser = false
     @Published var directoryBrowserSessions: [DirectoryBrowserRootSession] = []
     @Published var selectedDirectorySessionID: UUID?
@@ -582,6 +583,10 @@ final class ReadingViewModel: ObservableObject {
     func openBookSettings() {
         selectRightPageTab(.readingAssistant)
         showBookSettings = true
+    }
+
+    func openUserManual() {
+        showUserManual = true
     }
 
     private func resetStreamingState() {

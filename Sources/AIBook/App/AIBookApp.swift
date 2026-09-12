@@ -130,6 +130,17 @@ struct AIBookApp: App {
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.evolution)
             }
+
+            CommandGroup(replacing: .help) {
+                Button("AIBook 功能说明书") {
+                    viewModel.openUserManual()
+                }
+
+                Button("在访达中显示说明书") {
+                    BookUserManual.revealInFinder()
+                }
+                .disabled(BookUserManual.bundleURL == nil)
+            }
         }
     }
 }

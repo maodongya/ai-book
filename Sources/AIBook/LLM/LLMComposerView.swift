@@ -85,14 +85,6 @@ struct LLMComposerView: View {
 
     private var bookComposerSummary: some View {
         HStack(spacing: 8) {
-            Label(
-                settings.isBookLLMConfigured ? settings.bookLLMDisplayLabel : "book 未配置",
-                systemImage: "book.closed.fill"
-            )
-            .font(BookTheme.captionFont)
-            .foregroundStyle(BookTheme.leather)
-            .lineLimit(1)
-
             Spacer(minLength: 8)
 
             Button {
@@ -108,12 +100,12 @@ struct LLMComposerView: View {
 
             if let onCollapse {
                 Button(action: onCollapse) {
-                    Label("隐藏", systemImage: "chevron.down")
-                        .font(BookTheme.captionFont)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(BookTheme.leather)
                 }
                 .buttonStyle(.plain)
-                .help("隐藏 AI 输入框")
+                .help("隐藏输入")
             }
         }
         .font(BookTheme.captionFont)
@@ -121,10 +113,6 @@ struct LLMComposerView: View {
 
     private var evolutionComposerSummary: some View {
         HStack(spacing: 8) {
-            Label("模型见上方「进化」Tab", systemImage: "slider.horizontal.3")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.inkMuted)
-                .lineLimit(1)
             Spacer(minLength: 8)
             compactUsageMeter
         }

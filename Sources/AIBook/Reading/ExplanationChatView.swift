@@ -92,12 +92,12 @@ struct ExplanationChatView: View {
                     isReadingComposerVisible = true
                 }
             } label: {
-                Label("显示输入", systemImage: "chevron.up")
-                    .font(BookTheme.captionFont)
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(BookTheme.leather)
             }
             .buttonStyle(.plain)
-            .help("显示 AI 输入框")
+            .help("显示输入")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -122,18 +122,21 @@ struct ExplanationChatView: View {
         HStack(spacing: 8) {
             Picker("右页分栏", selection: $viewModel.readingAssistantPanel) {
                 ForEach(ReadingAssistantPanel.allCases) { panel in
-                    Text(panel.rawValue).tag(panel)
+                    Text(panel.toolbarTitle).tag(panel)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
 
             Button(action: enterReadingFocusMode) {
-                Label("专注阅读", systemImage: "arrow.up.left.and.arrow.down.right")
-                    .font(BookTheme.captionFont)
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(BookTheme.leather)
+                    .frame(width: 28, height: 28)
+                    .background { lessonPlanToolbarCapsule }
             }
             .buttonStyle(.plain)
-            .help("隐藏工具栏与分栏切换，只保留结果正文")
+            .help("专注阅读")
         }
         .padding(.horizontal, 14)
         .padding(.top, 6)
@@ -142,15 +145,15 @@ struct ExplanationChatView: View {
 
     private var readingChromeRestoreControl: some View {
         Button(action: exitReadingFocusMode) {
-            Label("显示工具栏", systemImage: "chevron.down")
-                .font(styleManager.tokens.typography.captionFont)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(styleManager.tokens.colors.ink)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background { lessonPlanToolbarCapsule }
         }
         .buttonStyle(.plain)
-        .help("显示读书助手标题、分栏切换与翻译状态栏")
+        .help("显示工具栏")
     }
 
     private func enterReadingFocusMode() {
@@ -461,7 +464,7 @@ struct ExplanationChatView: View {
         HStack(spacing: 8) {
             Image(systemName: "book.closed.fill")
                 .foregroundStyle(BookTheme.gold)
-            Text("读书功能需配置 book 大模型（推荐本机 Ollama）。")
+            Text("未配置 book 大模型")
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.inkSecondary)
             Spacer(minLength: 8)
@@ -588,9 +591,6 @@ struct ExplanationChatView: View {
         Group {
             if message.role == .assistant {
                 VStack(alignment: .leading, spacing: 10) {
-                    if viewModel.rightPageTab == .aiEvolution {
-                        assistantMessageHeader(message)
-                    }
                     if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
                         AssistantExecutionTraceCard(
                             thinking: message.thinking,
@@ -607,12 +607,7 @@ struct ExplanationChatView: View {
                 }
                 .help("右键可编辑、保存、朗读、复制或删除此条 AI 输出")
             } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("你", systemImage: "person.fill")
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.inkMuted)
-                    bubbleContent(message.content, isUser: true)
-                }
+                bubbleContent(message.content, isUser: true)
                 .contextMenu {
                     userMessageMenu(for: message)
                 }
@@ -620,16 +615,6 @@ struct ExplanationChatView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func assistantMessageHeader(_ message: ChatMessage) -> some View {
-        HStack(spacing: 8) {
-            Label(assistantLabel, systemImage: "sparkles")
-                .font(BookTheme.captionFont)
-                .foregroundStyle(BookTheme.leather)
-
-            Spacer(minLength: 12)
-        }
     }
 
     @ViewBuilder
@@ -727,12 +712,6 @@ struct ExplanationChatView: View {
 
     private var streamingBubble: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if viewModel.rightPageTab == .aiEvolution {
-                Label(assistantLabel, systemImage: "sparkles")
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.leather)
-            }
-
             if viewModel.showsExecutionTrace {
                 cursorStreamingContent
             } else {
@@ -787,12 +766,6 @@ struct ExplanationChatView: View {
         }
     }
 
-    private var assistantLabel: String {
-        if viewModel.rightPageTab == .aiEvolution {
-            return "AI进化"
-        }
-        return "读书助手"
-    }
 
     private func messageContent(for id: UUID) -> String {
         viewModel.chatMessages.first(where: { $0.id == id })?.content ?? ""
