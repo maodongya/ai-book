@@ -1,9 +1,11 @@
 import SwiftUI
 
+/// 应用内说明书窗：渲染打包/仓库里的功能说明书 Markdown。不编辑正文。
 struct BookUserManualView: View {
     @ObservedObject private var styleManager = BookStyleManager.shared
     @Environment(\.dismiss) private var dismiss
 
+    /// 打开时读一次，切风格只重绘不重读文件。
     private let markdown = BookUserManual.loadMarkdown()
 
     var body: some View {
@@ -16,7 +18,7 @@ struct BookUserManualView: View {
 
                 ScrollView {
                     VStack(spacing: 0) {
-                        BookUserManualMarkdownView(markdown: markdown)
+                        BookUserManualMarkdownView(markdown: markdown) // 自绘 md，不走 WebView
                             .padding(.horizontal, 32)
                             .padding(.vertical, 28)
                     }
@@ -34,9 +36,10 @@ struct BookUserManualView: View {
             .padding(24)
         }
         .frame(width: 820, height: 860)
-        .id(styleManager.revision)
+        .id(styleManager.revision) // 切风格整窗重建，避免旧令牌残留
     }
 
+    /// 顶栏：书名 + 用系统编辑器打开 + 完成。
     private var header: some View {
         HStack(spacing: 14) {
             ZStack {
@@ -60,7 +63,7 @@ struct BookUserManualView: View {
             Spacer()
 
             BookActionButton(title: BookL10n.string("action.manual.openSystem"), icon: "arrow.up.forward.square") {
-                BookUserManual.openInDefaultEditor()
+                BookUserManual.openInDefaultEditor() // 交给用户默认 md 应用
             }
 
             BookActionButton(title: BookL10n.string("action.done"), icon: "checkmark", isProminent: true) {

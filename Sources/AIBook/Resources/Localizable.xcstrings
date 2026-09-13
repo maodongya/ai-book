@@ -27665,6 +27665,60 @@
         }
       }
     },
+    "vm.error.paragraphAlign.countMismatch": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整段翻译段数不一致（期望 %lld 段，实际 %lld 段）。请重新整段翻译。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Paragraph count mismatch (expected %lld, got %lld)." } }
+      }
+    },
+    "vm.error.paragraphAlign.indexCoverage": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整段翻译缺少或重复段落序号。请重新整段翻译。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Missing or duplicate paragraph index." } }
+      }
+    },
+    "vm.error.paragraphAlign.emptyTranslation": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "第 %lld 段译文为空。请重新整段翻译。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Paragraph %lld translation is empty." } }
+      }
+    },
+    "vm.error.paragraphAlign.sourceMismatch": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "第 %lld 段原文与左页不一致。请重新整段翻译。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Paragraph %lld source text mismatch." } }
+      }
+    },
+    "vm.error.paragraphAlign.anchoringIncomplete": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整段对齐锚点不完整（%lld/%lld）。请重新整段翻译。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Incomplete paragraph anchors (%lld/%lld)." } }
+      }
+    },
+    "vm.align.nonStrictHeuristic": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "非严格对齐" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Non-strict alignment" } }
+      }
+    },
+    "translation.table.nonStrictHint": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前为导入或本地对齐，段对段不保证严格一致。请使用「整段翻译」恢复严格表格对照。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Imported or heuristic alignment; use paragraph translation for strict table compare." } }
+      }
+    },
+    "translation.progress.hint": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "模型输出仅在此窗口显示；完成后写入译文区，不会出现在讲解对话或教案编辑器中。" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Output appears only here; results go to the translation panel, not explanation chat or the lesson editor." } }
+      }
+    },
+    "translation.progress.inSheet": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "翻译进行中，请查看弹出窗口" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Translation in progress — see the popup window" } }
+      }
+    },
     "vm.align.resegmentedSuffix": {
       "localizations": {
         "zh-Hans": {

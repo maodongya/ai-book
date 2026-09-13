@@ -1,7 +1,8 @@
 import Foundation
 
-/// AI 进化助手 persona，对应右页「AI进化」Tab 与顶栏「进化操作」菜单。
+/// AI 进化助手 persona，对应右页「AI进化」Tab 与顶栏「进化操作」菜单。不执行改码。
 enum EvolutionAssistant {
+    /// 进化模式的 system 提示：要求按 Cursor Agent 过程输出，正式执行仍走顶栏「进化」。
     static let systemPrompt = """
     你是 \(AIBookProduct.displayName) 的 AI 进化助手，负责根据优化队列中的待办条目升级 ai-book 项目源码。
     请阅读产品定义、优化队列与源码目录，给出可执行的改码方案、步骤说明与测试建议。
@@ -15,5 +16,6 @@ enum EvolutionAssistant {
     请尽量展示思考与中间过程，不要只给最终结论；正式执行进化请使用顶栏「进化」按钮。
     """
 
+    /// 进化 Tab 欢迎语，走目录。
     static var welcomeMessage: String { BookL10n.string("welcome.evolution") }
 }

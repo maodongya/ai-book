@@ -1,13 +1,14 @@
 import SwiftUI
 
-/// Reading (book) settings: LLM profiles for讲解/翻译 and voice for朗读.
+/// 读书设置窗：讲解/翻译档案、朗读声音、界面语言与风格。进化 Cursor 不在这里。
 struct BookSettingsView: View {
-    @EnvironmentObject private var viewModel: ReadingViewModel
-    @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var styleManager = BookStyleManager.shared
+    @EnvironmentObject private var viewModel: ReadingViewModel // 关窗后开说明书走这里，避免叠窗
+    @ObservedObject private var settings = AppSettings.shared // 上下文比例等读书偏好
+    @ObservedObject private var styleManager = BookStyleManager.shared // revision 变了整窗重绘
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedTab: BookSettingsTab = .ai
+    @State private var selectedTab: BookSettingsTab = .ai // 默认先配讲解/翻译，声音和外观后调
 
+    /// 读书设置三栏。
     private enum BookSettingsTab: String, CaseIterable, Identifiable {
         case ai
         case voice
@@ -15,6 +16,7 @@ struct BookSettingsView: View {
 
         var id: String { rawValue }
 
+        /// 分段按钮文案。
         var localizedTitle: String {
             switch self {
             case .ai: return BookL10n.string("settings.tab.ai")
@@ -23,6 +25,7 @@ struct BookSettingsView: View {
             }
         }
 
+        /// 分段与标题共用 SF Symbol。
         var icon: String {
             switch self {
             case .ai: return "cpu"
@@ -74,6 +77,7 @@ struct BookSettingsView: View {
         .id(styleManager.revision)
     }
 
+    /// 顶栏：当前栏图标 + 说明书 + 完成。
     private var header: some View {
         HStack(spacing: 14) {
             ZStack {
@@ -94,7 +98,7 @@ struct BookSettingsView: View {
             BookActionButton(title: BookL10n.string("action.manual"), icon: "book.pages") {
                 dismiss()
                 DispatchQueue.main.async {
-                    viewModel.openUserManual()
+                    viewModel.openUserManual() // 先 dismiss 再开，避免设置窗挡说明书
                 }
             }
             .help(BookL10n.string("help.openManual"))
@@ -116,6 +120,7 @@ struct BookSettingsView: View {
         }
     }
 
+    /// 三栏切换条，选中走金底。
     private var tabSwitcher: some View {
         HStack(spacing: 10) {
             ForEach(BookSettingsTab.allCases) { tab in
@@ -133,6 +138,7 @@ struct BookSettingsView: View {
         }
     }
 
+    /// 单栏按钮；isSelected 决定金底还是菜单底。
     private func tabButton(_ tab: BookSettingsTab) -> some View {
         let isSelected = selectedTab == tab
         return Button {
@@ -166,10 +172,11 @@ struct BookSettingsView: View {
         .buttonStyle(.plain)
     }
 
+    /// 讲解/翻译档案、目标语言、送模上下文比例。
     private var aiSettingsContent: some View {
         Group {
             settingsSection(title: BookL10n.string("settings.llmProviders"), icon: "sparkles") {
-                LLMProfilesSettingsView(scope: .book)
+                LLMProfilesSettingsView(scope: .book) // 只编读书档案，进化档案在 SettingsView
             }
 
             settingsSection(title: BookL10n.string("translation.target.title"), icon: "globe") {
@@ -186,16 +193,18 @@ struct BookSettingsView: View {
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.settingsPrimary)
                 }
-                Slider(value: $settings.bookContextPercent, in: 10 ... 100, step: 5)
+                Slider(value: $settings.bookContextPercent, in: 10 ... 100, step: 5) // 10% 起，避免几乎不带正文
                     .tint(BookTheme.gold)
             }
         }
     }
 
+    /// 讲解朗读声音整页，不在这里拆控件。
     private var voiceSettingsContent: some View {
         ExplanationVoiceSettingsView()
     }
 
+    /// 一块带标题图标的设置卡片。
     private func settingsSection<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: icon)

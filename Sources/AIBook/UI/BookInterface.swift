@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 书籍界面装饰：装帧、纸张纹理、书脊丝带、页角与页码（配合 BookTheme 使用）。
 enum BookInterface {
-    static var leftPageMark: String { BookL10n.string("ui.pageMark.left") }
+    static var leftPageMark: String { BookL10n.string("ui.pageMark.left") } // 「左」随界面语言
     static var rightPageMark: String { BookL10n.string("ui.pageMark.right") }
 
     /// 打开的书本外框：皮革封面、内凹书页、投影。
@@ -92,6 +92,7 @@ enum BookInterface {
             }
         }
 
+        /// 金线中间一颗菱形。
         private var ornamentLine: some View {
             LinearGradient(
                 colors: [
@@ -120,6 +121,7 @@ enum BookInterface {
 
     /// 纸张纹理与内缘阴影。
     struct PaperTexture: ViewModifier {
+        /// 纹理可关：showPaperTexture=false 时几乎透明。
         func body(content: Content) -> some View {
             if BookTheme.showPaperTexture, BookTheme.paperTextureOpacity > 0 {
                 content
@@ -241,6 +243,7 @@ enum BookInterface {
 }
 
 extension View {
+    /// 页内纸纹修饰。
     func bookPaperTexture() -> some View {
         modifier(BookInterface.PaperTexture())
     }

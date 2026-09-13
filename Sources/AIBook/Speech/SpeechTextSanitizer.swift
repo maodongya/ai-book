@@ -1,6 +1,8 @@
 import Foundation
 
+/// 把讲解 Markdown 切成可朗读单元。结果按原文+语种缓存，避免翻页重切。
 enum SpeechTextSanitizer {
+    /// 段后停顿档。句号最长，brief 只是汉字过长插入的气口。
     enum SpeechPauseKind: Equatable {
         case brief
         case comma
@@ -8,18 +10,20 @@ enum SpeechTextSanitizer {
         case sentence
     }
 
+    /// 一段可送 TTS 的正文 + 读完后停多久。spoken 不含标点。
     struct SpeechUnit: Equatable {
         let spoken: String
         let pauseAfter: SpeechPauseKind
     }
 
+    /// 按语种档决定切句长度和要不要加韵律提示。
     struct Configuration {
         let maxSpeechLength: Int
         let maxChunkLength: Int
         let codePlaceholder: String
         let normalizeAcronyms: Bool
     }
-    private static let cacheLimit = 160
+    private static let cacheLimit = 160 // 三套缓存在这上限，超出丢最旧
     private static var normalizedCache: [String: String] = [:]
     private static var chunkCache: [String: [String]] = [:]
     private static var unitCache: [String: [SpeechUnit]] = [:]
@@ -27,6 +31,7 @@ enum SpeechTextSanitizer {
     private static var chunkOrder: [String] = []
     private static var unitOrder: [String] = []
 
+    /// 语种档 → 切句参数。改档必须换 configuration，缓存 key 含 mode。
     static func configuration(for mode: SpeechLanguageMode) -> Configuration {
         switch mode {
         case .efficient:
@@ -53,7 +58,7 @@ enum SpeechTextSanitizer {
         }
     }
 
-    /// Converts assistant markdown into plain text suitable for TTS.
+    /// Markdown → 纯文本。去代码块/链接装饰，保留中文韵律标点。
     static func plainTextForSpeech(_ text: String, mode: SpeechLanguageMode = .balanced) -> String {
         let cacheKey = makeCacheKey(prefix: "norm", text: text, mode: mode)
         if let cached = normalizedCache[cacheKey] {
@@ -155,11 +160,12 @@ enum SpeechTextSanitizer {
         return units
     }
 
-    /// Splits speech text into short, readable chunks.
+    /// 给旧调用的切句。新朗读走 speechUnits。
     static func sentenceChunks(for text: String, mode: SpeechLanguageMode = .balanced) -> [String] {
         speechUnits(for: text, mode: mode).map(\.spoken)
     }
 
+    /// 按标点扫一遍。无标点的长段再按汉字气口切。
     private static func splitIntoSpeechUnits(
         _ normalized: String,
         maxChunkLength: Int,
@@ -173,6 +179,7 @@ enum SpeechTextSanitizer {
         var units: [SpeechUnit] = []
         var buffer = ""
 
+        /// 冲掉当前缓冲。delimiter 决定停顿档。
         func flush(with pause: SpeechPauseKind, delimiter: Character? = nil) {
             let text = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
             buffer = ""
@@ -198,6 +205,7 @@ enum SpeechTextSanitizer {
         return units
     }
 
+    /// 无标点长段：按汉字 run 插入 brief。
     private static func appendSpeechUnits(
         from text: String,
         pauseAfter: SpeechPauseKind,
@@ -233,12 +241,14 @@ enum SpeechTextSanitizer {
         )
     }
 
+    /// 空 spoken 丢掉，避免 TTS 念空白。
     private static func appendUnit(_ spoken: String, pauseAfter: SpeechPauseKind, to units: inout [SpeechUnit]) {
         let trimmed = spoken.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         units.append(SpeechUnit(spoken: trimmed, pauseAfter: pauseAfter))
     }
 
+    /// 句号问号最长；逗号中；顿号 brief。
     private static func pauseKind(for delimiter: Character) -> SpeechPauseKind {
         switch delimiter {
         case "。", "！", "？", "!", "?", "…", "\n":
@@ -307,6 +317,7 @@ enum SpeechTextSanitizer {
         .replacingOccurrences(of: "?", with: "？")
     }
 
+    /// 全角/半角标点归并，缓存 key 稳定。
     private static func normalizedDelimiter(_ character: Character) -> String {
         switch character {
         case ",", ";":
@@ -384,6 +395,7 @@ enum SpeechTextSanitizer {
         return result
     }
 
+    /// 快档允许更长连读；舒缓档更短。
     private static func maxHanRun(for mode: SpeechLanguageMode) -> Int {
         switch mode {
         case .efficient:
@@ -395,12 +407,14 @@ enum SpeechTextSanitizer {
         }
     }
 
+    /// 汉字/假名/韩文，用来插气口。拉丁不算。
     private static func isCJK(_ character: Character) -> Bool {
         guard let scalar = character.unicodeScalars.first else { return false }
         let value = scalar.value
         return (0x4E00...0x9FFF).contains(value) || (0x3400...0x4DBF).contains(value)
     }
 
+    /// 旧切句路径：超长再从标点处劈。
     private static func appendChunk(_ raw: String, to chunks: inout [String], maxChunkLength: Int) {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
@@ -424,6 +438,7 @@ enum SpeechTextSanitizer {
         }
     }
 
+    /// 均衡档少加提示，避免念出多余符号。
     private static func enrichBalancedProsodyHints(_ text: String) -> String {
         var enriched = text
         enriched = enriched.replacingOccurrences(of: "…", with: "。")
@@ -451,6 +466,7 @@ enum SpeechTextSanitizer {
         return enriched
     }
 
+    /// 自然/舒缓档加更多气口。
     private static func enrichProsodyHints(_ text: String) -> String {
         var enriched = text
         enriched = enriched.replacingOccurrences(of: "——", with: "，")
@@ -484,6 +500,7 @@ enum SpeechTextSanitizer {
         return enriched
     }
 
+    /// API/TTS 等缩写拉开，避免念成一个词。
     private static func normalizeAcronyms(in text: String) -> String {
         var result = text
         let replacements = [
@@ -508,6 +525,7 @@ enum SpeechTextSanitizer {
         return result
     }
 
+    /// 在上限前找最近标点；找不到就硬切。
     private static func splitIndex(in text: String, maxChunkLength: Int) -> String.Index {
         let hardEnd = text.index(text.startIndex, offsetBy: maxChunkLength, limitedBy: text.endIndex) ?? text.endIndex
         let searchRange = text.startIndex..<hardEnd
@@ -527,6 +545,7 @@ enum SpeechTextSanitizer {
         return hardEnd
     }
 
+    /// prefix 区分 plain/units/chunks，避免串缓存。
     private static func makeCacheKey(prefix: String, text: String, mode: SpeechLanguageMode) -> String {
         var hasher = Hasher()
         hasher.combine(mode.rawValue)
@@ -534,24 +553,28 @@ enum SpeechTextSanitizer {
         return "\(prefix)#\(mode.rawValue)#\(text.count)#\(hasher.finalize())"
     }
 
+    /// 写入并裁到 cacheLimit。
     private static func cacheNormalized(_ value: String, for key: String) {
         normalizedCache[key] = value
         normalizedOrder.append(key)
         trimCacheIfNeeded(store: &normalizedCache, order: &normalizedOrder)
     }
 
+    /// 单元缓存。
     private static func cacheUnits(_ value: [SpeechUnit], for key: String) {
         unitCache[key] = value
         unitOrder.append(key)
         trimCacheIfNeeded(store: &unitCache, order: &unitOrder)
     }
 
+    /// 旧切句缓存。
     private static func cacheChunks(_ value: [String], for key: String) {
         chunkCache[key] = value
         chunkOrder.append(key)
         trimCacheIfNeeded(store: &chunkCache, order: &chunkOrder)
     }
 
+    /// FIFO 丢最旧。order 与 store 必须成对传。
     private static func trimCacheIfNeeded<T>(store: inout [String: T], order: inout [String]) {
         while order.count > cacheLimit {
             let key = order.removeFirst()

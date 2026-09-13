@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// 一套风格的全部颜色。具体色值在 BookStyleCatalog，这里只描述形状。
 struct BookStyleColors {
     var deskTop: Color
     var deskBottom: Color
@@ -48,8 +49,9 @@ struct BookStyleColors {
     var menuDivider: Color
 }
 
+/// 标题/正文/阅读正文字号与字体名。空名字走系统字体。
 struct BookStyleTypography {
-    /// Empty names use the system font.
+    /// 按顺序尝试的 PostScript 名，都失败则系统字体。
     var preferredFontNames: [String]
     var titleSize: CGFloat
     var labelSize: CGFloat
@@ -64,7 +66,7 @@ struct BookStyleTypography {
     var captionFont: Font { swiftUIFont(size: captionSize, weight: .regular) }
 
     var readingNSFont: NSFont {
-        nsFont(size: readingSize)
+        nsFont(size: readingSize) // TextKit 左页用 NSFont
     }
 
     var readingFont: Font {
@@ -77,7 +79,7 @@ struct BookStyleTypography {
     func nsFont(size: CGFloat) -> NSFont {
         for name in preferredFontNames {
             if let font = NSFont(name: name, size: size) {
-                return font
+                return font // 本机装着这款才用
             }
         }
         return NSFont.systemFont(ofSize: size)
@@ -91,6 +93,7 @@ struct BookStyleTypography {
     }
 }
 
+/// 书签、折角、页眉纹、纸纹开关和颜色。
 struct BookStyleOrnaments {
     var showBookmarkRibbon: Bool
     var showPageCornerFold: Bool
@@ -101,6 +104,7 @@ struct BookStyleOrnaments {
     var style: BookOrnamentStyle
 }
 
+/// 一套可交给 View 的完整令牌：色 + 字 + 纹样 + 亮暗。
 struct BookStyleTokens {
     var colors: BookStyleColors
     var typography: BookStyleTypography
@@ -144,6 +148,7 @@ struct BookStyleTokens {
     }
 }
 
+/// 0–1 RGB 便捷构造，给 Catalog 写色值用。
 enum BookStyleRGB {
     static func color(_ red: Double, _ green: Double, _ blue: Double, _ opacity: Double = 1) -> Color {
         Color(red: red, green: green, blue: blue, opacity: opacity)

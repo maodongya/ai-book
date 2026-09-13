@@ -2,11 +2,11 @@ import SwiftUI
 
 /// Ollama 设置区：根据本机服务自动发现模型并供选择。
 struct OllamaSettingsFields: View {
-    @Binding var profile: LLMProfile
-    var onRefreshAddress: (() -> Void)?
+    @Binding var profile: LLMProfile // 当前读书或进化档案，改这里即改 Store
+    var onRefreshAddress: (() -> Void)? // 地址规范化后通知外层刷新
 
     @ObservedObject private var catalog = OllamaModelCatalog.shared
-    @State private var useCustomModel = false
+    @State private var useCustomModel = false // 打开后允许手填不在列表里的模型名
 
     private var modelBinding: Binding<String> {
         Binding(
@@ -17,7 +17,7 @@ struct OllamaSettingsFields: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            profileField(BookL10n.string("ollama.openAICompat"), text: baseURLBinding)
+            profileField(BookL10n.string("ollama.openAICompat"), text: baseURLBinding) // OpenAI 兼容基址，写入时会规范化
 
             HStack(spacing: 8) {
                 Text(BookL10n.string("ollama.serviceURL"))
@@ -29,7 +29,7 @@ struct OllamaSettingsFields: View {
                     .lineLimit(1)
                 Spacer()
                 Button(BookL10n.string("action.loadFromEnv")) {
-                    applyEnvironmentDefaults()
+                    applyEnvironmentDefaults() // OLLAMA_HOST / OLLAMA_API_KEY
                 }
                 .buttonStyle(.plain)
                 .font(BookTheme.captionFont)
@@ -62,7 +62,7 @@ struct OllamaSettingsFields: View {
         Binding(
             get: { profile.baseURL },
             set: { newValue in
-                profile.baseURL = OllamaConfig.normalizedOpenAIBaseURL(newValue)
+                profile.baseURL = OllamaConfig.normalizedOpenAIBaseURL(newValue) // 去掉尾斜杠、补 /v1
                 onRefreshAddress?()
             }
         )
@@ -76,7 +76,7 @@ struct OllamaSettingsFields: View {
                     .foregroundStyle(BookTheme.settingsPrimary)
                 Spacer()
                 Button {
-                    Task { await refreshModels(force: true) }
+                    Task { await refreshModels(force: true) } // 强制重扫本机已 pull 模型
                 } label: {
                     Label(catalog.isLoading ? BookL10n.string("ollama.scanning") : BookL10n.string("action.refreshModels"), systemImage: "arrow.clockwise")
                         .font(BookTheme.captionFont)
@@ -181,12 +181,13 @@ struct OllamaSettingsFields: View {
         let names = catalog.modelNamesIncluding(profile.model)
         guard !names.isEmpty else { return }
         if !names.contains(profile.model) {
-            profile.model = names[0]
+            profile.model = names[0] // 当前名不在列表时落到第一项，避免 Picker 空选
         }
     }
 }
 
 private extension View {
+    /// 设置页输入框共用底。
     func ollamaFieldBackground() -> some View {
         background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)

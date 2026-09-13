@@ -1,12 +1,14 @@
 import SwiftUI
 
+/// Cursor 桥输入条：模型、上下文、发送/进化。桥没就绪时进化灰掉。
 struct CursorComposerView: View {
     var mode: RightPageTab = .readingAssistant
 
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
-    @State private var showingAdvancedControls = false
+    @State private var showingAdvancedControls = false // 默认收起，与 LLM 条对齐
 
+    /// 有字且桥不在跑。
     private var canSend: Bool {
         let hasText = !activeChatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         if mode == .aiEvolution {
@@ -15,6 +17,7 @@ struct CursorComposerView: View {
         return hasText && !viewModel.isRunning
     }
 
+    /// 有正文/选区才能分析。
     private var canAnalyze: Bool {
         mode == .aiEvolution
             && !viewModel.isRunning
@@ -22,6 +25,7 @@ struct CursorComposerView: View {
             && viewModel.canRunEvolution
     }
 
+    /// Key+桥都就绪才允许改文件。
     private var canEvolve: Bool {
         mode == .aiEvolution
             && !viewModel.isRunning
@@ -31,10 +35,12 @@ struct CursorComposerView: View {
             && settings.isCursorRunnable
     }
 
+    /// 与 LLM 条共用 ViewModel 输入，切换来源不丢字。
     private var activeChatInput: String {
         mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput
     }
 
+    /// 写回当前模式那份输入。
     private var activeChatInputBinding: Binding<String> {
         Binding(
             get: { mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput },
@@ -76,6 +82,7 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 收起：桥状态 + 模型名。
     private var compactControls: some View {
         Group {
             if mode == .aiEvolution {
@@ -105,6 +112,7 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 进化 token 摘要。
     private var evolutionComposerSummary: some View {
         HStack(spacing: 8) {
             Label(cursorSummary, systemImage: "cursorarrow.rays")
@@ -117,6 +125,7 @@ struct CursorComposerView: View {
         .font(BookTheme.captionFont)
     }
 
+    /// 展开后选 Cursor 模型。
     private var modelControlsRow: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
@@ -156,10 +165,12 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 按 128k 估，跟桥侧截断对齐。
     private var contextUsage: CursorContextUsage {
         mode == .readingAssistant ? viewModel.cursorContextUsage : viewModel.evolutionContextUsage
     }
 
+    /// 上下文百分比。选区锚定会在说明里标。
     private var contextUsageControls: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -219,6 +230,7 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 收起态占用条。
     private var compactUsageMeter: some View {
         Group {
             if mode == .aiEvolution {
@@ -243,10 +255,12 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 当前 Cursor 模型窗。
     private var evolutionTokenBudget: ModelTokenBudget {
         viewModel.evolutionTokenBudget
     }
 
+    /// 进化 token 小条。
     private var evolutionTokenCompactMeter: some View {
         HStack(spacing: 6) {
             Text("Token \(evolutionTokenBudget.formattedUsed)/\(evolutionTokenBudget.formattedLimit)")
@@ -286,6 +300,7 @@ struct CursorComposerView: View {
         return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
+    /// 多行输入。
     private var inputBox: some View {
         ZStack(alignment: .topLeading) {
             if activeChatInput.isEmpty {
@@ -314,6 +329,7 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 发送/停止/分析/进化。
     private var actionRow: some View {
         HStack(spacing: 8) {
             if mode == .aiEvolution {
@@ -445,6 +461,7 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 占位随模式变。
     private var composerPlaceholder: String {
         switch mode {
         case .readingAssistant:
@@ -454,6 +471,7 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 交给 ViewModel 走桥。
     private func sendActiveChatInput() {
         switch mode {
         case .readingAssistant:
@@ -463,15 +481,18 @@ struct CursorComposerView: View {
         }
     }
 
+    /// 桥进行中文案。
     private var runningStatusText: String {
         let text = viewModel.runningStatusText(for: mode)
         return text.isEmpty ? BookL10n.string("llm.generating") : text
     }
 
+    /// 「Cursor · composer-2.5」。
     private var cursorSummary: String {
         "\(settings.selectedCursorModel.label) · \(cursorStatusText)"
     }
 
+    /// 桥未就绪时的灰字原因。
     private var cursorStatusText: String {
         if settings.isCursorRunnable { return BookL10n.string("cursor.ready") }
         if settings.isCursorBridgeReady { return BookL10n.string("cursor.needKeyShort") }
@@ -498,6 +519,7 @@ struct CursorComposerView: View {
         return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
+    /// 占用明细小片。
     private func usageChip(title: String, value: Int) -> some View {
         HStack(spacing: 4) {
             Text(title)

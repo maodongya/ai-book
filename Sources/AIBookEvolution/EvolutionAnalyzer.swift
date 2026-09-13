@@ -1,5 +1,6 @@
 import Foundation
 
+/// 只诊断、不改码：拼分析提示词，并从回复里抽出优化草稿。
 public enum EvolutionAnalyzer {
     public static let analysisSystemPrompt = """
     你是 AIBook 的优化分析器。只诊断，不改文件、不 apply diff、不运行会改动工作区的命令。
@@ -23,6 +24,7 @@ public enum EvolutionAnalyzer {
     已知 P0：读书助手 Tab 不展示讲解对话与流式输出，用户只能听不能看。
     """
 
+    /// 把当前队列和源码路径收成分析任务书；可选用户方向。
     public static func buildAnalysisPrompt(
         queue: OptimizationQueue,
         projectPath: String,
@@ -90,6 +92,7 @@ public enum EvolutionAnalyzer {
         """
     }
 
+    /// 先认机器块 JSON，再退回编号行。
     public static func parseItems(from reply: String) -> [OptimizationDraft] {
         if let fenced = parseFencedJSON(from: reply), !fenced.isEmpty {
             return fenced
@@ -114,7 +117,7 @@ public enum EvolutionAnalyzer {
         return array.compactMap { object in
             guard let title = object["title"] as? String else { return nil }
             let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedTitle.isEmpty else { return nil }
+            guard !trimmedTitle.isEmpty else { return nil } // 空标题丢掉
             let rationale = (object["rationale"] as? String) ?? ""
             let category = OptimizationItem.Category(
                 rawValue: (object["category"] as? String) ?? ""
@@ -137,6 +140,7 @@ public enum EvolutionAnalyzer {
         }
     }
 
+    /// 模型没吐 JSON 块时，把编号未完成行当草稿。
     private static func parseNumberedFallback(from reply: String) -> [OptimizationDraft] {
         NumberedNoteParser.parse(reply)
             .filter { !$0.isCompleted }

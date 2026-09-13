@@ -1,22 +1,25 @@
 import SwiftUI
 
+/// 设置页字体行：跟随主题 / 宋楷黑 / 系统。id 写入偏好。
 struct ReadingFontFamilyOption: Identifiable, Equatable {
-    let id: String
-    let displayName: String
-    /// `nil` keeps the active theme font; `[]` uses the system font.
+    let id: String // 持久化键，改名会丢用户选择
+    let displayName: String // 设置页直接显示，已是中文
+    /// nil=跟主题；[]=系统字体；非空=按顺序回退的 PostScript 名。
     let fontNames: [String]?
 
-    static let themeDefaultID = "theme"
+    static let themeDefaultID = "theme" // 与「跟随主题」选项 id 绑定
 }
 
+/// 八套预设令牌 + 用户纹样/字体覆盖。视图只读 tokens(for:)。
 enum BookStyleCatalog {
+    /// 预设底 + 可选覆盖。覆盖字段 nil 表示不改预设。
     static func tokens(
         for preset: BookStylePresetID,
         ornamentOverrides: BookStyleOrnamentOverrides = .empty,
         readingFontSizeOverride: Double? = nil,
         readingFontFamilyID: String = ReadingFontFamilyOption.themeDefaultID
     ) -> BookStyleTokens {
-        var tokens = baseTokens(for: preset)
+        var tokens = baseTokens(for: preset) // 先拷预设，再叠覆盖，避免改到静态底
         if let showBookmark = ornamentOverrides.showBookmarkRibbon {
             tokens.ornaments.showBookmarkRibbon = showBookmark
         }
@@ -35,11 +38,12 @@ enum BookStyleCatalog {
         if readingFontFamilyID != ReadingFontFamilyOption.themeDefaultID,
            let option = readingFontFamilyOptions.first(where: { $0.id == readingFontFamilyID }),
            let fontNames = option.fontNames {
-            tokens.typography.preferredFontNames = fontNames
+            tokens.typography.preferredFontNames = fontNames // [] 表示强制系统字体
         }
         return tokens
     }
 
+    /// 预设原色，预览卡片用这个，不受用户覆盖。
     static func baseTokens(for preset: BookStylePresetID) -> BookStyleTokens {
         switch preset {
         case .classicStudy: return classicStudy
@@ -53,8 +57,8 @@ enum BookStyleCatalog {
         }
     }
 
-    static let songtiNames = ["Songti SC", "STSong", "Georgia"]
-    static let readingSizes: [Double] = [14, 15, 16, 17, 18, 19, 20, 21, 22]
+    static let songtiNames = ["Songti SC", "STSong", "Georgia"] // 古典预设共用；无宋体退 Georgia
+    static let readingSizes: [Double] = [14, 15, 16, 17, 18, 19, 20, 21, 22] // 设置页字号档，不开放任意值
 
     static let readingFontFamilyOptions: [ReadingFontFamilyOption] = [
         ReadingFontFamilyOption(id: ReadingFontFamilyOption.themeDefaultID, displayName: "跟随主题", fontNames: nil),
@@ -65,6 +69,7 @@ enum BookStyleCatalog {
         ReadingFontFamilyOption(id: "system", displayName: "系统默认", fontNames: []),
     ]
 
+    /// 默认书房：深皮浅纸。
     private static let classicStudy = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.18, 0.13, 0.09),
@@ -119,6 +124,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .light
     )
 
+    /// 素墨：少纹样，浅纸深墨。
     private static let plainInk = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.961, 0.953, 0.937),
@@ -181,6 +187,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .light
     )
 
+    /// 夜灯：深色纸暖墨，适合暗环境。
     private static let nightLamp = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.102, 0.086, 0.071),
@@ -235,6 +242,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .dark
     )
 
+    /// 竹简：绿皮浅纸。
     private static let bambooScroll = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.910, 0.929, 0.910),
@@ -289,6 +297,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .light
     )
 
+    /// 现代：无纹样、系统蓝、白纸。
     private static let modernClean = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.94, 0.94, 0.94),
@@ -351,6 +360,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .light
     )
 
+    /// 朱砂厅：红皮暖纸。
     private static let cinnabarHall = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.22, 0.08, 0.08),
@@ -405,6 +415,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .light
     )
 
+    /// 梅花：冷粉皮。
     private static let plumBlossom = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.94, 0.88, 0.90),
@@ -459,6 +470,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .light
     )
 
+    /// 靛蓝夜：深蓝皮。
     private static let indigoNight = BookStyleTokens(
         colors: BookStyleColors(
             deskTop: BookStyleRGB.color(0.07, 0.09, 0.16),
@@ -513,6 +525,7 @@ enum BookStyleCatalog {
         preferredColorScheme: .dark
     )
 
+    /// 古典预设共用宋体阶。现代清净自己写无衬线。
     private static func songtiTypography() -> BookStyleTypography {
         BookStyleTypography(
             preferredFontNames: songtiNames,
@@ -526,11 +539,12 @@ enum BookStyleCatalog {
     }
 }
 
+/// 用户纹样覆盖。nil=跟预设，false=强制关。
 struct BookStyleOrnamentOverrides: Equatable {
     var showBookmarkRibbon: Bool?
     var showPageCornerFold: Bool?
     var showHeaderOrnament: Bool?
     var showPaperTexture: Bool?
 
-    static let empty = BookStyleOrnamentOverrides()
+    static let empty = BookStyleOrnamentOverrides() // 预览/默认：全部跟预设
 }

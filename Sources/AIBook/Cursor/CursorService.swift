@@ -1,5 +1,6 @@
 import Foundation
 
+/// 讲解来源：云端 API 或本机 Cursor 桥。rawValue 是中文，已写入档案勿改。
 enum ExplanationSource: String, CaseIterable, Identifiable, Codable {
     case llm = "大模型 API"
     case cursor = "Cursor 本地"
@@ -7,7 +8,9 @@ enum ExplanationSource: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
+/// 一条对话。assistant 可带思考和工具时间线。
 struct ChatMessage: Identifiable, Equatable, Codable {
+    /// 只有 user/assistant。系统提示不进这条。
     enum Role: String, Codable {
         case user
         case assistant
@@ -16,8 +19,8 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     let id: UUID
     let role: Role
     var content: String
-    let thinking: String?
-    let toolSteps: [ExecutionStep]?
+    let thinking: String? // 模型思考链；旧档案可空
+    let toolSteps: [ExecutionStep]? // 进化时间线；读书消息为 nil
     let timestamp: Date
 
     init(
@@ -36,10 +39,12 @@ struct ChatMessage: Identifiable, Equatable, Codable {
         self.timestamp = timestamp
     }
 
+    /// 旧档案兼容；缺 thinking/toolSteps 当 nil。
     enum CodingKeys: String, CodingKey {
         case id, role, content, thinking, toolSteps, timestamp
     }
 
+    /// 旧档案没有 thinking/toolSteps 当 nil。
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
@@ -50,12 +55,13 @@ struct ChatMessage: Identifiable, Equatable, Codable {
         timestamp = try container.decode(Date.self, forKey: .timestamp)
     }
 
+    /// 有思考或工具步才展开「过程」。
     var hasExecutionTrace: Bool {
         let thinkingText = thinking?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return !thinkingText.isEmpty || !(toolSteps?.isEmpty ?? true)
     }
 
-    /// Plain-text export of thinking + tool timeline for clipboard.
+    /// 复制到剪贴板的纯文本过程。
     var executionTraceText: String {
         var sections: [String] = []
         if let thinking, !thinking.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -85,6 +91,7 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     }
 }
 
+/// 调桥一次所需：Key、模型、桥目录、工程根。
 struct CursorConfiguration {
     let apiKey: String
     let model: String
@@ -92,11 +99,13 @@ struct CursorConfiguration {
     let workingDirectory: String
 }
 
+/// 桥进程模式：聊天 vs 进化改文件。
 enum CursorSessionMode: String {
     case analysis
     case evolution
 }
 
+/// 桥跑完的正文、思考、步骤。
 struct CursorChatResult {
     let text: String
     let thinking: String?
@@ -105,12 +114,14 @@ struct CursorChatResult {
     let usage: LLMTokenUsage?
 }
 
+/// list-models 一行，设置页 Picker 用。
 struct CursorModelInfo: Identifiable, Equatable {
     let id: String
     let label: String
     let description: String?
 }
 
+/// 桥失败。classifyFailure 把 stderr 归到对应 case。
 enum CursorServiceError: LocalizedError {
     case bridgeNotFound
     case nodeNotFound
@@ -133,6 +144,7 @@ enum CursorServiceError: LocalizedError {
         }
     }
 
+    /// 按关键词归类，方便设置页给对症提示。
     static func classifyFailure(_ message: String) -> CursorServiceError {
         let lowered = message.lowercased()
         if lowered.contains("authentication")
@@ -145,17 +157,21 @@ enum CursorServiceError: LocalizedError {
     }
 }
 
+/// 拉起 cursor-bridge（node explain.mjs）。同时只跑一个 Process。
 struct CursorService {
+    /// 跨并发收 Process。cancel 从别的任务杀进程。
     private final class RunHandle: @unchecked Sendable {
         private let lock = NSLock()
         private var process: Process?
 
+        /// 新一轮启动时登记，旧的应已 terminate。
         func setProcess(_ process: Process) {
             lock.lock()
             self.process = process
             lock.unlock()
         }
 
+        /// 立刻杀。进程已退出则空操作。
         func terminate() {
             lock.lock()
             process?.terminate()
@@ -166,10 +182,12 @@ struct CursorService {
 
     private let runHandle = RunHandle()
 
+    /// 用户点停：杀当前桥进程。
     func cancel() {
         runHandle.terminate()
     }
 
+    /// 调 explain.mjs 流式聊天。stdout 按行解析成 CursorStreamEvent。
     func chat(
         message: String,
         history: [ChatMessage],
@@ -382,6 +400,7 @@ struct CursorService {
         }
     }
 
+    /// 问桥当前账号能用的模型。失败抛 classify。
     func listModels(configuration: CursorConfiguration) async throws -> [CursorModelInfo] {
         let scriptURL = configuration.bridgeDirectory.appendingPathComponent("models.mjs")
         guard Self.isBridgeReady(at: configuration.bridgeDirectory) else {
@@ -464,6 +483,7 @@ struct CursorService {
 }
 
 extension CursorService {
+    /// app 包内桥。开发态可能没有，再找源码旁。
     static func bundledBridgeDirectory() -> URL? {
         guard let resources = Bundle.main.resourceURL else { return nil }
         let bridge = resources.appendingPathComponent("cursor-bridge", isDirectory: true)
@@ -473,7 +493,7 @@ extension CursorService {
         return nil
     }
 
-    /// Resolves the ai-book Swift source tree (Package.swift + Sources/AIBook), not the installed .app Resources bundle.
+    /// 源码树（Package.swift + Sources/AIBook），不是 .app Resources。
     static func defaultProjectDirectory() -> URL? {
         for candidate in sourceProjectCandidates() {
             if isSourceProject(at: candidate) {
@@ -488,6 +508,7 @@ extension CursorService {
         return URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
     }
 
+    /// 同时有 Package.swift 和 Sources/AIBook 才算。
     static func isSourceProject(at url: URL) -> Bool {
         let fileManager = FileManager.default
         let package = url.appendingPathComponent("Package.swift")
@@ -496,6 +517,7 @@ extension CursorService {
             && fileManager.fileExists(atPath: sources.path)
     }
 
+    /// explain.mjs 在且能读。
     static func isBridgeReady(at url: URL) -> Bool {
         let fileManager = FileManager.default
         let script = url.appendingPathComponent("explain.mjs")
@@ -506,6 +528,7 @@ extension CursorService {
             && fileManager.fileExists(atPath: sdk.path)
     }
 
+    /// 设置页一句话：缺目录 / 缺脚本 / 就绪。
     static func bridgeStatusMessage(at url: URL?) -> String {
         guard let url else {
             return "未找到 cursor-bridge 目录。"
@@ -521,6 +544,7 @@ extension CursorService {
         return "cursor-bridge 已就绪。"
     }
 
+    /// cwd、可执行文件向上、常见开发路径。
     private static func sourceProjectCandidates() -> [URL] {
         var candidates: [URL] = []
 
@@ -550,6 +574,7 @@ extension CursorService {
         }
     }
 
+    /// 打包桥优先，否则源码旁 cursor-bridge。
     static func defaultBridgeDirectory() -> URL? {
         if let bundled = bundledBridgeDirectory() {
             return bundled

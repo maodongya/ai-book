@@ -1,8 +1,9 @@
 import AIBookEvolution
 import Foundation
 
-/// Parses optimization queue items and builds self-evolution prompts.
+/// 把优化队列收成进化提示词，并转去解析完成块。不改队列、不调模型。
 enum EvolutionPlanner {
+    /// 给 UI 列命令用的轻量项（编号 + 原文 + 是否完成）。
     struct Command: Identifiable, Equatable {
         let number: Int
         let text: String
@@ -11,6 +12,7 @@ enum EvolutionPlanner {
         var id: Int { number }
     }
 
+    /// 拼给 Cursor Agent 的任务书：产品定义、队列、当前待办、源码路径、完成块格式。
     static func buildEvolutionPrompt(
         queue: OptimizationQueue,
         pending: OptimizationItem,
@@ -76,6 +78,7 @@ enum EvolutionPlanner {
         """
     }
 
+    /// 从回复抽完成摘要，转给无 UI 依赖的解析器。
     static func parseCompletionSummary(from reply: String, number: Int) -> String? {
         EvolutionCompletionParser.summary(from: reply, number: number)
     }

@@ -1,9 +1,10 @@
 import Foundation
 
-/// Multi-LLM connectivity for reading assistance (command #3).
+/// 读书用的多模型连接说明与配置判断。真正发请求在 LLMService。
 enum LLMConnector {
     static let capabilityLabel = "多模型"
 
+    /// 关于页：已内置提供商名，用 · 拼接。
     static var supportedSummary: String {
         LLMProvider.allCases.map(\.rawValue).joined(separator: " · ")
     }
@@ -18,10 +19,12 @@ enum LLMConnector {
         ]
     }
 
+    /// 不要求 key 的提供商，空 key 也算配好。
     static func isConfigured(provider: LLMProvider, apiKey: String) -> Bool {
         !provider.requiresAPIKey || !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// 顶栏/状态：「提供商 · 模型」；模型空则只显示提供商。
     static func displayLabel(provider: LLMProvider, model: String) -> String {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
@@ -31,6 +34,7 @@ enum LLMConnector {
     }
 }
 
+/// OpenAI 兼容提供商。rawValue 是界面上的中文/英文名，落盘也用它。
 enum LLMProvider: String, CaseIterable, Identifiable, Codable {
     case openAI = "OpenAI"
     case deepSeek = "DeepSeek"
@@ -42,6 +46,7 @@ enum LLMProvider: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    /// 该提供商默认网关。自定义先给 OpenAI 地址，让用户改。
     var defaultBaseURL: String {
         switch self {
         case .openAI:
@@ -51,7 +56,7 @@ enum LLMProvider: String, CaseIterable, Identifiable, Codable {
         case .moonshot:
             return "https://api.moonshot.cn/v1"
         case .qwen:
-            return QwenBailianConfig.defaultBaseURL
+            return QwenBailianConfig.defaultBaseURL // 百炼地域在 QwenBailianConfig
         case .zhipu:
             return "https://open.bigmodel.cn/api/paas/v4"
         case .ollama:
@@ -81,12 +86,12 @@ enum LLMProvider: String, CaseIterable, Identifiable, Codable {
     }
 
     var requiresAPIKey: Bool {
-        self != .ollama
+        self != .ollama // 本地默认无 key
     }
 
     /// Settings UI shows an API Key field (required for most providers; optional for Ollama).
     var showsAPIKeyField: Bool {
-        requiresAPIKey || self == .ollama
+        requiresAPIKey || self == .ollama // Ollama 也给可选 key 框
     }
 
     var apiKeyFieldLabel: String {
@@ -100,6 +105,7 @@ enum LLMProvider: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// 设置页提供商旁的一句适用场景。
     var readingHint: String {
         switch self {
         case .openAI:

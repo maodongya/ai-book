@@ -1,8 +1,9 @@
 import SwiftUI
 
+/// 设置页：讲解语速、语言深度、系统音色和试听。只绑 AppSettings，不改合成器实现。
 struct ExplanationVoiceSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
-    @State private var statusMessage: String?
+    @State private var statusMessage: String? // 试听进行中/完成
     @State private var errorMessage: String?
 
     var body: some View {
@@ -45,7 +46,7 @@ struct ExplanationVoiceSettingsView: View {
                         Section(group.title) {
                             ForEach(group.voices) { voice in
                                 Text("\(voice.displayName) · \(voice.subtitle)")
-                                    .tag(voice.id)
+                                    .tag(voice.id) // 存 identifier，不是显示名
                             }
                         }
                     }
@@ -83,10 +84,11 @@ struct ExplanationVoiceSettingsView: View {
             }
         }
         .onAppear {
-            settings.reloadExplanationVoices()
+            settings.reloadExplanationVoices() // 打开页时丢掉已失效的旧在线 id
         }
     }
 
+    /// 设置页一块带标题的卡片，语速/语言/音色共用。
     private func settingsCard<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(title, systemImage: icon)
@@ -116,6 +118,7 @@ struct ExplanationVoiceSettingsView: View {
         settings.speechLanguageMode.localizedDescription
     }
 
+    /// 试听当前选中声；合成器忙时轮询，不要叠两路音频。
     private func previewSelectedVoice() {
         errorMessage = nil
         statusMessage = BookL10n.string("speech.preview.running")
@@ -124,7 +127,7 @@ struct ExplanationVoiceSettingsView: View {
             do {
                 try ExplanationSpeechReader.shared.previewSelectedVoice()
                 while ExplanationSpeechReader.shared.isBusy {
-                    try await Task.sleep(nanoseconds: 200_000_000)
+                    try await Task.sleep(nanoseconds: 200_000_000) // 200ms 看是否说完
                 }
                 statusMessage = BookL10n.string("speech.preview.done")
             } catch {

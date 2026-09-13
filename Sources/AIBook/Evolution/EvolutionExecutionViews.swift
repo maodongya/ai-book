@@ -62,6 +62,7 @@ struct EvolutionUtilityTabsPanel: View {
         }
     }
 
+    /// 模型行 + 队列入口挤在顶栏。
     private var compactControlBar: some View {
         HStack(spacing: 12) {
             EvolutionCursorModelRow()
@@ -82,6 +83,7 @@ struct EvolutionUtilityTabsPanel: View {
     }
 
     @ViewBuilder
+    /// 右侧：桥状态或打包进度。
     private var statusTrailing: some View {
         if budget.isOverLimit {
             Label(BookL10n.string("evolution.tokenExceeded"), systemImage: "exclamationmark.triangle.fill")
@@ -123,7 +125,7 @@ struct EvolutionUtilityTabsPanel: View {
 /// 进化页 Cursor 模型选择（暂仅支持 Cursor）。
 struct EvolutionCursorModelRow: View {
     @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var catalog = CursorModelCatalog.shared
+    @ObservedObject private var catalog = CursorModelCatalog.shared // 列表来自桥 list-models
 
     var body: some View {
         HStack(spacing: 8) {
@@ -161,6 +163,7 @@ struct EvolutionCursorModelRow: View {
         }
     }
 
+    /// 写入 settings.cursorModel，空则保持当前。
     private var cursorModelBinding: Binding<String> {
         Binding(
             get: { settings.resolvedCursorModel },
@@ -183,16 +186,19 @@ struct EvolutionCommandQueuePanel: View {
     var onPin: ((UUID) -> Void)?
     var onRestore: ((UUID) -> Void)?
 
-    @State private var draftTitle = ""
+    @State private var draftTitle = "" // 待入队标题，回车入队后清空
 
+    /// 按队列顺序，完成的沉底。
     private var sortedItems: [OptimizationItem] {
         items.sorted { $0.number < $1.number }
     }
 
+    /// 还没做完的，用来标「下一件」。
     private var pendingItems: [OptimizationItem] {
         items.filter { $0.status == .pending }
     }
 
+    /// 顶栏「已完成 n」。
     private var completedCount: Int {
         items.filter { $0.status == .completed }.count
     }
@@ -278,6 +284,7 @@ struct EvolutionCommandQueuePanel: View {
     }
 
     @ViewBuilder
+    /// 一行：状态点、标题、删除。执行中不允许删当前。
     private func queueRow(_ item: OptimizationItem) -> some View {
         let isExecuting = isRunning && executingCommandNumber == item.number
         let isNext = item.status == .pending && item.number == pendingItems.sorted(by: { $0.number < $1.number }).first?.number
@@ -345,6 +352,7 @@ struct EvolutionCommandQueuePanel: View {
         }
     }
 
+    /// SF Symbol。下一件和执行中分开，避免两行都转圈。
     private func statusIcon(for item: OptimizationItem, isExecuting: Bool, isNext: Bool) -> String {
         switch item.status {
         case .completed: return "checkmark.circle.fill"
@@ -356,6 +364,7 @@ struct EvolutionCommandQueuePanel: View {
         }
     }
 
+    /// 失败朱红，执行金，完成玉。
     private func statusColor(for item: OptimizationItem, isExecuting: Bool, isNext: Bool) -> Color {
         switch item.status {
         case .completed: return BookTheme.jade
@@ -366,6 +375,7 @@ struct EvolutionCommandQueuePanel: View {
         }
     }
 
+    /// 辅助阅读，图标旁短字。
     private func statusLabel(for item: OptimizationItem) -> String {
         switch item.status {
         case .pending: return BookL10n.string("evolution.status.pending")
@@ -375,6 +385,7 @@ struct EvolutionCommandQueuePanel: View {
         }
     }
 
+    /// 执行中浅金底，其余透明。
     private func rowBackground(for item: OptimizationItem, isExecuting: Bool, isNext: Bool) -> Color {
         if isExecuting { return BookTheme.gold.opacity(0.34) }
         if isNext { return BookTheme.gold.opacity(0.22) }
@@ -389,8 +400,9 @@ struct AssistantExecutionTraceCard: View {
     var isLive: Bool = false
     var defaultExpanded: Bool = false
 
-    @State private var isExpanded: Bool
+    @State private var isExpanded: Bool // 直播时默认开，历史默认收
 
+    /// initiallyExpanded 覆盖默认：直播开、看历史收。
     init(
         thinking: String?,
         toolSteps: [ExecutionStep]?,
@@ -404,18 +416,22 @@ struct AssistantExecutionTraceCard: View {
         _isExpanded = State(initialValue: defaultExpanded || isLive)
     }
 
+    /// 空思考不当有过程。
     private var trimmedThinking: String {
         thinking?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
+    /// nil 当空数组。
     private var steps: [ExecutionStep] {
         toolSteps ?? []
     }
 
+    /// 没思考也没步骤则整卡不渲染。
     private var hasTrace: Bool {
         !trimmedThinking.isEmpty || !steps.isEmpty
     }
 
+    /// 标题「n 个工具」。
     private var completedToolCount: Int {
         steps.filter { $0.status == .completed }.count
     }
@@ -475,11 +491,13 @@ struct AssistantExecutionTraceCard: View {
         }
     }
 
+    /// 「思考过程」或「工具步骤」或两者。
     private var traceHeaderTitle: String {
         if isLive { return BookL10n.string("evolution.agent.running") }
         return BookL10n.string("evolution.agent.trace")
     }
 
+    /// 收起时一行摘要。
     private var traceSummary: String {
         if isLive, let last = steps.last {
             let label = EvolutionToolLabels.localizedToolName(last.name)
@@ -500,6 +518,7 @@ private struct EvolutionPanelChromeModifier: ViewModifier {
     var embeddedInTabs: Bool
     var accentBorder: Color?
 
+    /// 进化侧栏卡片外框。
     func body(content: Content) -> some View {
         if embeddedInTabs {
             content
@@ -555,12 +574,13 @@ struct ExecutionStepsTimeline: View {
     let steps: [ExecutionStep]
     var isLive: Bool = false
     var nestedInTrace: Bool = false
-    @State private var isExpanded = true
+    @State private var isExpanded = true // 时间线默认展开，方便盯当前步
 
     private var completedCount: Int {
         steps.filter { $0.status == .completed }.count
     }
 
+    /// 摘要里「失败 n」。
     private var failedCount: Int {
         steps.filter { $0.status == .failed }.count
     }
@@ -613,6 +633,7 @@ struct ExecutionStepsTimeline: View {
         }
     }
 
+    /// 逐步列出，不虚拟化（一轮步数有限）。
     private var stepsList: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
@@ -622,11 +643,13 @@ struct ExecutionStepsTimeline: View {
         .padding(.leading, nestedInTrace ? 0 : 4)
     }
 
+    /// 「工具步骤」。
     private var headerTitle: String {
         if isLive { return BookL10n.string("evolution.steps.title") }
         return BookL10n.format("evolution.steps.titleCount", steps.count)
     }
 
+    /// 「3/5 · 失败 1」。
     private var summaryLabel: String {
         if failedCount > 0 {
             return BookL10n.format("evolution.steps.summary", completedCount, failedCount)
@@ -635,10 +658,11 @@ struct ExecutionStepsTimeline: View {
     }
 }
 
+/// 时间线一行。可展开输入/结果，可拷贝、可在 Finder 显示。
 private struct ExecutionStepRow: View {
     let step: ExecutionStep
     let isLast: Bool
-    @State private var showsDetail = false
+    @State private var showsDetail = false // 默认收，失败也不自动开
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -720,6 +744,7 @@ private struct ExecutionStepRow: View {
         }
     }
 
+    /// 图标颜色跟状态走。
     private var statusTint: Color {
         switch step.status {
         case .running: return BookTheme.leather.opacity(0.85)
@@ -729,6 +754,7 @@ private struct ExecutionStepRow: View {
     }
 
     @ViewBuilder
+    /// 拷贝与 Finder，没有路径就藏 Finder。
     private var stepActionBar: some View {
         HStack(spacing: 8) {
             if let input = step.inputPreview {
@@ -760,6 +786,7 @@ private struct ExecutionStepRow: View {
     }
 
     @ViewBuilder
+    /// 右键同样动作，方便不点小按钮。
     private var stepContextMenu: some View {
         if let input = step.inputPreview {
             Button(BookL10n.string("action.copyInput")) {
@@ -785,17 +812,20 @@ private struct ExecutionStepRow: View {
         }
     }
 
+    /// 整段 detail/结果进剪贴板。
     private func copyToPasteboard(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
     }
 
+    /// 选中该文件。路径必须已是绝对路径。
     private func revealInFinder(path: String) {
         let url = URL(fileURLWithPath: path)
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     @ViewBuilder
+    /// 展开区一块：输入/结果/错误。
     private func detailBlock(title: String, text: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
@@ -819,6 +849,7 @@ private struct ExecutionStepRow: View {
     }
 
     @ViewBuilder
+    /// running 转圈，其余静态图标。
     private func stepStatusIcon(_ status: ExecutionStep.Status) -> some View {
         switch status {
         case .running:
@@ -842,6 +873,7 @@ struct CollapsibleThinkingBlock: View {
     var isLive: Bool = false
     @State private var isExpanded: Bool
 
+    /// 直播默认展开；历史默认收。
     init(text: String, isLive: Bool = false, initiallyExpanded: Bool? = nil) {
         self.text = text
         self.isLive = isLive

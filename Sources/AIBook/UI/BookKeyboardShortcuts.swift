@@ -4,10 +4,10 @@ import SwiftUI
 enum BookKeyboardShortcuts {
     // MARK: - Document
 
-    static let newDocument = KeyboardShortcut("n")
+    static let newDocument = KeyboardShortcut("n") // ⌘N
     static let openDocument = KeyboardShortcut("o")
     static let save = KeyboardShortcut("s")
-    static let saveAs = KeyboardShortcut("S", modifiers: [.command, .shift])
+    static let saveAs = KeyboardShortcut("S", modifiers: [.command, .shift]) // 大写 S = 带 Shift
     static let exportSelection = KeyboardShortcut("s", modifiers: [.command, .option])
 
     // MARK: - Explanation
@@ -17,7 +17,7 @@ enum BookKeyboardShortcuts {
 
     // MARK: - Selection
 
-    static let selectAllLeftPage = KeyboardShortcut("a", modifiers: [.command, .control])
+    static let selectAllLeftPage = KeyboardShortcut("a", modifiers: [.command, .control]) // 避开系统 ⌘A
     static let selectAllTranslation = KeyboardShortcut("a", modifiers: [.command, .control, .shift])
 
     // MARK: - Speech
@@ -33,7 +33,7 @@ enum BookKeyboardShortcuts {
 
     // MARK: - Display hints
 
-    static let newDocumentHint = "⌘N"
+    static let newDocumentHint = "⌘N" // 菜单旁展示，与 KeyboardShortcut 必须对齐
     static let openDocumentHint = "⌘O"
     static let saveHint = "⌘S"
     static let saveAsHint = "⌘⇧S"
@@ -73,6 +73,7 @@ enum BookKeyboardShortcuts {
 }
 
 extension View {
+    /// 有快捷键才挂；nil 时保持原视图（有的菜单项故意不设键）。
     @ViewBuilder
     func bookMenuShortcut(_ shortcut: KeyboardShortcut?) -> some View {
         if let shortcut {

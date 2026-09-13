@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// 设置页进化 LLM 连接：提供商、可选 Key、测连通。草稿 key 点保存才写入。
 struct LLMConfigPanel: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var draftAPIKey = ""
@@ -44,12 +45,12 @@ struct LLMConfigPanel: View {
             Picker(BookL10n.string("label.provider"), selection: $settings.provider) {
                 ForEach(settings.configuredLLMProviders.isEmpty ? LLMProvider.allCases : settings.configuredLLMProviders + LLMProvider.allCases.filter { !settings.configuredLLMProviders.contains($0) }) { provider in
                     let configured = settings.configuredLLMProviders.contains(provider)
-                    Text(configured ? "\(provider.rawValue) ✓" : provider.rawValue).tag(provider)
+                    Text(configured ? "\(provider.rawValue) ✓" : provider.rawValue).tag(provider) // 已配的打勾，方便扫
                 }
             }
             .pickerStyle(.menu)
             .onChange(of: settings.provider) { _ in
-                settings.applyProviderDefaults()
+                settings.applyProviderDefaults() // 切提供商灌默认网关/模型，不丢其它家档案
             }
 
             Text(settings.provider.readingHint)
@@ -145,10 +146,11 @@ struct LLMConfigPanel: View {
                 }
         }
         .onAppear {
-            draftAPIKey = settings.apiKey
+            draftAPIKey = settings.apiKey // 打开时带上已存 key
         }
     }
 
+    /// 对当前进化配置打一次连通；失败把错误原文给用户。
     private func testConnection() {
         testResult = nil
         isTesting = true

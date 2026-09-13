@@ -1,15 +1,16 @@
 import SwiftUI
 
-/// Settings panel to configure multiple LLM providers; scope selects book (reading) or evolution profiles.
+/// 多提供商档案编辑。scope=.book 读书，.evolution 进化，两套互不覆盖。
 struct LLMProfilesSettingsView: View {
     var scope: LLMProfileScope = .book
 
     @ObservedObject private var settings = AppSettings.shared
-    @State private var drafts: [LLMProvider: LLMProfile] = [:]
-    @State private var expandedProviders: Set<LLMProvider> = []
-    @State private var testingProvider: LLMProvider?
-    @State private var testResults: [LLMProvider: (success: Bool, message: String)] = [:]
+    @State private var drafts: [LLMProvider: LLMProfile] = [:] // 未点保存的草稿，关窗会丢
+    @State private var expandedProviders: Set<LLMProvider> = [] // 展开的卡片，默认只开当前启用的
+    @State private var testingProvider: LLMProvider? // 正在测连接的那一家，禁重复点
+    @State private var testResults: [LLMProvider: (success: Bool, message: String)] = [:] // 测完留在卡片上
 
+    /// 已填 Key 或 Ollama 有地址的，摘要行用。
     private var configuredProviders: [LLMProvider] {
         switch scope {
         case .book: return settings.configuredBookProviders
@@ -17,6 +18,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 当前 scope 正在用的提供商。
     private var activeProvider: LLMProvider {
         switch scope {
         case .book: return settings.bookProvider
@@ -67,6 +69,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 切换即落盘并加载该家档案。
     private var activeProviderBinding: Binding<LLMProvider> {
         switch scope {
         case .book:
@@ -76,6 +79,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 顶上一句：当前启用哪家。
     private var summaryRow: some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.seal.fill")
@@ -92,6 +96,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// Picker 行：已配置标「已填」。
     private func providerPickerLabel(_ provider: LLMProvider) -> String {
         let profile = storedProfile(for: provider)
         if LLMConnector.isConfigured(provider: provider, apiKey: profile.apiKey) {
@@ -100,6 +105,7 @@ struct LLMProfilesSettingsView: View {
         return provider.rawValue
     }
 
+    /// 一家提供商的折叠卡：字段 + 保存 + 测连接。
     private func providerCard(_ provider: LLMProvider) -> some View {
         let isExpanded = expandedProviders.contains(provider)
         let isActive = activeProvider == provider
@@ -243,6 +249,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 百炼：地域、模型建议、从环境刷新 Key。
     private func qwenBailianFields(provider: LLMProvider, draft: LLMProfile) -> some View {
         let region = QwenBailianRegion.detect(from: draft.baseURL) ?? QwenBailianConfig.defaultRegion
 
@@ -303,6 +310,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 控制台链接，避免设置页再写死 URL。
     private var qwenBailianFooter: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(BookL10n.string("qwen.apiDoc"))
@@ -314,10 +322,12 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 已落盘档案，不是草稿。
     private func storedProfile(for provider: LLMProvider) -> LLMProfile {
         LLMProfileStore.profile(for: provider, scope: scope)
     }
 
+    /// 切提供商后补默认基址/模型，避免空请求。
     private func applyActiveProviderDefaults() {
         switch scope {
         case .book: settings.applyBookProviderDefaults()
@@ -325,6 +335,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 写入 Store 并展开该卡。
     private func setActiveProvider(_ provider: LLMProvider) {
         switch scope {
         case .book: settings.bookProvider = provider
@@ -332,6 +343,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 草稿盖成已存值。
     private func loadActiveProfile(for provider: LLMProvider) {
         switch scope {
         case .book: settings.loadBookProfile(for: provider)
@@ -339,18 +351,21 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 换地域只改 Base URL，Key 不动。
     private func applyQwenRegion(_ region: QwenBailianRegion, for provider: LLMProvider) {
         var profile = drafts[provider] ?? storedProfile(for: provider)
         profile.baseURL = region.compatibleBaseURL
         drafts[provider] = profile
     }
 
+    /// 从 DASHSCOPE_API_KEY / 本地 env 填进草稿，不自动保存。
     private func refreshQwenKeyFromEnvironment(for provider: LLMProvider) {
         var profile = drafts[provider] ?? storedProfile(for: provider)
         profile.apiKey = QwenBailianConfig.resolveAPIKey(stored: "")
         drafts[provider] = profile
     }
 
+    /// 整份草稿绑定。没有则现读 Store。
     private func profileBinding(for provider: LLMProvider) -> Binding<LLMProfile> {
         Binding(
             get: { drafts[provider] ?? storedProfile(for: provider) },
@@ -358,6 +373,7 @@ struct LLMProfilesSettingsView: View {
         )
     }
 
+    /// 单个字段绑定，写回 drafts。
     private func binding(for provider: LLMProvider, keyPath: WritableKeyPath<LLMProfile, String>) -> Binding<String> {
         Binding(
             get: { drafts[provider]?[keyPath: keyPath] ?? storedProfile(for: provider)[keyPath: keyPath] },
@@ -369,6 +385,7 @@ struct LLMProfilesSettingsView: View {
         )
     }
 
+    /// 明文输入行。
     private func profileField(_ title: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
@@ -391,6 +408,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// Key 用 SecureField。
     private func secureProfileField(_ title: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
@@ -413,6 +431,7 @@ struct LLMProfilesSettingsView: View {
         }
     }
 
+    /// 进页时把各家已存档案拷进 drafts。
     private func loadDrafts() {
         var loaded: [LLMProvider: LLMProfile] = [:]
         for provider in LLMProvider.allCases {
@@ -421,6 +440,7 @@ struct LLMProfilesSettingsView: View {
         drafts = loaded
     }
 
+    /// 草稿写入 Store。Ollama 会规范化地址。
     private func saveProfile(for provider: LLMProvider) {
         let profile = drafts[provider] ?? storedProfile(for: provider)
         LLMProfileStore.save(profile, for: provider, scope: scope)
@@ -430,6 +450,7 @@ struct LLMProfilesSettingsView: View {
         testResults[provider] = nil
     }
 
+    /// 用草稿测连接，不先保存。失败文案 enrich 后展示。
     private func testProfile(for provider: LLMProvider) {
         let draft = drafts[provider] ?? storedProfile(for: provider)
         LLMProfileStore.save(draft, for: provider, scope: scope)

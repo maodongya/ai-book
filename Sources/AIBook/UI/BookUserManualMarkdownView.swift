@@ -2,6 +2,7 @@ import SwiftUI
 
 // MARK: - Parser
 
+/// 说明书块：标题/列表/表/代码。id 按出现顺序，重解析会变。
 private enum UserManualBlock: Identifiable {
     case documentTitle(String)
     case heading(level: Int, text: String)
@@ -34,7 +35,9 @@ private enum UserManualBlock: Identifiable {
     }
 }
 
+/// 说明书专用 Markdown，不是通用解析器。表格只认管道。
 private enum BookUserManualMarkdownParser {
+    /// 按行切块。围栏代码优先于标题。
     static func blocks(from markdown: String) -> [UserManualBlock] {
         let lines = markdown.components(separatedBy: "\n")
         var blocks: [UserManualBlock] = []
@@ -147,11 +150,13 @@ private enum BookUserManualMarkdownParser {
         return blocks
     }
 
+    /// 至少两列的 | a | b |。
     private static func isTableRow(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         return trimmed.hasPrefix("|") && trimmed.contains("|")
     }
 
+    /// 去掉首尾 | 再按 | 切。
     private static func splitTableCells(_ line: String) -> [String] {
         var trimmed = line.trimmingCharacters(in: .whitespaces)
         if trimmed.hasPrefix("|") { trimmed.removeFirst() }
@@ -160,6 +165,7 @@ private enum BookUserManualMarkdownParser {
             .map { String($0.trimmingCharacters(in: .whitespaces)) }
     }
 
+    /// --- 分隔行，用来确认上一行是表头。
     private static func isSeparatorRow(_ cells: [String]) -> Bool {
         cells.allSatisfy { cell in
             cell.replacingOccurrences(of: "-", with: "")
@@ -169,6 +175,7 @@ private enum BookUserManualMarkdownParser {
         }
     }
 
+    /// 从表头+分隔行读到空行或非表行。不完整返回 nil。
     private static func parseTable(lines: [String], start: Int) -> (headers: [String], rows: [[String]], nextIndex: Int)? {
         guard start < lines.count, isTableRow(lines[start]) else { return nil }
 
@@ -193,9 +200,11 @@ private enum BookUserManualMarkdownParser {
 
 // MARK: - View
 
+/// 说明书正文。自己排版，不引入第三方 Markdown。
 struct BookUserManualMarkdownView: View {
     let markdown: String
 
+    /// markdown 变了才重解析。
     private var blocks: [UserManualBlock] {
         BookUserManualMarkdownParser.blocks(from: markdown)
     }
@@ -210,6 +219,7 @@ struct BookUserManualMarkdownView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// 紧跟小标题时收紧间距，避免说明书被撑得太散。
     private func bottomSpacing(after block: UserManualBlock, next: UserManualBlock?) -> CGFloat {
         switch block {
         case .documentTitle:
@@ -225,6 +235,7 @@ struct BookUserManualMarkdownView: View {
         }
     }
 
+    /// 标题后直接列表/表则贴紧。
     private func isTightFollow(_ current: UserManualBlock, _ next: UserManualBlock?) -> Bool {
         guard let next else { return false }
         switch (current, next) {
@@ -236,6 +247,7 @@ struct BookUserManualMarkdownView: View {
     }
 
     @ViewBuilder
+    /// 按块类型分发。漏 case 编译失败。
     private func blockView(_ block: UserManualBlock) -> some View {
         switch block {
         case .documentTitle(let text):
@@ -261,6 +273,7 @@ struct BookUserManualMarkdownView: View {
         }
     }
 
+    /// 文首大标题，比 h1 再大一档。
     private func documentTitleView(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             manualInlineText(text)
@@ -279,6 +292,7 @@ struct BookUserManualMarkdownView: View {
         .padding(.bottom, 4)
     }
 
+    /// 1–3 级。更深的按 3 级渲染。
     private func headingView(level: Int, text: String) -> some View {
         Group {
             switch level {
@@ -306,6 +320,7 @@ struct BookUserManualMarkdownView: View {
         }
     }
 
+    /// 左侧金条引用。
     private func blockquoteView(_ lines: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
@@ -344,6 +359,7 @@ struct BookUserManualMarkdownView: View {
         }
     }
 
+    /// 实心点列表。
     private func bulletListView(_ items: [String]) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
@@ -363,6 +379,7 @@ struct BookUserManualMarkdownView: View {
         .padding(.leading, 2)
     }
 
+    /// 等宽列。单元格走行内强调。
     private func manualTableView(headers: [String], rows: [[String]]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 0) {
@@ -417,6 +434,7 @@ struct BookUserManualMarkdownView: View {
         }
     }
 
+    /// 等宽块，不语法高亮。
     private func codeBlockView(_ code: String) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             Text(code)
@@ -437,6 +455,7 @@ struct BookUserManualMarkdownView: View {
         }
     }
 
+    /// 章节间金线。
     private var manualDivider: some View {
         HStack(spacing: 10) {
             manualDividerLine
@@ -462,6 +481,7 @@ struct BookUserManualMarkdownView: View {
     }
 
     @ViewBuilder
+    /// `code` 与 **粗体**。其他标记原样。
     private func manualInlineText(_ source: String) -> some View {
         if let attributed = try? AttributedString(
             markdown: source,

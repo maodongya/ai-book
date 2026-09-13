@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// 设置页：风格预设网格、纹样开关、阅读字体/字号。只改 BookStyleManager。
 struct BookStyleSettingsView: View {
     @ObservedObject private var styleManager = BookStyleManager.shared
 
@@ -14,7 +15,7 @@ struct BookStyleSettingsView: View {
                         preset: preset,
                         isSelected: styleManager.presetID == preset
                     ) {
-                        styleManager.selectPreset(preset)
+                        styleManager.selectPreset(preset) // 点卡片立刻换令牌，不另设「应用」
                     }
                 }
             }
@@ -88,6 +89,7 @@ struct BookStyleSettingsView: View {
         }
     }
 
+    /// nil 表示跟随主题字号。
     private var readingSizeBinding: Binding<Double?> {
         Binding(
             get: { styleManager.readingFontSizeOverride },
@@ -95,6 +97,7 @@ struct BookStyleSettingsView: View {
         )
     }
 
+    /// 一行标题 + 开关，current 来自当前令牌（含覆盖后的值）。
     private func ornamentToggle(_ title: String, current: Bool, set: @escaping (Bool) -> Void) -> some View {
         HStack {
             Text(title)
@@ -111,13 +114,14 @@ struct BookStyleSettingsView: View {
     }
 }
 
+/// 预设缩略：书脊+双页色块，选中描金并标「当前」。
 struct BookStylePreviewCard: View {
     let preset: BookStylePresetID
     var isSelected: Bool
     let action: () -> Void
 
     var body: some View {
-        let tokens = BookStyleCatalog.baseTokens(for: preset)
+        let tokens = BookStyleCatalog.baseTokens(for: preset) // 预览用预设原色，不受用户纹样覆盖
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {
                 ZStack(alignment: .topTrailing) {

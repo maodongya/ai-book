@@ -1,27 +1,31 @@
 import Foundation
 
+/// 模型返回的一次 function 调用。arguments 是 JSON 字符串。
 struct LLMToolCall: Equatable {
     let id: String
     let name: String
-    let arguments: String
+    let arguments: String // 原始 JSON，执行前再 parse
 }
 
+/// 一轮补全：正文、思考、工具调用、用量。
 struct LLMCompletionResult {
     let content: String?
     let reasoning: String?
-    let toolCalls: [LLMToolCall]
+    let toolCalls: [LLMToolCall] // 空表示本轮可结束
     let usage: LLMTokenUsage
 }
 
-/// LLM API evolution agent: OpenAI-compatible tool-calling loop with local sandboxed execution.
+/// 云端进化：OpenAI tools 循环 + 本地沙箱执行。默认最多 24 轮。
 final class LLMEvolutionAgent {
-    private let llmService = LLMService()
-    private let maxIterationsDefault = 24
+    private let llmService = LLMService() // 一路请求，cancel 转交给它
+    private let maxIterationsDefault = 24 // 防死循环；调用方可再收紧
 
+    /// 停当前 LLM 请求。本地工具跑完当前一步才会停。
     func cancel() {
         llmService.cancel()
     }
 
+    /// 工具循环直到无 toolCalls 或触顶。onEvent 推思考/正文/步骤。
     func run(
         prompt: String,
         history: [ChatMessage],
@@ -33,9 +37,9 @@ final class LLMEvolutionAgent {
         onUsage: (@Sendable (LLMTokenUsage) -> Void)? = nil,
         onContextTokens: (@Sendable (Int) -> Void)? = nil
     ) async throws -> (text: String, thinking: String?, usage: LLMTokenUsage) {
-        let configuration = await resolvedConfiguration(configuration)
+        let configuration = await resolvedConfiguration(configuration) // 修地址/Key，与设置页测试连接一致
         var messages = buildMessages(prompt: prompt, history: history)
-        let tools = EvolutionLocalTools.openAIToolDefinitions(allowMutations: allowMutations)
+        let tools = EvolutionLocalTools.openAIToolDefinitions(allowMutations: allowMutations) // false 时只读
         var accumulatedThinking = ""
         var accumulatedText = ""
         var iteration = 0
@@ -211,6 +215,7 @@ final class LLMEvolutionAgent {
         )
     }
 
+    /// 百炼/Ollama 与 LLMService.prepared 对齐。
     private func resolvedConfiguration(_ configuration: LLMConfiguration) async -> LLMConfiguration {
         if configuration.provider == .qwen {
             return QwenBailianConfig.preparedConfiguration(configuration)
@@ -226,6 +231,7 @@ final class LLMEvolutionAgent {
         return LLMConfiguration(provider: .ollama, baseURL: baseURL, model: model, apiKey: apiKey)
     }
 
+    /// system + 历史 + 本轮用户。欢迎语从历史剔除。
     private func buildMessages(prompt: String, history: [ChatMessage]) -> [[String: Any]] {
         var messages: [[String: Any]] = [
             [
@@ -253,6 +259,7 @@ final class LLMEvolutionAgent {
         return messages
     }
 
+    /// 一批工具的时间线步骤和回传 messages。
     private struct ToolRunOutcome {
         let call: LLMToolCall
         let detail: String?
@@ -260,6 +267,7 @@ final class LLMEvolutionAgent {
         let failed: Bool
     }
 
+    /// 顺序执行。单步失败写入 failed，不中断其余。
     private func executeToolCalls(
         _ calls: [LLMToolCall],
         projectRoot: URL,
@@ -330,6 +338,7 @@ final class LLMEvolutionAgent {
         }
     }
 
+    /// 历史进模型：正文；有过程则附简短工具摘要。
     private func historyContent(for message: ChatMessage) -> String {
         guard message.role == .assistant else { return message.content }
 
@@ -351,6 +360,7 @@ final class LLMEvolutionAgent {
         return sections.isEmpty ? message.content : sections.joined(separator: "\n\n")
     }
 
+    /// 历史里只留工具名和成败，不回灌整份文件。
     private func compactToolTrace(_ steps: [ExecutionStep]) -> String {
         let lines = steps.map { step -> String in
             var parts = [EvolutionToolLabels.localizedToolName(step.name)]
@@ -370,6 +380,7 @@ final class LLMEvolutionAgent {
         return "【上轮 Agent 工具摘要】\n\(lines.joined(separator: "\n"))"
     }
 
+    /// 时间线 detail：路径/命令/查询，解析失败回原始 JSON。
     private func toolDetail(name: String, argumentsJSON: String) -> String? {
         guard let data = argumentsJSON.data(using: .utf8),
               let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -407,6 +418,7 @@ final class LLMEvolutionAgent {
         return summaryParts.joined(separator: " · ") + "\n" + formattedArgs
     }
 
+    /// 参数短展示，超长截断。
     private func formatToolArguments(_ args: [String: Any]) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: args, options: [.prettyPrinted, .sortedKeys]),
               let text = String(data: data, encoding: .utf8) else {
@@ -418,20 +430,24 @@ final class LLMEvolutionAgent {
         return text
     }
 
+    /// 步骤结果摘要，首行或截断。
     private func summarizeToolResult(_ output: String) -> String {
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.count <= 400 { return trimmed }
         return String(trimmed.prefix(397)) + "…"
     }
 
+    /// 流式已推过的思考是否是完整思考的前缀。
     private func reasoningHasPrefix(_ accumulated: String, _ full: String) -> Bool {
         full.hasPrefix(accumulated)
     }
 
+    /// 同上，避免非流式回包把正文推两遍。
     private func contentHasPrefix(_ accumulated: String, _ full: String) -> Bool {
         full.hasPrefix(accumulated)
     }
 
+    /// 空回复且无思考：多半模型不支持 tools。
     private func toolSupportError(for configuration: LLMConfiguration) -> LLMServiceError {
         let hint: String
         switch configuration.provider {
@@ -445,6 +461,7 @@ final class LLMEvolutionAgent {
         return LLMServiceError.apiError(hint, provider: configuration.provider)
     }
 
+    /// 进化系统提示：只改本仓库、说明依据。
     private static let systemPrompt = """
     \(EvolutionAssistant.systemPrompt)
 

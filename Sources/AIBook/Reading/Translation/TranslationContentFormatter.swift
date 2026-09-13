@@ -1,10 +1,13 @@
 import Foundation
 
+/// 对齐块排成右页可读文本，并回写每块的 translationRange。
 enum TranslationContentFormatter {
+    /// 只要字符串。需要带 range 的块走 renderIndexed。
     static func render(_ alignment: TranslationAlignment, title: String? = nil) -> String {
         renderIndexed(alignment, title: title).content
     }
 
+    /// 按 order 输出。title 写成【标题】且不参与对齐。
     static func renderIndexed(
         _ alignment: TranslationAlignment,
         title: String? = nil
@@ -13,14 +16,14 @@ enum TranslationContentFormatter {
         var blocks = alignment.blocks.sorted { $0.order < $1.order }
 
         if let title, !title.isEmpty {
-            _ = builder.appendSection("【\(title)】")
+            _ = builder.appendSection("【\(title)】") // 展示标题，不写回任何块的 range
         }
 
         switch alignment.mode {
         case .paragraph:
             let paragraphs = blocks.filter { $0.level == .paragraph }
             for (index, block) in paragraphs.enumerated() {
-                let range = builder.appendSection(formatParagraphBlock(block), isFirstInGroup: index == 0)
+                let range = builder.appendSection(formatParagraphBlock(block), isFirstInGroup: index == 0) // 组内第一段前空两行
                 applyTranslationRange(range, to: block.id, in: &blocks)
             }
 
@@ -52,13 +55,14 @@ enum TranslationContentFormatter {
         return (builder.content, blocks)
     }
 
+    /// 用户改过纯文本后，按格式化串再搜一遍 range。搜不到就留下一块，不猜。
     static func indexTranslationRanges(
         in content: String,
         blocks: [TranslationBlock],
         mode: TranslationAlignmentMode
     ) -> [TranslationBlock] {
         let ns = content as NSString
-        var searchStart = bodyStartLocation(in: content)
+        var searchStart = bodyStartLocation(in: content) // 跳过【标题】
         var updated = blocks.sorted { $0.order < $1.order }
 
         for index in updated.indices {
@@ -78,11 +82,11 @@ enum TranslationContentFormatter {
 
             let searchRange = NSRange(location: searchStart, length: max(0, ns.length - searchStart))
             let found = ns.range(of: trimmed, options: [], range: searchRange)
-            guard found.location != NSNotFound else { continue }
+            guard found.location != NSNotFound else { continue } // 用户改过字就对不上，保持旧 range
 
             updated[index].translationLocation = found.location
             updated[index].translationLength = found.length
-            searchStart = found.location + found.length
+            searchStart = found.location + found.length // 下一块只往后搜，避免重复命中
 
             if mode == .paragraph, block.level == .summary {
                 continue
@@ -92,12 +96,14 @@ enum TranslationContentFormatter {
         return updated
     }
 
+    /// 右页正文是否还是这次 render 的结果。标题不算。
     static func matchesRenderedContent(_ alignment: TranslationAlignment, content: String) -> Bool {
         let rendered = TranslationSourceHasher.normalize(render(alignment))
         let trimmed = TranslationSourceHasher.normalize(contentWithoutDisplayTitle(content))
         return rendered == trimmed
     }
 
+    /// 只格式化指定原文范围。
     private static func applyTranslationRange(
         _ range: NSRange,
         to blockID: UUID,
@@ -108,6 +114,7 @@ enum TranslationContentFormatter {
         blocks[index].translationLength = range.length
     }
 
+    /// 【标题】之后正文起点。没有标题从 0。
     private static func bodyStartLocation(in content: String) -> Int {
         let body = contentWithoutDisplayTitle(content)
         guard !body.isEmpty else { return 0 }
@@ -115,6 +122,7 @@ enum TranslationContentFormatter {
         return found.location == NSNotFound ? 0 : found.location
     }
 
+    /// 去掉首行【…】和紧随空行。
     private static func contentWithoutDisplayTitle(_ content: String) -> String {
         var lines = content.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         guard let first = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -129,6 +137,7 @@ enum TranslationContentFormatter {
         return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// 译文 + 可选（注）。
     private static func formatParagraphBlock(_ block: TranslationBlock) -> String {
         var lines = [block.translationText.trimmingCharacters(in: .whitespacesAndNewlines)]
         if let note = block.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
@@ -137,6 +146,7 @@ enum TranslationContentFormatter {
         return lines.joined(separator: "\n")
     }
 
+    /// 「原文 → 译文（注）」，和 LineParser 对得上。
     private static func formatWordBlock(_ block: TranslationBlock) -> String {
         let source = block.sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         let translation = block.translationText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -146,13 +156,16 @@ enum TranslationContentFormatter {
         return "\(source) → \(translation)"
     }
 
+    /// 摘要块：标题加条目。
     private static func formatSummaryBlock(_ block: TranslationBlock) -> String {
         block.translationText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// 按块累加字符串，记下每段在结果里的 NSRange。
     private struct ContentBuilder {
         private(set) var content = ""
 
+        /// 组间空两行，组内空一行。
         mutating func appendSection(_ text: String, isFirstInGroup: Bool = true) -> NSRange {
             if !content.isEmpty {
                 content += isFirstInGroup ? "\n\n" : "\n"
@@ -160,6 +173,7 @@ enum TranslationContentFormatter {
             return appendRaw(text)
         }
 
+        /// 组内第一行空一行，其余只换行；空串直接追加。
         mutating func appendLine(_ text: String, isFirstInGroup: Bool) -> NSRange {
             if content.isEmpty {
                 return appendRaw(text)
@@ -168,6 +182,7 @@ enum TranslationContentFormatter {
             return appendRaw(text)
         }
 
+        /// 追加后的 range 用 UTF-16，和 NSTextView 对齐。
         private mutating func appendRaw(_ text: String) -> NSRange {
             let location = (content as NSString).length
             content += text

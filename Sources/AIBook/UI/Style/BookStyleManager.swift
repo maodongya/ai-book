@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// 阅读风格单例：预设、纹样开关、正文字号/字体。令牌现算，不缓存以免漏刷新。
 @MainActor
 final class BookStyleManager: ObservableObject {
     static let shared = BookStyleManager()
@@ -14,12 +15,13 @@ final class BookStyleManager: ObservableObject {
         didSet { persistOrnamentOverrides() }
     }
 
+    /// nil 表示跟随预设字号。
     @Published var readingFontSizeOverride: Double? {
         didSet {
             if let readingFontSizeOverride {
                 UserDefaults.standard.set(readingFontSizeOverride, forKey: Keys.readingFontSize)
             } else {
-                UserDefaults.standard.removeObject(forKey: Keys.readingFontSize)
+                UserDefaults.standard.removeObject(forKey: Keys.readingFontSize) // 清掉才算跟随主题
             }
         }
     }
@@ -30,6 +32,7 @@ final class BookStyleManager: ObservableObject {
         }
     }
 
+    /// 当前令牌：预设 + 纹样覆盖 + 字体覆盖。
     var tokens: BookStyleTokens {
         BookStyleCatalog.tokens(
             for: presetID,
@@ -43,6 +46,7 @@ final class BookStyleManager: ObservableObject {
         tokens.preferredColorScheme
     }
 
+    /// 拼给 SwiftUI `.id`，任一开关/字体变就整支 chrome 重建。
     var revision: String {
         let bookmark = Self.flagToken(ornamentOverrides.showBookmarkRibbon)
         let fold = Self.flagToken(ornamentOverrides.showPageCornerFold)
@@ -52,11 +56,13 @@ final class BookStyleManager: ObservableObject {
         return "\(presetID.rawValue)/\(bookmark)/\(fold)/\(header)/\(texture)/\(fontSize)/\(readingFontFamilyID)"
     }
 
+    /// nil 用 "-"，避免 optional 在 id 里不稳定。
     private static func flagToken(_ value: Bool?) -> String {
         guard let value else { return "-" }
         return value ? "1" : "0"
     }
 
+    /// UserDefaults 键，改名会丢用户风格。
     private enum Keys {
         static let presetID = "aiBook.style.presetID"
         static let bookmark = "aiBook.style.ornament.bookmark"
@@ -79,7 +85,7 @@ final class BookStyleManager: ObservableObject {
         if let storedSize, BookStyleCatalog.readingSizes.contains(storedSize) {
             readingFontSizeOverride = storedSize
         } else {
-            readingFontSizeOverride = nil
+            readingFontSizeOverride = nil // 非法字号当跟随主题
         }
         let storedFamily = UserDefaults.standard.string(forKey: Keys.readingFontFamily)
         if let storedFamily,
@@ -97,7 +103,7 @@ final class BookStyleManager: ObservableObject {
     func setShowBookmarkRibbon(_ value: Bool) {
         var next = ornamentOverrides
         next.showBookmarkRibbon = value
-        ornamentOverrides = next
+        ornamentOverrides = next // 整份替换，触发 didSet 落盘
     }
 
     func setShowPageCornerFold(_ value: Bool) {
@@ -127,6 +133,7 @@ final class BookStyleManager: ObservableObject {
 }
 
 private extension UserDefaults {
+    /// 键不存在返回 nil，和 false 区分（用来表示「跟随预设」）。
     func optionalBool(forKey key: String) -> Bool? {
         guard object(forKey: key) != nil else { return nil }
         return bool(forKey: key)

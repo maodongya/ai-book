@@ -1,5 +1,6 @@
 import Foundation
 
+/// 讲解语速档。rawValue 是中文，历史「极速（本地）」等旧名在 migrated 里回收。
 enum SpeechEngineMode: String, CaseIterable, Identifiable, Codable {
     case fast = "快速"
     case balanced = "平衡"
@@ -8,6 +9,7 @@ enum SpeechEngineMode: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    /// 读盘：空值/乱值回平衡；旧在线档位名映射到现在的四档。
     static func migrated(from stored: String?) -> SpeechEngineMode {
         guard let stored, !stored.isEmpty else { return .balanced }
         if let mode = SpeechEngineMode(rawValue: stored) { return mode }
@@ -21,6 +23,7 @@ enum SpeechEngineMode: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// 讲解语言处理深度。rawValue 中文落盘。
 enum SpeechLanguageMode: String, CaseIterable, Identifiable, Codable {
     case efficient = "高效"
     case balanced = "平衡"
@@ -29,15 +32,17 @@ enum SpeechLanguageMode: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
+/// 全局设置单例：进化 LLM、读书 LLM、Cursor、语音、界面/译文语言。键集中在 Keys。
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
+    /// 进化通道当前提供商。切换时先落盘旧档案再加载新档案。
     @Published var provider: LLMProvider {
         didSet {
             guard provider != oldValue else { return }
-            guard !suppressLLMProfilePersistence else { return }
-            persistActiveLLMProfile(for: oldValue)
+            guard !suppressLLMProfilePersistence else { return } // init/load 时不要回写
+            persistActiveLLMProfile(for: oldValue) // 把旧提供商的 key/url/model 收进 Store
             UserDefaults.standard.set(provider.rawValue, forKey: Keys.provider)
             loadLLMProfile(for: provider)
         }
@@ -91,6 +96,7 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(llmContextPercent, forKey: Keys.llmContextPercent) }
     }
 
+    /// 读书（讲解/翻译）通道提供商，和进化通道分开存。
     @Published var bookProvider: LLMProvider {
         didSet {
             guard bookProvider != oldValue else { return }
@@ -134,7 +140,7 @@ final class AppSettings: ObservableObject {
     }
 
     @Published var explanationVoiceID: String {
-        didSet { SpeechVoiceStore.selectedVoiceID = explanationVoiceID }
+        didSet { SpeechVoiceStore.selectedVoiceID = explanationVoiceID } // 语音另库存一份
     }
 
     @Published var speechEngineMode: SpeechEngineMode {
@@ -146,19 +152,21 @@ final class AppSettings: ObservableObject {
     }
 
     @Published var translationTargetLanguage: TranslationTargetLanguage {
-        didSet { TranslationTargetLanguageStore.save(translationTargetLanguage) }
+        didSet { TranslationTargetLanguageStore.save(translationTargetLanguage) } // 键在 Store 里，这里不写死
     }
 
     @Published var appLanguage: BookAppLanguage {
         didSet {
             guard appLanguage != oldValue else { return }
             UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage)
-            localizationRevision &+= 1
+            localizationRevision &+= 1 // 通知界面重取目录文案
         }
     }
 
+    /// 界面语言世代号。只加不减，给 Environment 当观察哨。
     @Published private(set) var localizationRevision = 0
 
+    /// UserDefaults 键只在这里出现。
     private enum Keys {
         static let provider = "aiBook.provider"
         static let baseURL = "aiBook.baseURL"
@@ -181,6 +189,7 @@ final class AppSettings: ObservableObject {
         static let appLanguage = "aiBook.appLanguage"
     }
 
+    /// init / loadProfile 时挡住 didSet，避免用半成品覆盖档案。
     private var suppressLLMProfilePersistence = false
     private var suppressBookProfilePersistence = false
 
@@ -192,10 +201,10 @@ final class AppSettings: ObservableObject {
             suppressBookProfilePersistence = false
         }
 
-        LLMProfileStore.migrateLegacyFlatStorageIfNeeded()
+        LLMProfileStore.migrateLegacyFlatStorageIfNeeded() // 旧扁平 key → 按提供商分档
 
         let storedProvider = UserDefaults.standard.string(forKey: Keys.provider)
-        let resolvedProvider = LLMProvider(rawValue: storedProvider ?? "") ?? .openAI
+        let resolvedProvider = LLMProvider(rawValue: storedProvider ?? "") ?? .openAI // 乱值当 OpenAI
         provider = resolvedProvider
 
         let legacyBaseURL = UserDefaults.standard.string(forKey: Keys.baseURL) ?? resolvedProvider.defaultBaseURL
@@ -223,7 +232,7 @@ final class AppSettings: ObservableObject {
         apiKey = profile.apiKey
 
         let storedBookProvider = UserDefaults.standard.string(forKey: Keys.bookProvider)
-        let resolvedBookProvider = LLMProvider(rawValue: storedBookProvider ?? "") ?? .ollama
+        let resolvedBookProvider = LLMProvider(rawValue: storedBookProvider ?? "") ?? .ollama // 读书默认本地
         bookProvider = resolvedBookProvider
         let bookProfile = LLMProfileStore.profile(for: resolvedBookProvider, scope: .book)
         bookBaseURL = UserDefaults.standard.string(forKey: Keys.bookBaseURL)
@@ -239,7 +248,7 @@ final class AppSettings: ObservableObject {
         let resolvedCursorKey = CursorAPIKeyStore.resolveStoredKey()
         cursorAPIKey = resolvedCursorKey
         if !resolvedCursorKey.isEmpty {
-            CursorAPIKeyStore.save(resolvedCursorKey)
+            CursorAPIKeyStore.save(resolvedCursorKey) // 统一写回钥匙串，避免只在 Defaults 里
         }
         cursorModel = Self.sanitizeCursorModel(
             UserDefaults.standard.string(forKey: Keys.cursorModel) ?? CursorModelOption.composer25.rawValue
@@ -252,7 +261,7 @@ final class AppSettings: ObservableObject {
         if UserDefaults.standard.object(forKey: Keys.autoEvolutionEnabled) != nil {
             autoEvolutionEnabled = UserDefaults.standard.bool(forKey: Keys.autoEvolutionEnabled)
         } else {
-            autoEvolutionEnabled = true
+            autoEvolutionEnabled = true // 没写过这个键默认开自动升级
         }
         explanationVoiceID = SpeechVoiceStore.selectedVoiceID
         let storedSpeechMode = UserDefaults.standard.string(forKey: Keys.speechEngineMode)
@@ -264,10 +273,12 @@ final class AppSettings: ObservableObject {
         normalizeExplanationVoiceSelection()
     }
 
+    /// 设置页打开时刷新可用声，丢掉失效 id。
     func reloadExplanationVoices() {
         normalizeExplanationVoiceSelection()
     }
 
+    /// 当前 id 不在可选列表里则落到第一支可用声。
     private func normalizeExplanationVoiceSelection() {
         SpeechVoiceStore.normalizeStoredSelection()
         let selectable = SpeechVoiceCatalog.groupedSelectableOptions().flatMap(\.voices)
@@ -281,6 +292,7 @@ final class AppSettings: ObservableObject {
         SpeechVoiceCatalog.option(for: explanationVoiceID)?.displayName ?? "默认"
     }
 
+    /// 使用时解析「跟随界面语言」，不要在点选时写死。
     var resolvedTranslationTargetLanguage: TranslationTargetLanguage {
         translationTargetLanguage.resolved(appLanguage: appLanguage)
     }
@@ -290,11 +302,12 @@ final class AppSettings: ObservableObject {
         set { cursorModel = newValue.rawValue }
     }
 
-    /// Public Cursor model id sent to cursor-bridge (filters invalid internal ids like crsr_*).
+    /// 送给 cursor-bridge 的公开模型 id，滤掉 crsr_* 等内部 id。
     var resolvedCursorModel: String {
         Self.sanitizeCursorModel(cursorModel)
     }
 
+    /// 空、内部 id、旧 composer-2 别名都收到 composer25；带连字符的未知公开 id 原样放行。
     static func sanitizeCursorModel(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return CursorModelOption.composer25.rawValue }
@@ -314,9 +327,10 @@ final class AppSettings: ObservableObject {
     }
 
     var evolutionLLMConfiguration: LLMConfiguration {
-        llmConfiguration
+        llmConfiguration // 进化走同一套进化档案，名字给调用方读
     }
 
+    /// 桥目录无效则 nil，调用方应提示未配置。
     var cursorConfiguration: CursorConfiguration? {
         let bridgeURL: URL?
         if cursorBridgePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -335,6 +349,7 @@ final class AppSettings: ObservableObject {
         )
     }
 
+    /// 把当前进化提供商的空字段填成默认值，已有档案不覆盖。
     func applyProviderDefaults() {
         let profile = LLMProfileStore.profile(for: provider, scope: .evolution)
         if profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -365,6 +380,7 @@ final class AppSettings: ObservableObject {
         bookApiKey = profile.apiKey
     }
 
+    /// 切换进化提供商时灌入该档案；抑制 didSet 以免写回旧值。
     func loadLLMProfile(for provider: LLMProvider) {
         suppressLLMProfilePersistence = true
         defer { suppressLLMProfilePersistence = false }

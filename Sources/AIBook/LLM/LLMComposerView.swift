@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// 读书/进化共用输入条：模型、上下文条、发送。不负责真正请求。
 struct LLMComposerView: View {
     var mode: RightPageTab = .readingAssistant
     var onCollapse: (() -> Void)? = nil
@@ -7,8 +8,9 @@ struct LLMComposerView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var ollamaCatalog = OllamaModelCatalog.shared
-    @State private var showingAdvancedControls = false
+    @State private var showingAdvancedControls = false // 默认收起模型/上下文，省高度
 
+    /// 有字且没在跑。空回车不发。
     private var canSend: Bool {
         let hasText = !activeChatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         if mode == .aiEvolution {
@@ -17,6 +19,7 @@ struct LLMComposerView: View {
         return hasText && !viewModel.isRunning
     }
 
+    /// 进化「分析」：有正文或选区才亮。
     private var canAnalyze: Bool {
         mode == .aiEvolution
             && !viewModel.isRunning
@@ -24,10 +27,12 @@ struct LLMComposerView: View {
             && viewModel.canRunEvolution
     }
 
+    /// 读书和进化各有一份输入，避免串稿。
     private var activeChatInput: String {
         mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput
     }
 
+    /// 写回对应那份。
     private var activeChatInputBinding: Binding<String> {
         Binding(
             get: { mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput },
@@ -69,6 +74,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 收起态：一行摘要 + 展开。
     private var compactControls: some View {
         Group {
             if mode == .aiEvolution {
@@ -83,6 +89,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 读书：提供商·模型·上下文%。
     private var bookComposerSummary: some View {
         HStack(spacing: 8) {
             Spacer(minLength: 8)
@@ -111,6 +118,7 @@ struct LLMComposerView: View {
         .font(BookTheme.captionFont)
     }
 
+    /// 进化：token 预算摘要。
     private var evolutionComposerSummary: some View {
         HStack(spacing: 8) {
             Spacer(minLength: 8)
@@ -119,6 +127,7 @@ struct LLMComposerView: View {
         .font(BookTheme.captionFont)
     }
 
+    /// 本机模型列表，刷新走 Catalog。
     private var ollamaModelControls: some View {
         HStack(spacing: 6) {
             if ollamaCatalog.models.isEmpty && !ollamaCatalog.isLoading {
@@ -155,6 +164,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 展开后的提供商/模型行。
     private var modelControlsRow: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
@@ -242,10 +252,12 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 按当前正文+历史+输入估占用。
     private var contextUsage: CursorContextUsage {
         mode == .readingAssistant ? viewModel.llmContextUsage : viewModel.evolutionContextUsage
     }
 
+    /// 上下文百分比滑条 + 占用说明。
     private var contextUsageControls: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -305,6 +317,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 收起态小条，满了变红。
     private var compactUsageMeter: some View {
         Group {
             if mode == .aiEvolution {
@@ -329,10 +342,12 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 当前进化模型的上下文窗。
     private var evolutionTokenBudget: ModelTokenBudget {
         viewModel.evolutionTokenBudget
     }
 
+    /// 进化 token 小条。
     private var evolutionTokenCompactMeter: some View {
         HStack(spacing: 6) {
             Text("Token \(evolutionTokenBudget.formattedUsed)/\(evolutionTokenBudget.formattedLimit)")
@@ -353,6 +368,7 @@ struct LLMComposerView: View {
         .font(BookTheme.captionFont)
     }
 
+    /// 超 85% 警告色。
     private var evolutionTokenMeterColor: Color {
         if evolutionTokenBudget.isOverLimit { return BookTheme.vermilion }
         if evolutionTokenBudget.isNearLimit { return .orange }
@@ -372,6 +388,7 @@ struct LLMComposerView: View {
         return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
+    /// 多行输入。回车发送，Shift 换行看平台。
     private var inputBox: some View {
         ZStack(alignment: .topLeading) {
             if activeChatInput.isEmpty {
@@ -403,6 +420,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 发送/停止/分析。在跑显示状态字。
     private var actionRow: some View {
         HStack(spacing: 8) {
             if mode == .aiEvolution {
@@ -493,11 +511,13 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 进行中文案，空表示可发送。
     private var runningStatusText: String {
         let text = viewModel.runningStatusText(for: mode)
         return text.isEmpty ? BookL10n.string("llm.generating") : text
     }
 
+    /// 占位：读书问讲解，进化问改代码。
     private var composerPlaceholder: String {
         switch mode {
         case .readingAssistant:
@@ -512,6 +532,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 交给 ViewModel。空串已在 canSend 挡住。
     private func sendActiveChatInput() {
         switch mode {
         case .readingAssistant:
@@ -521,6 +542,7 @@ struct LLMComposerView: View {
         }
     }
 
+    /// 占用条颜色，跟百分比挂钩。
     private var contextColor: Color {
         let value = contextUsage.percentage
         if value >= 90 { return .red }
@@ -541,6 +563,7 @@ struct LLMComposerView: View {
         return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
+    /// 摘要里的短名。
     private func providerLabel(_ provider: LLMProvider) -> String {
         let profile = LLMProfileStore.profile(for: provider)
         let model = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -550,6 +573,7 @@ struct LLMComposerView: View {
         return "\(provider.rawValue) · \(model)"
     }
 
+    /// 「百炼 · qwen-plus」这类一行。
     private var llmSummary: String {
         if settings.isLLMConfigured {
             return settings.llmDisplayLabel
@@ -557,6 +581,7 @@ struct LLMComposerView: View {
         return BookL10n.format("llm.providerUnconfiguredSuffix", settings.provider.rawValue)
     }
 
+    /// 占用明细小片。
     private func usageChip(title: String, value: Int) -> some View {
         HStack(spacing: 4) {
             Text(title)

@@ -2,9 +2,10 @@ import SwiftUI
 
 // MARK: - Shared capsule chrome (toolbar buttons + menu items)
 
+/// 顶栏胶囊底：主按钮走强调渐变，普通按钮 hover 加深描边。
 struct BookToolbarCapsuleBackground: View {
-    var isProminent: Bool = false
-    var isHovering: Bool = false
+    var isProminent: Bool = false // 完成/主操作走金底
+    var isHovering: Bool = false // 由外层 onHover 传入，本视图不自己侦测
     @ObservedObject private var styleManager = BookStyleManager.shared
 
     var body: some View {
@@ -34,10 +35,11 @@ struct BookToolbarCapsuleBackground: View {
     }
 }
 
+/// 顶栏胶囊文字。compact 给工具条，宽松给页内。
 struct BookToolbarCapsuleLabel: View {
-    let title: String
+    let title: String // 已本地化文案，这里不再查表
     var isProminent: Bool = false
-    var isCompact: Bool = true
+    var isCompact: Bool = true // 顶栏挤，页内可拉开
     var isHovering: Bool = false
     @ObservedObject private var styleManager = BookStyleManager.shared
 
@@ -57,19 +59,22 @@ struct BookToolbarCapsuleLabel: View {
 
 // MARK: - Custom popover menu (matches toolbar button style)
 
+/// 菜单项点完后关 popover，由面板注入。
 private struct BookToolbarMenuDismissKey: EnvironmentKey {
     static let defaultValue: (() -> Void)? = nil
 }
 
 extension EnvironmentValues {
+    /// 点菜单项后关浮层；没注入则只触发 action。
     var bookToolbarMenuDismiss: (() -> Void)? {
         get { self[BookToolbarMenuDismissKey.self] }
         set { self[BookToolbarMenuDismissKey.self] = newValue }
     }
 }
 
+/// 溢出菜单面板。点项后通过 environment 关 isPresented。
 struct BookToolbarMenuPanel<Content: View>: View {
-    @Binding var isPresented: Bool
+    @Binding var isPresented: Bool // 面板自己也能关，不只靠外层按钮
     @ViewBuilder var content: () -> Content
     @ObservedObject private var styleManager = BookStyleManager.shared
 
@@ -90,12 +95,13 @@ struct BookToolbarMenuPanel<Content: View>: View {
                 .shadow(color: .black.opacity(0.28), radius: 12, y: 6)
         }
         .buttonStyle(BookToolbarMenuItemButtonStyle())
-        .environment(\.bookToolbarMenuDismiss, { isPresented = false })
+        .environment(\.bookToolbarMenuDismiss, { isPresented = false }) // 子项点完立刻收起
         .preferredColorScheme(styleManager.colorScheme)
         .id(styleManager.revision)
     }
 }
 
+/// 菜单行胶囊底，hover 换填色。
 struct BookMenuItemCapsuleBackground: View {
     var isHovering: Bool = false
     @ObservedObject private var styleManager = BookStyleManager.shared
@@ -114,12 +120,15 @@ struct BookMenuItemCapsuleBackground: View {
     }
 }
 
+/// 菜单项：触发后顺手 dismiss，destructive 走朱红。
 struct BookToolbarMenuItemButtonStyle: PrimitiveButtonStyle {
+    /// 交给内部 View 才能用 hover / environment。
     func makeBody(configuration: Configuration) -> some View {
         BookToolbarMenuItemButton(configuration: configuration)
     }
 }
 
+/// PrimitiveButton 的实际行：先 trigger 再关菜单。
 private struct BookToolbarMenuItemButton: View {
     let configuration: PrimitiveButtonStyleConfiguration
     @Environment(\.isEnabled) private var isEnabled
@@ -130,8 +139,8 @@ private struct BookToolbarMenuItemButton: View {
     var body: some View {
         let colors = styleManager.tokens.colors
         Button {
-            configuration.trigger()
-            dismissMenu?()
+            configuration.trigger() // 先做事再关，避免关窗打断 action
+            dismissMenu?() // 没注入时只做事，给嵌套预览用
         } label: {
             configuration.label
                 .font(styleManager.tokens.typography.captionFont.weight(.medium))
@@ -151,12 +160,14 @@ private struct BookToolbarMenuItemButton: View {
     }
 }
 
+/// 子菜单标题行，右侧 › 表示可展开，本身不关浮层。
 struct BookToolbarSubmenuHeaderButtonStyle: PrimitiveButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         BookToolbarSubmenuHeaderButton(configuration: configuration)
     }
 }
 
+/// 子菜单标题的 hover 行。
 private struct BookToolbarSubmenuHeaderButton: View {
     let configuration: PrimitiveButtonStyleConfiguration
     @ObservedObject private var styleManager = BookStyleManager.shared
@@ -187,6 +198,7 @@ private struct BookToolbarSubmenuHeaderButton: View {
     }
 }
 
+/// 菜单分组细线。
 struct BookToolbarMenuDivider: View {
     @ObservedObject private var styleManager = BookStyleManager.shared
 
@@ -199,6 +211,7 @@ struct BookToolbarMenuDivider: View {
     }
 }
 
+/// 菜单里不可点的说明行。
 struct BookToolbarMenuCaption: View {
     let title: String
     @ObservedObject private var styleManager = BookStyleManager.shared
@@ -218,7 +231,7 @@ struct BookToolbarMenuCaption: View {
 struct BookToolbarSubmenu<Content: View>: View {
     let title: String
     @ViewBuilder var content: () -> Content
-    @State private var isExpanded = false
+    @State private var isExpanded = false // 默认收起，避免溢出菜单又高又挤
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

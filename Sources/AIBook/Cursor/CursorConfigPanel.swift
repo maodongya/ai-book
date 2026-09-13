@@ -1,8 +1,9 @@
 import SwiftUI
 
+/// 设置页 Cursor API Key 区：草稿输入、显示/隐藏、写入钥匙串、从环境变量重载。
 struct CursorConfigPanel: View {
     @ObservedObject private var settings = AppSettings.shared
-    @State private var draftAPIKey = ""
+    @State private var draftAPIKey = "" // 未点保存前不写 settings，避免每个按键落盘
     @State private var showAPIKey = false
 
     var body: some View {
@@ -19,16 +20,16 @@ struct CursorConfigPanel: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
-                    Text(BookL10n.string("cursor.readyBridge"))
+                    Text(BookL10n.string("cursor.readyBridge")) // 桥+key 都能跑
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.inkSecondary)
                 }
             } else if !settings.isCursorBridgeReady {
-                Text(settings.cursorBridgeStatusMessage)
+                Text(settings.cursorBridgeStatusMessage) // 桥路径/进程的具体原因
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             } else {
-                Text(BookL10n.string("cursor.needKey"))
+                Text(BookL10n.string("cursor.needKey")) // 桥好了就差 key
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
             }
@@ -36,7 +37,7 @@ struct CursorConfigPanel: View {
             HStack(spacing: 8) {
                 Group {
                     if showAPIKey {
-                        TextField("cursor_...", text: $draftAPIKey)
+                        TextField("cursor_...", text: $draftAPIKey) // 明文校对
                     } else {
                         SecureField("cursor_...", text: $draftAPIKey)
                     }
@@ -65,7 +66,7 @@ struct CursorConfigPanel: View {
 
             HStack(spacing: 10) {
                 Button(BookL10n.string("action.saveKey")) {
-                    settings.saveCursorAPIKey(draftAPIKey)
+                    settings.saveCursorAPIKey(draftAPIKey) // 写入钥匙串/UserDefaults
                 }
                 .buttonStyle(.plain)
                 .font(BookTheme.labelFont)
@@ -78,7 +79,7 @@ struct CursorConfigPanel: View {
                 .disabled(draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button(BookL10n.string("action.loadFromEnv")) {
-                    settings.reloadCursorAPIKey()
+                    settings.reloadCursorAPIKey() // 环境变量 / 已存 key
                     draftAPIKey = settings.effectiveCursorAPIKey
                 }
                 .buttonStyle(.plain)
@@ -103,7 +104,7 @@ struct CursorConfigPanel: View {
         }
         .onAppear {
             settings.reloadCursorAPIKey()
-            draftAPIKey = settings.effectiveCursorAPIKey
+            draftAPIKey = settings.effectiveCursorAPIKey // 打开面板时带上当前有效 key
         }
     }
 }

@@ -1,24 +1,28 @@
 import AppKit
 import SwiftUI
 
+/// 滚到选区或指定 range。
 enum TextScrollAnchor {
-    case top
+    case top // 块顶对齐可视区顶
     case center
     case bottom
 }
 
+/// 给翻译同步滚动/高亮用的句柄。
 final class SelectableTextViewProxy {
-    private weak var textView: NSTextView?
+    private weak var textView: NSTextView? // representable 重建后要重新 attach
     private weak var scrollView: NSScrollView?
-    private var highlightedRange: NSRange?
-    private var isScrolling = false
+    private var highlightedRange: NSRange? // 当前背景高亮，清的时候只去这一段
+    private var isScrolling = false // 滚动中再来请求就挂起
     private var pendingScroll: (range: NSRange, anchor: TextScrollAnchor)?
 
+    /// 绑到宿主，转发状态。
     func attach(textView: NSTextView, scrollView: NSScrollView) {
         self.textView = textView
         self.scrollView = scrollView
     }
 
+    /// 当前看得见的字符范围。还没挂上布局回 {0,0}。
     func visibleCharacterRange() -> NSRange {
         guard let textView,
               let layoutManager = textView.layoutManager,
@@ -28,13 +32,14 @@ final class SelectableTextViewProxy {
         let visibleRect = textView.visibleRect
         var containerRect = visibleRect
         let origin = textView.textContainerOrigin
-        containerRect.origin.x -= origin.x
+        containerRect.origin.x -= origin.x // 转到 container 坐标
         containerRect.origin.y -= origin.y
         let glyphRange = layoutManager.glyphRange(forBoundingRect: containerRect, in: textContainer)
         return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
     }
 
     @discardableResult
+    /// 还没进窗口或正在滚则挂起，返回 false。range 无效也 false。
     func scrollToCharacterRange(_ range: NSRange, anchor: TextScrollAnchor = .top) -> Bool {
         guard range.length > 0, range.location != NSNotFound else { return false }
 
@@ -45,13 +50,14 @@ final class SelectableTextViewProxy {
         }
 
         if isScrolling {
-            pendingScroll = (range, anchor)
+            pendingScroll = (range, anchor) // 只留最后一次
             return false
         }
 
         return performScroll(to: range, anchor: anchor)
     }
 
+    /// 先清旧高亮再画。range 出界或空则只清。
     func highlightRange(_ range: NSRange?, color: NSColor? = nil) {
         clearHighlight()
         guard let textView, let range, range.length > 0 else { return }
@@ -64,12 +70,14 @@ final class SelectableTextViewProxy {
         highlightedRange = clamped
     }
 
+    /// 清选区高亮。
     func clearHighlight() {
         guard let textView, let highlightedRange else { return }
         textView.textStorage?.removeAttribute(.backgroundColor, range: highlightedRange)
         self.highlightedRange = nil
     }
 
+    /// 某个字符的屏幕框，给高亮用。
     func characterRect(for range: NSRange) -> CGRect? {
         guard let textView,
               let layoutManager = textView.layoutManager,
@@ -84,6 +92,7 @@ final class SelectableTextViewProxy {
         return rect
     }
 
+    /// 有未落地的滚动才执行。
     private func flushPendingScrollIfNeeded() {
         guard let pendingScroll, textView?.window != nil else { return }
         let request = pendingScroll
@@ -91,6 +100,7 @@ final class SelectableTextViewProxy {
         _ = performScroll(to: request.range, anchor: request.anchor)
     }
 
+    /// 高度还没出来就再挂起。已在目标位置 1pt 内当成功，避免闪。
     private func performScroll(to range: NSRange, anchor: TextScrollAnchor) -> Bool {
         guard !isScrolling else {
             pendingScroll = (range, anchor)
@@ -99,7 +109,7 @@ final class SelectableTextViewProxy {
         guard let textView,
               textView.window != nil,
               let scrollView,
-              scrollView.documentView === textView,
+              scrollView.documentView === textView, // 不是这个 textView 的 scroll 不滚
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer else {
             return false
@@ -151,7 +161,7 @@ final class SelectableTextViewProxy {
         let targetPoint = NSPoint(x: 0, y: clampedY)
 
         if abs(clipView.bounds.origin.y - clampedY) < 1 {
-            return true
+            return true // 已经在那儿，别再 setBounds 抖一下
         }
 
         clipView.setBoundsOrigin(targetPoint)
@@ -159,10 +169,12 @@ final class SelectableTextViewProxy {
         return true
     }
 
+    /// 把 NSRange 夹进文本长度，避免出界崩。
     private static func clampRange(_ range: NSRange, in text: String) -> NSRange {
         clampRange(range, length: (text as NSString).length)
     }
 
+    /// 把 NSRange 夹进文本长度，避免出界崩。
     private static func clampRange(_ range: NSRange, length: Int) -> NSRange {
         guard length > 0 else { return NSRange(location: 0, length: 0) }
         let location = min(max(range.location, 0), length)

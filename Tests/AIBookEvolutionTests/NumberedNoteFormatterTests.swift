@@ -1,7 +1,9 @@
 import XCTest
 @testable import AIBookEvolution
 
+/// 编号笔记格式化：完成项带「已完成：」，待办只有编号和标题。
 final class NumberedNoteFormatterTests: XCTestCase {
+    /// 完成项前缀「已完成：」，待办不能带这个前缀。
     func testFormatsCompletedAndPendingItems() {
         let now = Date()
         let queue = OptimizationQueue(
@@ -45,10 +47,11 @@ final class NumberedNoteFormatterTests: XCTestCase {
         )
 
         let text = NumberedNoteFormatter.format(queue)
-        XCTAssertTrue(text.contains("1、已完成：左右分栏"))
-        XCTAssertTrue(text.contains("2、增加朗读"))
+        XCTAssertTrue(text.contains("1、已完成：左右分栏")) // 完成态必须能被 Parser 再认回
+        XCTAssertTrue(text.contains("2、增加朗读")) // 待办不能写成「已完成」
     }
 
+    /// format → parse 编号和完成态不能丢。
     func testRoundTripWithParser() {
         let notes = """
         1、已完成：左右分栏
@@ -82,9 +85,9 @@ final class NumberedNoteFormatterTests: XCTestCase {
 
         let formatted = NumberedNoteFormatter.format(queue)
         let reparsed = NumberedNoteParser.parse(formatted)
-        XCTAssertEqual(reparsed.map(\.number), [1, 2])
-        XCTAssertTrue(reparsed[0].isCompleted)
-        XCTAssertFalse(reparsed[1].isCompleted)
+        XCTAssertEqual(reparsed.map(\.number), [1, 2]) // 编号按原文，不重排
+        XCTAssertTrue(reparsed[0].isCompleted) // 「已完成：」必须保住
+        XCTAssertFalse(reparsed[1].isCompleted) // 无前缀就是待办
         XCTAssertEqual(reparsed[1].title, "增加朗读")
     }
 }

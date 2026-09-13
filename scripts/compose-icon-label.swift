@@ -74,8 +74,7 @@ let attributes: [NSAttributedString.Key: Any] = [
 let attributed = NSAttributedString(string: text, attributes: attributes)
 let textSize = attributed.size()
 
-// Center on the book cover panel inside the gold frame.
-let centerX = CGFloat(width) * 0.575
+let centerX = CGFloat(width) * 0.575 // 金框内封面中心，略偏右
 let centerY = CGFloat(height) * 0.492
 let textRect = NSRect(
     x: centerX - textSize.width / 2,

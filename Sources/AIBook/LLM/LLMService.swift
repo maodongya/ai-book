@@ -1,12 +1,14 @@
 import Foundation
 
+/// 一次请求用的提供商、基址、模型、Key。发请求前会再 prepared。
 struct LLMConfiguration {
-    let provider: LLMProvider
+    let provider: LLMProvider // 决定鉴权头和错误提示
     let baseURL: String
     let model: String
-    let apiKey: String
+    let apiKey: String // 可能仍是档案里的原文，prepared 后才解析环境变量
 }
 
+/// 读书聊天流式事件。工具循环用 LLMToolStreamPartial，不走这里。
 enum LLMStreamEvent {
     case textDelta(String)
     case done(text: String)
@@ -15,6 +17,7 @@ enum LLMStreamEvent {
 
 typealias LLMToolStreamPartial = (_ reasoningDelta: String?, _ contentDelta: String?) -> Void
 
+/// 请求失败。文案给设置页/聊天气泡，不要再包一层。
 enum LLMServiceError: LocalizedError {
     case missingAPIKey(provider: LLMProvider)
     case invalidURL
@@ -23,6 +26,7 @@ enum LLMServiceError: LocalizedError {
     case cancelled
     case contextWindowExceeded(used: Int, limit: Int, model: String)
 
+    /// 用户可见中文。apiError 会再 enrich。
     var errorDescription: String? {
         switch self {
         case .missingAPIKey(let provider):
@@ -41,7 +45,9 @@ enum LLMServiceError: LocalizedError {
     }
 }
 
+/// 把 URLError / 原串加成「去哪开 Key」。Ollama 走自己的 enrich。
 enum LLMServiceErrorPresenter {
+    /// 已是 LLMServiceError 用自带文案；Ollama 网络错走 OllamaConfig。
     static func message(for error: Error, provider: LLMProvider, baseURL: String? = nil) -> String {
         if let llmError = error as? LLMServiceError {
             return llmError.errorDescription ?? error.localizedDescription
@@ -55,6 +61,7 @@ enum LLMServiceErrorPresenter {
         return enrich(error.localizedDescription, provider: provider, baseURL: baseURL)
     }
 
+    /// 只在像 Key 错时叠提示。认不出原样返回。
     static func enrich(_ message: String, provider: LLMProvider, baseURL: String? = nil) -> String {
         let lower = message.lowercased()
 
@@ -102,18 +109,20 @@ enum LLMServiceErrorPresenter {
     }
 }
 
+/// OpenAI 兼容聊天。同时只跑一路；cancel 清 URLSession 和完成 Task。
 final class LLMService {
-    private var activeTask: URLSessionTask?
-    private var activeBytesTask: Task<Void, Never>?
-    private var activeCompletionTask: Task<LLMCompletionResult, Error>?
+    private var activeTask: URLSessionTask? // 非流式 dataTask，cancel 用
+    private var activeBytesTask: Task<Void, Never>? // 流式 bytes 消费
+    private var activeCompletionTask: Task<LLMCompletionResult, Error>? // 整轮 completeWithTools
 
+    /// 用户点停：网络和完成 Task 一起取消。
     func cancel() {
         cancelInFlightNetwork()
         activeCompletionTask?.cancel()
         activeCompletionTask = nil
     }
 
-    /// Cancels URLSession work only — safe to call from inside an active completion task.
+    /// 只停网络，不取消当前 completion Task。重试换请求时用。
     private func cancelInFlightNetwork() {
         activeTask?.cancel()
         activeTask = nil
@@ -121,6 +130,7 @@ final class LLMService {
         activeBytesTask = nil
     }
 
+    /// 去空白、消毒 Key。不解析环境变量。
     private func normalizedConfiguration(_ configuration: LLMConfiguration) -> LLMConfiguration {
         LLMConfiguration(
             provider: configuration.provider,
@@ -130,6 +140,7 @@ final class LLMService {
         )
     }
 
+    /// 百炼/Ollama 修地址、补 Key、解析真实模型名。
     private func preparedConfiguration(_ configuration: LLMConfiguration) async -> LLMConfiguration {
         let config = normalizedConfiguration(configuration)
         if config.provider == .qwen {
@@ -152,7 +163,7 @@ final class LLMService {
         )
     }
 
-    /// Lightweight ping to verify provider connectivity (command #3).
+    /// 设置页「测试连接」：发最短 messages，能通即可。
     func testConnection(configuration: LLMConfiguration) async throws {
         let configuration = await preparedConfiguration(configuration)
         if configuration.provider.requiresAPIKey && configuration.apiKey.isEmpty {
@@ -200,7 +211,7 @@ final class LLMService {
         }
     }
 
-    /// Non-streaming or streaming chat completion with OpenAI-compatible tool calling.
+    /// 带 tools 的一轮补全。有 streamPartial 走 SSE，否则一次 JSON。
     func completeWithTools(
         messages: [[String: Any]],
         tools: [[String: Any]],
@@ -312,6 +323,7 @@ final class LLMService {
         throw LLMServiceError.invalidResponse
     }
 
+    /// 瞬时网络错重试一次。业务 4xx 不重试。
     private func performWithTransientRetry<T>(
         maxAttempts: Int = 2,
         operation: () async throws -> T
@@ -333,6 +345,7 @@ final class LLMService {
         throw lastError ?? LLMServiceError.invalidResponse
     }
 
+    /// 超时、掉线、连接重置才算瞬时。
     private func isTransientNetworkError(_ error: Error) -> Bool {
         if let urlError = error as? URLError {
             switch urlError.code {
@@ -356,6 +369,7 @@ final class LLMService {
             || message.contains("connection reset")
     }
 
+    /// SSE 工具循环：拼 delta，结束出 LLMCompletionResult。
     private func streamCompleteWithTools(
         request: URLRequest,
         configuration: LLMConfiguration,
@@ -467,6 +481,7 @@ final class LLMService {
         )
     }
 
+    /// 非流式 choices[0].message。解析失败抛 invalidResponse。
     private func parseCompletionResult(from data: Data) throws -> LLMCompletionResult {
         guard
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -501,6 +516,7 @@ final class LLMService {
         )
     }
 
+    /// 没有 usage 字段回 zero，调用方再估。
     private func parseUsage(from json: [String: Any]) -> LLMTokenUsage {
         guard let usage = json["usage"] as? [String: Any] else { return .zero }
         let prompt = usage["prompt_tokens"] as? Int ?? 0
@@ -514,6 +530,7 @@ final class LLMService {
         return LLMTokenUsage(promptTokens: prompt, completionTokens: completion)
     }
 
+    /// 读书聊天，不带 tools。流式走 onEvent。
     func chat(
         prompt: String,
         history: [ChatMessage],
@@ -609,6 +626,7 @@ final class LLMService {
         return text
     }
 
+    /// 读书 SSE：只推 textDelta/done。
     private func streamChat(
         request: URLRequest,
         provider: LLMProvider,
@@ -670,6 +688,7 @@ final class LLMService {
         return text
     }
 
+    /// content 可能是 string 或 parts 数组。
     private func extractAssistantText(from message: [String: Any]) -> String? {
         if let content = message["content"] as? String {
             let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -682,6 +701,7 @@ final class LLMService {
         return nil
     }
 
+    /// 一条 SSE delta 里的可见正文。
     private func streamTextPiece(from delta: [String: Any]) -> String {
         if let content = delta["content"] as? String, !content.isEmpty {
             return content
@@ -693,12 +713,14 @@ final class LLMService {
         return ""
     }
 
+    /// Bearer。空 Key 不写头（Ollama 本机常无 Key）。
     private func applyAuthorizationHeader(to request: inout URLRequest, apiKey: String) {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         request.setValue("Bearer \(trimmed)", forHTTPHeaderField: "Authorization")
     }
 
+    /// HTTP 错误体。百炼走专用解析。
     private func parseErrorMessage(from data: Data, provider: LLMProvider) -> String? {
         if provider == .ollama {
             return OllamaConfig.parseAPIErrorMessage(from: data)

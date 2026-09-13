@@ -1,23 +1,26 @@
 import Foundation
 
-/// A node in a directory tree for the file browser.
+/// 目录树节点。id 用绝对路径，同一文件只出现一次。
 struct DirectoryTreeNode: Identifiable, Hashable {
-    let url: URL
-    let name: String
+    let url: URL // standardized 后的绝对路径
+    let name: String // lastPathComponent，侧栏直接显示
     let isDirectory: Bool
-    var children: [DirectoryTreeNode]?
+    var children: [DirectoryTreeNode]? // 目录才有；文件必须是 nil。空目录是 [] 不是 nil
 
-    var id: String { url.path }
+    /// 和 expandedPaths 用同一套路径键。
+    var id: String { url.path } // 和 expandedPaths 用同一套路径
 }
 
-/// Where to load a file chosen from the directory browser.
+/// 从目录点开文件时落到哪一栏。
 enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
-    case original
-    case translation
-    case explanation
+    case original // 左页正文
+    case translation // 右页翻译
+    case explanation // 右页讲解
 
+    /// 和 expandedPaths 用同一套路径键。
     var id: String { rawValue }
 
+    /// 打开目标的短标题。
     var displayName: String {
         switch self {
         case .original: return "原文"
@@ -26,6 +29,7 @@ enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
         }
     }
 
+    /// 打开目标的 SF Symbol。
     var icon: String {
         switch self {
         case .original: return "text.book.closed"
@@ -34,6 +38,7 @@ enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
         }
     }
 
+    /// 打开目标的悬停说明。
     var help: String {
         switch self {
         case .original: return "在左页原文区打开"
@@ -43,15 +48,17 @@ enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
     }
 }
 
+/// 扫一层孩子。跳过隐藏项。非根空目录丢掉。
 enum DirectoryTreeScanner {
     private static let textExtensions: Set<String> = [
-        "txt", "text", "md", "markdown", "rtf",
+        "txt", "text", "md", "markdown", "rtf", // 只收这些；无扩展名当文本
     ]
 
     private static let skippedNames: Set<String> = [
         ".DS_Store", ".git", ".svn", "Thumbs.db",
     ]
 
+    /// 根必须是存在的目录。文件路径回 nil。
     static func scan(root: URL) -> DirectoryTreeNode? {
         var isDirectory = ObjCBool(false)
         guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory),
@@ -61,6 +68,7 @@ enum DirectoryTreeScanner {
         return scanEntry(at: root, isRoot: true)
     }
 
+    /// 无扩展名当文本（很多古文是无后缀）。隐藏文件和跳过名单除外。
     static func isTextFile(_ url: URL) -> Bool {
         let name = url.lastPathComponent
         if name.hasPrefix(".") { return false }
@@ -71,6 +79,7 @@ enum DirectoryTreeScanner {
         return textExtensions.contains(ext)
     }
 
+    /// isRoot 为真时不因名字点开头丢掉，否则用户打不开隐藏工程根。
     private static func scanEntry(at url: URL, isRoot: Bool) -> DirectoryTreeNode? {
         let name = url.lastPathComponent
         if !isRoot {
@@ -84,7 +93,7 @@ enum DirectoryTreeScanner {
 
         if isDirectory.boolValue {
             let children = listChildren(in: url)
-            if !isRoot, children.isEmpty { return nil }
+            if !isRoot, children.isEmpty { return nil } // 空子目录不占行，根空目录仍显示
             return DirectoryTreeNode(
                 url: url,
                 name: isRoot ? name : name,
@@ -97,6 +106,7 @@ enum DirectoryTreeScanner {
         return DirectoryTreeNode(url: url, name: name, isDirectory: false, children: nil)
     }
 
+    /// 列目录失败当空，不把整棵树判死。
     private static func listChildren(in directory: URL) -> [DirectoryTreeNode] {
         let manager = FileManager.default
         guard let urls = try? manager.contentsOfDirectory(
@@ -112,6 +122,7 @@ enum DirectoryTreeScanner {
             .sorted(by: sortNodes)
     }
 
+    /// 目录在前，再按本地化名字。
     private static func sortNodes(_ lhs: DirectoryTreeNode, _ rhs: DirectoryTreeNode) -> Bool {
         if lhs.isDirectory != rhs.isDirectory {
             return lhs.isDirectory

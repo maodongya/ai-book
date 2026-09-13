@@ -1,16 +1,18 @@
 import Foundation
 
-/// Resplit translated prose to match source paragraph count for local alignment.
+/// 本地把译文重切成和原文段数一致。模型 JSON 失败时的退路。
 enum TranslationParagraphSegmenter {
+    /// 本地切出的一段译文，可选注。
     struct Segment {
         var text: String
         var note: String?
     }
 
+    /// 段数相等直接 zip；多了合并；少了按原文权重切开。
     static func resegment(
         translation: String,
-        targetCount: Int,
-        sourceWeights: [Int],
+        targetCount: Int, // 原文段数
+        sourceWeights: [Int], // 每段原文长度，切开时按比例
         notes: [String?] = []
     ) -> [Segment] {
         guard targetCount > 0 else { return [] }
@@ -23,7 +25,7 @@ enum TranslationParagraphSegmenter {
                 in: body,
                 targetCount: targetCount,
                 sourceWeights: sourceWeights
-            )
+            ) // 模型连空行都没留，按字数切
         }
 
         if paragraphs.count == targetCount {
@@ -40,14 +42,17 @@ enum TranslationParagraphSegmenter {
         )
     }
 
+    /// 按空行切段。
     static func splitParagraphs(_ text: String) -> [String] {
         TranslationParagraphText.contentParagraphs(in: text)
     }
 
+    /// 去掉【标题】再去围栏。
     static func stripDisplayChrome(_ text: String) -> String {
         TranslationParagraphText.stripDisplayTitle(text)
     }
 
+    /// 原文段和译文段按最短长度对齐。
     private static func zipSegments(
         _ paragraphs: [String],
         notes: [String?],
@@ -56,11 +61,12 @@ enum TranslationParagraphSegmenter {
         (0..<targetCount).map { index in
             Segment(
                 text: paragraphs[index],
-                note: index < notes.count ? notes[index] : nil
+                note: index < notes.count ? notes[index] : nil // 注比段少就空着
             )
         }
     }
 
+    /// 译文段多于原文：均匀合并。注跟合并后第一段走。
     private static func mergeSegments(
         _ paragraphs: [String],
         notes: [String?],
@@ -73,7 +79,7 @@ enum TranslationParagraphSegmenter {
 
         for index in 0..<targetCount {
             let end = index == targetCount - 1
-                ? Double(paragraphs.count)
+                ? Double(paragraphs.count) // 最后一段吃掉余数
                 : min(Double(paragraphs.count), ((Double(index + 1) * chunkSize).rounded()))
             let startIndex = Int(cursor.rounded())
             let endIndex = Int(end.rounded())
@@ -86,6 +92,7 @@ enum TranslationParagraphSegmenter {
         return result.filter { !$0.text.isEmpty }
     }
 
+    /// 译文段不够：拼回去再按权重切开。
     private static func expandSegments(
         _ paragraphs: [String],
         notes: [String?],
@@ -101,6 +108,7 @@ enum TranslationParagraphSegmenter {
         )
     }
 
+    /// 按原文每段长度占比切译文，并尽量落在句号上。
     private static func proportionalSegments(
         in text: String,
         targetCount: Int,
@@ -113,7 +121,7 @@ enum TranslationParagraphSegmenter {
         guard totalLength > 0, targetCount > 0 else { return [] }
 
         let weights = (0..<targetCount).map { index in
-            index < sourceWeights.count ? max(sourceWeights[index], 1) : 1
+            index < sourceWeights.count ? max(sourceWeights[index], 1) : 1 // 缺权重当 1，避免除零
         }
 
         var segments: [Segment] = []
@@ -122,7 +130,7 @@ enum TranslationParagraphSegmenter {
         for index in 0..<targetCount {
             let end: Int
             if index == targetCount - 1 {
-                end = totalLength
+                end = totalLength // 最后一段吃到结尾
             } else {
                 let shareWeight = weights[index...].reduce(0, +)
                 let share = max(1, Int((Double(totalLength - start) * Double(weights[index]) / Double(max(shareWeight, 1))).rounded()))
@@ -146,6 +154,7 @@ enum TranslationParagraphSegmenter {
         return segments
     }
 
+    /// 先向后 120 字找句号，找不到再向前 80。都没有就硬切。
     private static func snapToSentenceBoundary(
         in text: NSString,
         start: Int,

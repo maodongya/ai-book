@@ -1,5 +1,6 @@
 import Foundation
 
+/// 优化队列：条目、分析合并、状态机（pending → running → completed / 退回 / 跳过）。
 public struct OptimizationQueue: Codable, Equatable {
     public var version: Int
     public var updatedAt: Date
@@ -35,7 +36,7 @@ public struct OptimizationQueue: Codable, Equatable {
                 number: command.number,
                 title: command.title,
                 rationale: "",
-                category: .featureGap,
+                category: .featureGap, // 笔记导入给不到类别，先当功能缺口
                 priority: .medium,
                 risk: .low,
                 suggestedFiles: [],
@@ -51,6 +52,7 @@ public struct OptimizationQueue: Codable, Equatable {
         return queue
     }
 
+    /// 下一条要跑的：有置顶先置顶，否则优先级再编号。
     public func nextPending() -> OptimizationItem? {
         let pending = items.filter { $0.status == .pending }
         let pinned = pending
@@ -63,6 +65,7 @@ public struct OptimizationQueue: Codable, Equatable {
         }.first
     }
 
+    /// 分析草稿入队：去重、上限截断、编号接在现有 max 后面。
     public mutating func merge(drafts: [OptimizationDraft], maxNewItems: Int = 8) -> MergeReport {
         let existingKeys = Set(items.map { OptimizationItem.normalizedTitle($0.title) })
         var duplicates = 0
@@ -112,6 +115,7 @@ public struct OptimizationQueue: Codable, Equatable {
         )
     }
 
+    /// 同时只允许一条 running。
     public mutating func markRunning(id: UUID) -> Bool {
         guard items.contains(where: { $0.status == .running }) == false else { return false }
         guard let index = items.firstIndex(where: { $0.id == id }), items[index].status == .pending else {
@@ -164,6 +168,7 @@ public struct OptimizationQueue: Codable, Equatable {
         return true
     }
 
+    /// 置顶并抬到高优先，下次 nextPending 会先拿到。
     public mutating func pin(id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index].pinnedAt = Date()

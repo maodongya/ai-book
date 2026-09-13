@@ -1,10 +1,12 @@
 import Foundation
 
+/// Cursor Key 落盘：Application Support 文件优先，再 UserDefaults，再旧域名，最后环境变量。
 enum CursorAPIKeyStore {
-    private static let defaultsKey = "aiBook.cursorAPIKey"
-    private static let appSupportFileName = "cursor-api-key"
-    private static let bundleIdentifier = "com.aibook.reader"
+    private static let defaultsKey = "aiBook.cursorAPIKey" // 现网 UserDefaults 键，勿改以免丢已存 Key
+    private static let appSupportFileName = "cursor-api-key" // 无扩展名，权限 600
+    private static let bundleIdentifier = "com.aibook.reader" // 旧版 suite 域名之一
 
+    /// ~/Library/Application Support/AIBook，没有就建。
     static var appSupportDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let directory = base.appendingPathComponent("AIBook", isDirectory: true)
@@ -12,22 +14,24 @@ enum CursorAPIKeyStore {
         return directory
     }
 
+    /// Key 文件完整路径。
     static var appSupportKeyFileURL: URL {
         appSupportDirectory.appendingPathComponent(appSupportFileName)
     }
 
+    /// 按优先级读 Key；从次级源读到会回写主存储，完成迁移。
     static func resolveStoredKey() -> String {
         if let appSupport = loadFromAppSupport(), !appSupport.isEmpty {
             return appSupport
         }
 
         if let defaults = loadFromUserDefaults(), !defaults.isEmpty {
-            save(defaults)
+            save(defaults) // 迁到 App Support，下次不再走 UserDefaults
             return defaults
         }
 
         if let legacy = loadFromLegacyUserDefaults(), !legacy.isEmpty {
-            save(legacy)
+            save(legacy) // 旧 suite 域名迁出
             return legacy
         }
 
@@ -45,6 +49,7 @@ enum CursorAPIKeyStore {
         return loadFromLocalFiles()
     }
 
+    /// 同时写 UserDefaults 和 600 权限文件。空串删文件。
     static func save(_ apiKey: String) {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         UserDefaults.standard.set(trimmed, forKey: defaultsKey)
@@ -58,11 +63,11 @@ enum CursorAPIKeyStore {
                 [.posixPermissions: NSNumber(value: 0o600)],
                 ofItemAtPath: appSupportKeyFileURL.path
             )
-        } catch {
-            // UserDefaults 仍可用；文件写入失败不阻断保存。
+        } catch { // UserDefaults 已写入；文件失败不阻断保存
         }
     }
 
+    /// 读主文件；空文件当没有。
     static func loadFromAppSupport() -> String? {
         guard let content = try? String(contentsOf: appSupportKeyFileURL, encoding: .utf8) else {
             return nil
@@ -71,6 +76,7 @@ enum CursorAPIKeyStore {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    /// 扫工程旁 env，只取 CURSOR_API_KEY。
     static func loadFromLocalFiles() -> String? {
         for url in localEnvFileCandidates() {
             if let value = parseEnvFile(at: url, key: "CURSOR_API_KEY") {
@@ -80,6 +86,7 @@ enum CursorAPIKeyStore {
         return nil
     }
 
+    /// 工程根、ai-book 子目录、~/.aibook。
     static func localEnvFileCandidates() -> [URL] {
         var candidates: [URL] = []
 
@@ -94,6 +101,7 @@ enum CursorAPIKeyStore {
         return candidates
     }
 
+    /// 从 bundle/cwd/可执行文件向上最多 6 层找工程根。去重且必须实际存在。
     static func projectRootCandidates() -> [URL] {
         var roots: [URL] = []
         let fileManager = FileManager.default
@@ -123,6 +131,7 @@ enum CursorAPIKeyStore {
         return Array(unique.values)
     }
 
+    /// 现网 UserDefaults，迁移前的第二源。
     private static func loadFromUserDefaults() -> String? {
         UserDefaults.standard.string(forKey: defaultsKey)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -140,6 +149,7 @@ enum CursorAPIKeyStore {
         return nil
     }
 
+    /// 直接读 plist，避开 suiteName 在 swift run 下不生效。
     private static func legacyDefaultsValue(domain: String) -> String? {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let url = home
@@ -152,6 +162,7 @@ enum CursorAPIKeyStore {
         return value
     }
 
+    /// KEY=value；# 注释、空行跳过，值可带引号。
     private static func parseEnvFile(at url: URL, key: String) -> String? {
         guard let content = try? String(contentsOf: url, encoding: .utf8) else {
             return nil
@@ -188,6 +199,7 @@ extension AppSettings {
         return CursorService.isBridgeReady(at: bridge)
     }
 
+    /// 设置页展示桥是否可用的一句话。
     var cursorBridgeStatusMessage: String {
         CursorService.bridgeStatusMessage(at: cursorConfiguration?.bridgeDirectory)
     }
@@ -202,6 +214,7 @@ extension AppSettings {
         isCursorBridgeReady && isCursorConfigured
     }
 
+    /// 内存已填用内存，否则扫存储/环境。
     var effectiveCursorAPIKey: String {
         let trimmed = cursorAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
@@ -210,6 +223,7 @@ extension AppSettings {
         return CursorAPIKeyStore.resolveStoredKey()
     }
 
+    /// 内存和磁盘一起写，设置页回车/按钮都走这里。
     func saveCursorAPIKey(_ apiKey: String) {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         cursorAPIKey = trimmed
@@ -228,6 +242,7 @@ extension AppSettings {
         }
     }
 
+    /// 只吸收环境变量/本地 env，不覆盖用户刚在界面填的不同值以外的空。
     func refreshCursorAPIKeyFromSources() {
         guard let external = CursorAPIKeyStore.resolveExternalKey(),
               !external.isEmpty else {

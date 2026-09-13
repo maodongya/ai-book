@@ -1,11 +1,12 @@
 import AIBookEvolution
 import Foundation
 
-/// Sandboxed local tools for LLM evolution agent (mirrors Cursor Agent capabilities within ai-book source tree).
+/// 沙箱本地工具：只动 ai-book 源码树。路径跳出 projectRoot 直接失败。
 enum EvolutionLocalTools {
-    static let maxReadCharacters = 48_000
-    static let maxResultCharacters = 12_000
+    static let maxReadCharacters = 48_000 // 单文件读上限，超了截断并注明
+    static let maxResultCharacters = 12_000 // 回给模型的结果上限，避免撑爆下一轮
 
+    /// 工具失败。文案进时间线 errorMessage。
     enum ToolError: LocalizedError {
         case invalidArguments(String)
         case pathOutsideProject(String)
@@ -28,6 +29,7 @@ enum EvolutionLocalTools {
         }
     }
 
+    /// 按 name 分发。未知工具失败，不静默。
     static func execute(
         name: String,
         argumentsJSON: String,
@@ -60,10 +62,12 @@ enum EvolutionLocalTools {
         }
     }
 
+    /// 默认允许写。只读进化传 allowMutations: false。
     static var openAIToolDefinitions: [[String: Any]] {
         openAIToolDefinitions(allowMutations: true)
     }
 
+    /// OpenAI tools JSON。false 时去掉 edit/write/shell。
     static func openAIToolDefinitions(allowMutations: Bool) -> [[String: Any]] {
         let readTools: [[String: Any]] = [
             toolDefinition(
@@ -125,6 +129,7 @@ enum EvolutionLocalTools {
 
     // MARK: - Tool implementations
 
+    /// 读项目内 UTF-8 文件。超长截断。
     private static func read(arguments: [String: Any], projectRoot: URL) -> Result<String, ToolError> {
         guard let pathArg = stringValue(arguments["path"]), !pathArg.isEmpty else {
             return .failure(.invalidArguments("read 需要 path 参数。"))
@@ -153,6 +158,7 @@ enum EvolutionLocalTools {
         }
     }
 
+    /// 项目内正则搜索。path 可选，默认全树。
     private static func grep(arguments: [String: Any], projectRoot: URL) -> Result<String, ToolError> {
         guard let pattern = stringValue(arguments["pattern"]), !pattern.isEmpty else {
             return .failure(.invalidArguments("grep 需要 pattern 参数。"))
@@ -192,6 +198,7 @@ enum EvolutionLocalTools {
         return .success(truncateResult(matches.joined(separator: "\n") + suffix))
     }
 
+    /// 按 glob 列文件，不含目录。
     private static func glob(arguments: [String: Any], projectRoot: URL) -> Result<String, ToolError> {
         guard let pattern = stringValue(arguments["pattern"]), !pattern.isEmpty else {
             return .failure(.invalidArguments("glob 需要 pattern 参数。"))
@@ -213,6 +220,7 @@ enum EvolutionLocalTools {
         return .success(truncateResult(results.joined(separator: "\n") + suffix))
     }
 
+    /// old_string 必须唯一匹配，否则失败以免误改。
     private static func edit(arguments: [String: Any], projectRoot: URL) -> Result<String, ToolError> {
         guard let pathArg = stringValue(arguments["path"]),
               let oldString = stringValue(arguments["old_string"]),
@@ -245,6 +253,7 @@ enum EvolutionLocalTools {
         }
     }
 
+    /// 覆盖写，缺父目录会建。
     private static func write(arguments: [String: Any], projectRoot: URL) -> Result<String, ToolError> {
         guard let pathArg = stringValue(arguments["path"]),
               let content = stringValue(arguments["content"]) else {
@@ -269,6 +278,7 @@ enum EvolutionLocalTools {
         }
     }
 
+    /// 在 projectRoot 跑。危险命令（rm -rf / 等）拦截。
     private static func shell(arguments: [String: Any], projectRoot: URL) -> Result<String, ToolError> {
         guard let command = stringValue(arguments["command"])?.trimmingCharacters(in: .whitespacesAndNewlines),
               !command.isEmpty else {
@@ -318,6 +328,7 @@ enum EvolutionLocalTools {
 
     // MARK: - Helpers
 
+    /// 拼一条 OpenAI function schema。
     private static func toolDefinition(
         name: String,
         description: String,
@@ -338,16 +349,19 @@ enum EvolutionLocalTools {
         ]
     }
 
+    /// schema 里一个 string 字段。
     private static func stringProperty(_ description: String) -> [String: Any] {
         ["type": "string", "description": description]
     }
 
+    /// 参数当 String；数字/其他不当路径。
     private static func stringValue(_ value: Any?) -> String? {
         if let string = value as? String { return string }
         if let number = value as? NSNumber { return number.stringValue }
         return nil
     }
 
+    /// 相对路径拼根。解析后必须仍在根下。
     private static func resolveURL(_ path: String, projectRoot: URL) -> Result<URL, ToolError> {
         let expanded = (path as NSString).expandingTildeInPath
         let url: URL
@@ -365,6 +379,7 @@ enum EvolutionLocalTools {
         return .success(url.standardizedFileURL)
     }
 
+    /// 给模型看的相对路径，避免绝对路径泄露本机目录。
     private static func relativePath(_ url: URL, projectRoot: URL) -> String {
         let root = projectRoot.standardizedFileURL.path + "/"
         let path = url.standardizedFileURL.path
@@ -374,11 +389,13 @@ enum EvolutionLocalTools {
         return path
     }
 
+    /// 超 maxResultCharacters 截断并注明。
     private static func truncateResult(_ text: String) -> String {
         guard text.count > maxResultCharacters else { return text }
         return String(text.prefix(maxResultCharacters)) + "\n\n[输出已截断]"
     }
 
+    /// 拦截明显危险命令。漏网不代表安全，只是底线。
     private static func isShellCommandBlocked(_ command: String) -> Bool {
         let lowered = command.lowercased()
         let blocked = [
@@ -394,6 +411,7 @@ enum EvolutionLocalTools {
         return blocked.contains { lowered.contains($0) }
     }
 
+    /// 跳过 .build / .git 等，避免扫出巨量无关文件。
     private static func enumerateFiles(
         at root: URL,
         projectRoot: URL,
@@ -430,6 +448,7 @@ enum EvolutionLocalTools {
         }
     }
 
+    /// 简易 * ? glob，不是完整 gitignore。
     private static func matchesGlob(_ text: String, pattern: String) -> Bool {
         if pattern.contains("*") {
             let escaped = NSRegularExpression.escapedPattern(for: pattern)

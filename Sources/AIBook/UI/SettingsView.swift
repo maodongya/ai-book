@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Evolution-focused system settings (Cursor, auto-upgrade).
+/// 进化设置窗：Cursor Key/模型/桥目录、自动升级。读书 LLM 在 BookSettingsView。
 struct SettingsView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
@@ -46,7 +46,7 @@ struct SettingsView: View {
                     .foregroundStyle(BookTheme.goldSoft)
             }
 
-            Text(BookL10n.string("settings.evolution"))
+            Text(BookL10n.string("settings.evolution")) // 标题强调这是进化，不是读书设置
                 .font(BookTheme.titleFont)
                 .foregroundStyle(BookTheme.goldSoft)
 
@@ -55,7 +55,7 @@ struct SettingsView: View {
             BookActionButton(title: BookL10n.string("action.manual"), icon: "book.pages") {
                 dismiss()
                 DispatchQueue.main.async {
-                    viewModel.openUserManual()
+                    viewModel.openUserManual() // 先关设置再开说明书，避免两窗叠
                 }
             }
             .help(BookL10n.string("help.openManual"))
@@ -82,7 +82,7 @@ struct SettingsView: View {
             settingsSection(title: BookL10n.string("settings.cursorLocal"), icon: "cursorarrow.rays") {
                 labeledSecureField("Cursor API Key", text: $settings.cursorAPIKey)
                     .onSubmit {
-                        settings.saveCursorAPIKey(settings.cursorAPIKey)
+                        settings.saveCursorAPIKey(settings.cursorAPIKey) // 回车也落盘，不只点按钮
                     }
 
                 HStack(spacing: 8) {
@@ -126,6 +126,7 @@ struct SettingsView: View {
         }
     }
 
+    /// 一块带标题图标的设置卡片。
     private func settingsSection<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: icon)
@@ -195,6 +196,7 @@ struct SettingsView: View {
 }
 
 extension View {
+    /// 设置页药丸按钮，走书页按钮样式。
     func settingsPillButton(prominent: Bool = false) -> some View {
         bookPageButton(prominent: prominent)
     }

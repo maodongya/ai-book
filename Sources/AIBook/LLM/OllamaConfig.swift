@@ -1,5 +1,6 @@
 import Foundation
 
+/// 本机已 pull 的一条模型。name 带 tag，如 llama3.2:latest。
 struct OllamaModelInfo: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
@@ -30,12 +31,13 @@ struct OllamaModelInfo: Identifiable, Equatable, Hashable {
 
 /// 本机 Ollama 服务地址、环境变量与已安装模型发现。
 enum OllamaConfig {
-    static let defaultHost = "http://127.0.0.1:11434"
-    static let defaultOpenAIBaseURL = "http://127.0.0.1:11434/v1"
-    static let defaultModel = "llama3.2"
+    static let defaultHost = "http://127.0.0.1:11434" // 原生 API 根，不含 /v1
+    static let defaultOpenAIBaseURL = "http://127.0.0.1:11434/v1" // 聊天走兼容接口
+    static let defaultModel = "llama3.2" // 空模型回填；请求前还会对已安装名
 
     static let pullHint = "未找到已拉取的模型？在终端执行：ollama pull llama3.2"
 
+    /// 补 /v1、去尾斜杠。空串回默认本机。
     static func normalizedOpenAIBaseURL(_ baseURL: String) -> String {
         var trimmed = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return defaultOpenAIBaseURL }
@@ -68,6 +70,7 @@ enum OllamaConfig {
         return hostFromOpenAIBaseURL(trimmed)
     }
 
+    /// 去掉 /v1，给 /api/tags 用。
     static func hostFromOpenAIBaseURL(_ baseURL: String) -> String {
         var host = normalizedOpenAIBaseURL(baseURL)
         if host.hasSuffix("/v1") {
@@ -76,6 +79,7 @@ enum OllamaConfig {
         return host.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     }
 
+    /// 去空白和尾斜杠。
     static func normalizeHostURL(_ value: String) -> String {
         var trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return defaultHost }
@@ -88,6 +92,7 @@ enum OllamaConfig {
         return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     }
 
+    /// 档案 > OLLAMA_API_KEY > 本地 env。本机常空。
     static func resolveAPIKey(stored: String) -> String {
         let trimmed = stored.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
@@ -101,6 +106,7 @@ enum OllamaConfig {
         return loadValueFromLocalFiles(key: "OLLAMA_API_KEY") ?? ""
     }
 
+    /// 空地址/模型回默认本机。
     static func repairProfile(_ profile: LLMProfile) -> LLMProfile {
         var repaired = profile
         let base = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -135,6 +141,7 @@ enum OllamaConfig {
         return []
     }
 
+    /// GET /api/tags，最完整（含大小）。
     static func fetchModelsFromTagsAPI(host: String, apiKey: String) async throws -> [OllamaModelInfo] {
         guard let url = URL(string: "\(host)/api/tags") else {
             throw OllamaDiscoveryError.invalidHost
@@ -157,6 +164,7 @@ enum OllamaConfig {
         return sortAndDedupe(parsed)
     }
 
+    /// GET /v1/models，远程兼容层用。
     static func fetchModelsFromOpenAIAPI(baseURL: String, apiKey: String) async throws -> [OllamaModelInfo] {
         let trimmed = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard let url = URL(string: "\(trimmed)/models") else {
@@ -185,6 +193,7 @@ enum OllamaConfig {
         return sortAndDedupe(parsed)
     }
 
+    /// `ollama list`，HTTP 都挂时的退路。
     static func listModelsViaCLI() throws -> [OllamaModelInfo] {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -218,6 +227,7 @@ enum OllamaConfig {
         return sortAndDedupe(results)
     }
 
+    /// 扫 ~/.ollama/models/manifests。失败回 nil 不是空数组。
     static func scanLocalManifests() -> [OllamaModelInfo]? {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let libraryRoot = home
@@ -270,6 +280,7 @@ enum OllamaConfig {
         return matchInstalledName(requested, installed: installed.map(\.name)) ?? requested
     }
 
+    /// llama3.2 对上 llama3.2:latest。对不上回 nil，不瞎猜。
     static func matchInstalledName(_ requested: String, installed: [String]) -> String? {
         let trimmed = requested.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -323,6 +334,7 @@ enum OllamaConfig {
         }
     }
 
+    /// 400「does not support tools」之类，用来改走无工具对话。
     static func isToolsUnsupportedAPIError(_ message: String) -> Bool {
         let lower = message.lowercased()
         return lower.contains("tool")
@@ -334,6 +346,7 @@ enum OllamaConfig {
             )
     }
 
+    /// 从 Ollama JSON 抽 error 字段。
     static func parseAPIErrorMessage(from data: Data) -> String? {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -352,6 +365,7 @@ enum OllamaConfig {
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// 连不上就提示检查 11434 / ollama serve。
     static func enrichError(_ message: String, host: String) -> String {
         let lower = message.lowercased()
         var hints: [String] = []
@@ -389,6 +403,7 @@ enum OllamaConfig {
 
     // MARK: - Private
 
+    /// 发现过程内部错，不直接给用户。
     private enum OllamaDiscoveryError: Error {
         case invalidHost
         case invalidResponse
@@ -396,6 +411,7 @@ enum OllamaConfig {
         case http(Int, String)
     }
 
+    /// /api/tags 一行。缺 name 丢掉。
     private static func parseTagsEntry(_ entry: [String: Any]) -> OllamaModelInfo? {
         let name = (entry["name"] as? String ?? entry["model"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -415,6 +431,7 @@ enum OllamaConfig {
         )
     }
 
+    /// 同名去重，按名字排，Picker 稳定。
     private static func sortAndDedupe(_ models: [OllamaModelInfo]) -> [OllamaModelInfo] {
         var seen: Set<String> = []
         return models
@@ -422,12 +439,14 @@ enum OllamaConfig {
             .filter { seen.insert($0.id).inserted }
     }
 
+    /// 有 Key 才写 Bearer，本机默认不写。
     private static func applyAuth(to request: inout URLRequest, apiKey: String) {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         request.setValue("Bearer \(trimmed)", forHTTPHeaderField: "Authorization")
     }
 
+    /// 非 2xx 抛，带上 error 正文。
     private static func validateHTTP(response: URLResponse, data: Data) throws {
         guard let http = response as? HTTPURLResponse else {
             throw OllamaDiscoveryError.invalidResponse
@@ -438,6 +457,7 @@ enum OllamaConfig {
         }
     }
 
+    /// ~/.aibook 与工程旁 ollama/cursor env。
     private static func localEnvCandidates() -> [URL] {
         var candidates: [URL] = []
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -450,6 +470,7 @@ enum OllamaConfig {
         return candidates
     }
 
+    /// 按候选扫一个 key。
     private static func loadValueFromLocalFiles(key: String) -> String? {
         for url in localEnvCandidates() {
             if let value = parseEnvFile(at: url, key: key) {
@@ -459,6 +480,7 @@ enum OllamaConfig {
         return nil
     }
 
+    /// KEY=value，# 注释跳过。
     private static func parseEnvFile(at url: URL, key: String) -> String? {
         guard let content = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         for line in content.split(whereSeparator: \.isNewline) {
@@ -476,7 +498,9 @@ enum OllamaConfig {
 }
 
 @MainActor
+/// 设置页/输入条共享的已安装模型列表。同地址不重复刷。
 final class OllamaModelCatalog: ObservableObject {
+    /// 全局一份，避免每张卡片各扫一遍。
     static let shared = OllamaModelCatalog()
 
     @Published private(set) var models: [OllamaModelInfo] = []
@@ -486,6 +510,7 @@ final class OllamaModelCatalog: ObservableObject {
     private var lastBaseURL: String?
     private var lastAPIKey: String?
 
+    /// force 才忽略缓存。地址没变且已有列表则跳过。
     func refresh(baseURL: String, apiKey: String, force: Bool = false) async {
         let normalizedBase = OllamaConfig.normalizedOpenAIBaseURL(baseURL)
         let key = OllamaConfig.resolveAPIKey(stored: apiKey)
@@ -514,6 +539,7 @@ final class OllamaModelCatalog: ObservableObject {
         }
     }
 
+    /// 保证当前档案模型名在列表里，避免 Picker 空选。
     func modelNamesIncluding(_ current: String) -> [String] {
         var names = models.map(\.name)
         let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
