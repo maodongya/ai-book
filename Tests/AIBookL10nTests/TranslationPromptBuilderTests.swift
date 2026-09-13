@@ -52,6 +52,25 @@ final class TranslationPromptBuilderTests: XCTestCase {
         XCTAssertTrue(prompt.contains("\"index\":0"))
     }
 
+    /// 分批提示只附本批 index，避免模型漏后段。
+    func testParagraphModeSubsetOnlyIncludesRequestedIndices() {
+        let source = "第一段\n\n第二段\n\n第三段"
+        let prompt = TranslationPromptBuilder.build(
+            source: source,
+            existingPlan: nil,
+            instruction: nil,
+            mode: .paragraph,
+            targetLanguage: .zhHans,
+            paragraphIndices: [1, 2]
+        )
+        XCTAssertTrue(prompt.contains("\"index\":1"))
+        XCTAssertTrue(prompt.contains("\"index\":2"))
+        XCTAssertFalse(prompt.contains("\"index\":0,\"sourceText\""))
+        XCTAssertTrue(prompt.contains("本批"))
+        XCTAssertTrue(prompt.contains("第二段"))
+        XCTAssertFalse(prompt.contains("\"sourceText\":\"第一段\""))
+    }
+
     /// 逐词和整段两种模式，目标语契约相同。
     func testBothModesCarryTheSameTargetLanguageContract() {
         for mode in [TranslationAlignmentMode.wordByWord, .paragraph] {

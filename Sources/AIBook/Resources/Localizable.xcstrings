@@ -27719,6 +27719,30 @@
         "en": { "stringUnit": { "state": "translated", "value": "Translation in progress — see the popup window" } }
       }
     },
+    "translation.progress.batch": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在翻译第 %lld–%lld 段（共 %lld 段）" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Translating paragraphs %lld–%lld of %lld" } }
+      }
+    },
+    "translation.progress.fillMissing": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在补译缺段（%lld 段）" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Filling %lld missing paragraphs" } }
+      }
+    },
+    "translation.progress.batchHeader": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "—— 第 %lld–%lld 段 ——" } },
+        "en": { "stringUnit": { "state": "translated", "value": "—— Paragraphs %lld–%lld ——" } }
+      }
+    },
+    "translation.progress.fillHeader": {
+      "localizations": {
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "—— 补译 %lld 段 ——" } },
+        "en": { "stringUnit": { "state": "translated", "value": "—— Fill %lld paragraphs ——" } }
+      }
+    },
     "vm.align.resegmentedSuffix": {
       "localizations": {
         "zh-Hans": {

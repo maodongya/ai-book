@@ -139,7 +139,9 @@ final class ReadingTranslationSession: ObservableObject {
                 existingPlan: nil,
                 instruction: nil,
                 mode: .wordByWord
-            )
+            ),
+            existingPlan: nil,  // 逐词不改已有译文
+            instruction: nil  // 逐词不带修订指令
         )
     }
 
@@ -157,12 +159,9 @@ final class ReadingTranslationSession: ObservableObject {
         runLessonPlanTask(  // 流式请求
             displayText: BookL10n.string("vm.display.paragraphTranslation"),  // 整段
             mode: .paragraph,  // 严格段对齐
-            prompt: buildLessonPlanPrompt(
-                source: source,
-                existingPlan: existingTranslationForPrompt(),  // 已有译文让模型改
-                instruction: trimmedInstruction?.isEmpty == false ? trimmedInstruction : nil,  // 空串不传
-                mode: .paragraph
-            )
+            prompt: nil,  // 整段按批现拼，保证每段都译到
+            existingPlan: existingTranslationForPrompt(),  // 已有译文让模型改
+            instruction: trimmedInstruction?.isEmpty == false ? trimmedInstruction : nil  // 空串不传
         )
     }
 
@@ -234,7 +233,9 @@ final class ReadingTranslationSession: ObservableObject {
     private func runLessonPlanTask(
         displayText: String,
         mode: TranslationAlignmentMode,
-        prompt: String
+        prompt: String?,
+        existingPlan: String?,
+        instruction: String?
     ) {
         let settings = AppSettings.shared  // 本轮快照
         if let configError = AppGuard.bookLLMErrorMessage(for: settings) {  // fail-closed
@@ -253,16 +254,27 @@ final class ReadingTranslationSession: ObservableObject {
         host.activeTask = Task {  // 主线程 Task
             defer { endTranslationProgress() }  // 成败都关弹出层
             do {
-                let outcome = try await host.fetchAssistantReply(  // 走读书 LLM
-                    prompt: prompt,
-                    history: llmMode.apiHistory,
-                    settings: settings,
-                    llmMode: llmMode
-                )
-
-                guard !Task.isCancelled else { return }  // 停止不写
-                let resolvedPlan = outcome.text.isEmpty ? translationStreamPreview : outcome.text  // 流在弹出层
-                applyTranslationResult(resolvedPlan, title: displayText, mode: mode)  // 建对齐刷右页
+                switch mode {  // 整段分批覆盖，逐词一次请求
+                case .paragraph:  // 段数必须对上
+                    try await runCoveringParagraphTranslation(  // 分批 + 缺段补译
+                        displayText: displayText,
+                        existingPlan: existingPlan,
+                        instruction: instruction,
+                        settings: settings,
+                        llmMode: llmMode
+                    )
+                case .wordByWord:  // 宽松：坏 JSON 走纯文本
+                    guard let prompt else { return }  // 逐词必须已拼好提示
+                    let outcome = try await host.fetchAssistantReply(  // 走读书 LLM
+                        prompt: prompt,
+                        history: llmMode.apiHistory,
+                        settings: settings,
+                        llmMode: llmMode
+                    )
+                    guard !Task.isCancelled else { return }  // 停止不写
+                    let resolvedPlan = outcome.text.isEmpty ? translationStreamPreview : outcome.text  // 流在弹出层
+                    applyTranslationResult(resolvedPlan, title: displayText, mode: mode)  // 建对齐刷右页
+                }
             } catch {
                 guard !Task.isCancelled else { return }  // 停止不写
                 if !(error is CancellationError) {  // 取消不报错
@@ -275,6 +287,150 @@ final class ReadingTranslationSession: ObservableObject {
             host.activeTask = nil  // 允许下一轮
             host.resetStreamingState()  // 清流
         }
+    }
+
+
+    /// 按原文段分批请求，缺段再补，保证每一段都有译文。
+    private func runCoveringParagraphTranslation(
+        displayText: String,
+        existingPlan: String?,
+        instruction: String?,
+        settings: AppSettings,
+        llmMode: AIBookLLMPrompt.Mode
+    ) async throws {
+        let source = lessonPlanSourceText()  // 选区优先
+        let index = SourceParagraphIndex.build(from: source)  // 和 Prompt / 验收同一套段
+        guard index.count > 0 else {  // 切不出段
+            host.errorMessage = BookL10n.string("vm.error.translationSourceFirst")  // 先选或打开
+            return  // 原文没变，结束
+        }
+
+        let target = settings.resolvedTranslationTargetLanguage  // 调用前已 resolved
+        var collected: [ParagraphTranslationItem] = []  // 各批合并后的译文
+
+        for batch in ParagraphTranslationCoverage.batches(count: index.count) {  // 后段单独请求，避免截断漏译
+            try Task.checkCancellation()  // 用户点停止
+            let indices = Array(batch)  // 本批下标
+            translationProgressTitle = BookL10n.format(  // 弹出层标题跟批走
+                "translation.progress.batch",
+                (indices.first ?? 0) + 1,  // 给用户看 1-based
+                (indices.last ?? 0) + 1,
+                index.count
+            )
+            appendTranslationProgressMarker(  // 预览里标本批起点
+                BookL10n.format(
+                    "translation.progress.batchHeader",
+                    (indices.first ?? 0) + 1,
+                    (indices.last ?? 0) + 1
+                )
+            )
+            let previewStart = translationStreamPreview.count  // 只要本批新流出的
+            let prompt = TranslationPromptBuilder.build(  // 只带本批段落
+                source: source,
+                existingPlan: existingTranslationsForPrompt(
+                    indices: indices,
+                    fallback: existingPlan,
+                    totalCount: index.count
+                ),
+                instruction: instruction,
+                mode: .paragraph,
+                targetLanguage: target,
+                paragraphIndices: indices
+            )
+            let incoming = try await fetchParagraphTranslationItems(  // 本批 JSON
+                prompt: prompt,
+                previewStart: previewStart,
+                settings: settings,
+                llmMode: llmMode
+            )
+            collected = ParagraphTranslationCoverage.merge(collected, with: incoming)  // 同号后到覆盖
+        }
+
+        var fillRound = 0  // 补译轮次
+        while !ParagraphTranslationCoverage.isComplete(collected, expectedCount: index.count),
+              fillRound < ParagraphTranslationCoverage.maxFillRounds {
+            try Task.checkCancellation()  // 用户点停止
+            fillRound += 1  // 下一轮补译
+            let missing = ParagraphTranslationCoverage.missingIndices(in: collected, expectedCount: index.count)  // 还没译到的
+            translationProgressTitle = BookL10n.format("translation.progress.fillMissing", missing.count)  // 弹出层标题
+            appendTranslationProgressMarker(BookL10n.format("translation.progress.fillHeader", missing.count))  // 预览分隔
+            let previewStart = translationStreamPreview.count  // 只要本轮新流出的
+            let prompt = TranslationPromptBuilder.build(  // 只带缺段
+                source: source,
+                existingPlan: nil,  // 缺段没有可参考的旧译
+                instruction: instruction,
+                mode: .paragraph,
+                targetLanguage: target,
+                paragraphIndices: missing
+            )
+            let incoming = try await fetchParagraphTranslationItems(  // 缺段 JSON
+                prompt: prompt,
+                previewStart: previewStart,
+                settings: settings,
+                llmMode: llmMode
+            )
+            collected = ParagraphTranslationCoverage.merge(collected, with: incoming)  // 补进总表
+        }
+
+        applyTranslationResult(  // 走原验收门，仍缺则报错不覆盖旧译
+            ParagraphTranslationCoverage.encodedJSON(collected),
+            title: displayText,
+            mode: .paragraph
+        )
+    }
+
+
+    /// 发一轮整段请求，只解析本轮新流出的 JSON。
+    private func fetchParagraphTranslationItems(
+        prompt: String,
+        previewStart: Int,
+        settings: AppSettings,
+        llmMode: AIBookLLMPrompt.Mode
+    ) async throws -> [ParagraphTranslationItem] {
+        let outcome = try await host.fetchAssistantReply(  // 走读书 LLM
+            prompt: prompt,
+            history: llmMode.apiHistory,
+            settings: settings,
+            llmMode: llmMode
+        )
+        guard !Task.isCancelled else { return [] }  // 停止不写
+        let streamed = String(translationStreamPreview.dropFirst(previewStart))  // 去掉本轮之前的预览
+        let resolved = outcome.text.isEmpty ? streamed : outcome.text  // 收尾全文优先
+        return TranslationAlignmentBuilder.parseParagraphTranslationItems(from: resolved)  // 截断也能保住已闭合段
+    }
+
+
+    /// 分批时只带本批旧译；单批才用整篇 fallback。
+    private func existingTranslationsForPrompt(
+        indices: [Int],
+        fallback: String?,
+        totalCount: Int
+    ) -> String? {
+        if let alignment = translationAlignment, !alignment.blocks.isEmpty {  // 优先用块里的译
+            let texts = indices.compactMap { order -> String? in
+                let text = alignment.blocks  // 去掉摘要
+                    .first { $0.level != .summary && $0.order == order }?  // 对上本批下标
+                    .translationText
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""  // 去空白
+                return text.isEmpty ? nil : text  // 空段丢掉
+            }
+            if !texts.isEmpty {
+                return texts.joined(separator: "\n\n")  // 空行拼，便于模型对段
+            }
+        }
+        if indices.count == totalCount {
+            return fallback  // 一次译完全文才把整篇旧译塞进去
+        }
+        return nil  // 多批时不要整篇旧译干扰本批
+    }
+
+
+    /// 预览里插入批次分隔，方便人跟读。
+    private func appendTranslationProgressMarker(_ text: String) {
+        if !translationStreamPreview.isEmpty {
+            translationStreamPreview += "\n\n"  // 和上一批隔开
+        }
+        translationStreamPreview += text + "\n"  // 标题单独一行
     }
 
 

@@ -8,9 +8,11 @@ enum TranslationPromptBuilder {
         existingPlan: String?, // 已有译文，只作改写参考
         instruction: String?, // 用户这轮额外要求，可空
         mode: TranslationAlignmentMode, // 决定 JSON 形状，和解析器必须一致
-        targetLanguage: TranslationTargetLanguage // 调用前必须已 resolved，禁止 .followAppLanguage
+        targetLanguage: TranslationTargetLanguage, // 调用前必须已 resolved，禁止 .followAppLanguage
+        paragraphIndices: [Int]? = nil // 整段分批或补译时只带这些 index，nil 表示全部
     ) -> String {
         let paragraphCount = countParagraphs(in: source) // 整段模式用来锁 blocks 条数
+        let selectedIndices = resolvedParagraphIndices(paragraphIndices, count: paragraphCount) // 非法下标丢掉
         let taskIntro: String
         let outputFormat: String
 
@@ -33,12 +35,20 @@ enum TranslationPromptBuilder {
             要求：entries 顺序必须与原文一致；source 必须是原文中的连续子串。
             """
         case .paragraph:
+            let batchCount = selectedIndices.count // 本批必须交齐的条数
+            let indexList = selectedIndices.map(String.init).joined(separator: ", ") // 给模型看的下标清单
+            let batchNote: String
+            if selectedIndices.count == paragraphCount {
+                batchNote = "原文共 \(paragraphCount) 段，translations 必须正好 \(paragraphCount) 项，index 从 0 到 \(max(0, paragraphCount - 1))，顺序一致。"  // 一次译完全文
+            } else {
+                batchNote = "原文共 \(paragraphCount) 段。本批只翻译这些 index：\(indexList)。translations 必须正好 \(batchCount) 项，禁止省略其中任何一段，禁止改 index。"  // 分批或补译
+            }
             taskIntro = """
             请对左侧文章做整段翻译，供原文对照与表格查阅使用。
             要求：一段原文对应一段译文；译文通顺准确；只输出翻译与少量必要注释，不写教案。
-            原文共 \(paragraphCount) 段，translations 必须正好 \(paragraphCount) 项，index 从 0 到 \(max(0, paragraphCount - 1))，顺序一致。
+            \(batchNote)
             """
-            let paragraphIndexJSON = paragraphIndexAttachment(for: source)
+            let paragraphIndexJSON = paragraphIndexAttachment(for: source, indices: selectedIndices)
             outputFormat = """
             请只输出 JSON（可放在 ```json 代码块内），格式如下：
             {
@@ -47,7 +57,7 @@ enum TranslationPromptBuilder {
                 { "index": 0, "translationText": "第一段译文", "notes": null }
               ]
             }
-            要求：不要输出或修改 sourceText；只填 translationText 与可选 notes；index 必须覆盖每一段。
+            要求：不要输出或修改 sourceText；只填 translationText 与可选 notes；index 必须覆盖本批每一段。
             """
             var sections = [ // 顺序：自包含声明、目标语、任务、格式、段落索引、原文
                 "本请求完全自包含：不要依赖任何对话历史。即使刚清空上下文，也必须只根据下面的【左侧文章】完成翻译。",
@@ -55,11 +65,11 @@ enum TranslationPromptBuilder {
                 taskIntro,
                 outputFormat,
                 paragraphIndexJSON,
-                "【左侧文章】\n\(source)",
+                sourceSection(for: source, indices: selectedIndices),
             ]
 
-            if let existingPlan, !existingPlan.isEmpty { // 有旧译文才附上，仍要求覆盖全文
-                sections.append("【现有翻译内容（仅供改写参考，仍须覆盖全部原文）】\n\(existingPlan)")
+            if let existingPlan, !existingPlan.isEmpty { // 有旧译文才附上，仍要求覆盖本批
+                sections.append("【现有翻译内容（仅供改写参考，仍须覆盖本批全部原文）】\n\(existingPlan)")
             }
             if let instruction, !instruction.isEmpty {
                 sections.append("【本次翻译要求】\n\(instruction)")
@@ -103,11 +113,22 @@ enum TranslationPromptBuilder {
         return requirements.joined(separator: "\n")
     }
 
+    /// 丢掉越界下标；未指定则用 0…n-1。
+    private static func resolvedParagraphIndices(_ requested: [Int]?, count: Int) -> [Int] {
+        if let requested {
+            return requested.filter { $0 >= 0 && $0 < count }  // 只留合法段号
+        }
+        guard count > 0 else { return [] }  // 原文没有段
+        return Array(0..<count)  // 全文
+    }
+
     /// 客户端附上的段落索引，模型只填 translations。
-    private static func paragraphIndexAttachment(for source: String) -> String {
+    private static func paragraphIndexAttachment(for source: String, indices: [Int]) -> String {
         let index = SourceParagraphIndex.build(from: source)
-        let items = index.slices.enumerated().map { order, slice in
-            """
+        let items = indices.compactMap { order -> String? in
+            guard index.slices.indices.contains(order) else { return nil }  // 越界丢掉
+            let slice = index.slices[order]  // 这一段原文
+            return """
             {"index":\(order),"sourceText":\(jsonEscaped(slice.text))}
             """
         }
@@ -115,6 +136,19 @@ enum TranslationPromptBuilder {
         【段落索引（勿改 sourceText，按 index 填 translationText）】
         [\(items.joined(separator: ","))]
         """
+    }
+
+    /// 分批时【左侧文章】只放本批原文，避免模型漏后段。
+    private static func sourceSection(for source: String, indices: [Int]) -> String {
+        let index = SourceParagraphIndex.build(from: source)
+        if indices.count == index.count {
+            return "【左侧文章】\n\(source)"  // 一次译完全文
+        }
+        let parts = indices.compactMap { order -> String? in
+            guard index.slices.indices.contains(order) else { return nil }  // 越界丢掉
+            return index.slices[order].text  // 只带本批
+        }
+        return "【左侧文章】\n\(parts.joined(separator: "\n\n"))"
     }
 
     /// 把原文段打进 JSON 字符串。编码失败给空串，避免提示词破形。

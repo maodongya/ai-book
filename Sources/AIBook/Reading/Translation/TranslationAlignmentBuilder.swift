@@ -88,6 +88,18 @@ enum TranslationAlignmentBuilder {
         let translations: [Item]?
     }
 
+    /// 给分批/补译用：从模型原文抠已闭合的 translations。
+    static func parseParagraphTranslationItems(from text: String) -> [ParagraphTranslationItem] {
+        guard let items = decodeParagraphTranslationsJSON(from: text) else { return [] }  // 抠不出就空
+        return items.map {
+            ParagraphTranslationItem(  // 转成覆盖算法用的条目
+                index: $0.index,  // 对应原文段
+                translationText: $0.translationText,  // 这一段译文
+                notes: nonemptyNote($0.notes)  // 空白注丢掉
+            )
+        }
+    }
+
     /// 从模型原文抠 translations 数组。先围栏后整段，解过的不再解。
     private static func decodeParagraphTranslationsJSON(
         from text: String
@@ -98,6 +110,9 @@ enum TranslationAlignmentBuilder {
             candidates.append(extracted)  // 抽出的比整段更干净
         }
         candidates.append(text)  // 模型有时整段就是 JSON
+        if let repairedFromFull = repairTruncatedArrayJSON(text, arrayKey: "translations", mode: "paragraph") {  // 流被截断时保住已闭合段
+            candidates.append(repairedFromFull)  // 修补结果放后面试
+        }
 
         for candidate in candidates {  // 先完整后修补
             guard seen.insert(candidate).inserted else { continue }  // 去重
@@ -105,6 +120,12 @@ enum TranslationAlignmentBuilder {
                let items = payload.translations,
                !items.isEmpty {
                 return items  // 注仍是 nil
+            }
+            if let repaired = repairTruncatedArrayJSON(candidate, arrayKey: "translations", mode: "paragraph"),  // 当前候选本身被截断再修一次
+               let payload = try? JSONDecoder().decode(ParagraphTranslationsJSON.self, from: Data(repaired.utf8)),
+               let items = payload.translations,
+               !items.isEmpty {
+                return items  // 修补后的完整对象
             }
         }
         return nil  // 抠不出任何 JSON
@@ -241,7 +262,7 @@ enum TranslationAlignmentBuilder {
             candidates.append(extracted)  // 抽出的比整段更干净
         }
         candidates.append(text)  // 模型有时整段就是 JSON
-        if let repairedFromFull = repairTruncatedParagraphJSON(text) {  // 流被截断时拼回完整 blocks
+        if let repairedFromFull = repairTruncatedArrayJSON(text, arrayKey: "blocks", mode: "paragraph") {  // 流被截断时拼回完整 blocks
             candidates.append(repairedFromFull)  // 修补结果放最后试
         }
 
@@ -252,7 +273,7 @@ enum TranslationAlignmentBuilder {
                !blocks.isEmpty {
                 return payload  // 有非空 blocks 就收
             }
-            if let repaired = repairTruncatedParagraphJSON(candidate),  // 当前候选本身被截断再修一次
+            if let repaired = repairTruncatedArrayJSON(candidate, arrayKey: "blocks", mode: "paragraph"),  // 当前候选本身被截断再修一次
                let payload = try? JSONDecoder().decode(ParagraphJSON.self, from: Data(repaired.utf8)),
                let blocks = payload.blocks,
                !blocks.isEmpty {
@@ -262,12 +283,17 @@ enum TranslationAlignmentBuilder {
         return nil  // 抠不出任何 JSON
     }
 
-    /// JSON 被截断时尽量保住已经完整的 blocks。
-    private static func repairTruncatedParagraphJSON(_ jsonText: String) -> String? {
-        guard jsonText.contains("\"blocks\""), jsonText.contains("\"sourceText\"") else { return nil }  // 没有段结构就修不了
-        let objects = extractCompleteJSONObjects(from: jsonText, afterKey: "\"blocks\"")  // 只收已经闭合的 {}
+    /// JSON 被截断时尽量保住已经完整的数组元素。
+    private static func repairTruncatedArrayJSON(
+        _ jsonText: String,
+        arrayKey: String,
+        mode: String
+    ) -> String? {
+        let quotedKey = "\"\(arrayKey)\""  // 和原文里的键字面量对齐
+        guard jsonText.contains(quotedKey) else { return nil }  // 没有目标数组就修不了
+        let objects = extractCompleteJSONObjects(from: jsonText, afterKey: quotedKey)  // 只收已经闭合的 {}
         guard !objects.isEmpty else { return nil }  // 一个完整对象都没有
-        return #"{"mode":"paragraph","blocks":[\#(objects.joined(separator: ","))]}"#  // 重包成合法根，丢掉截断尾巴
+        return #"{"mode":"\#(mode)","\#(arrayKey)":[\#(objects.joined(separator: ","))]}"#  // 重包成合法根，丢掉截断尾巴
     }
 
     /// 从截断 JSON 里抠完整的 {} 对象。
