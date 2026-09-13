@@ -35,8 +35,9 @@ enum BookUserManual {
 
     private static var developmentManualURL: URL? {
         guard let project = CursorService.defaultProjectDirectory() else { return nil }
+        // 开发态优先读仓库 docs/产品，与打包进 Resources 的副本对齐。
         let candidates = [
-            project.appendingPathComponent("功能说明书.md"),
+            project.appendingPathComponent("docs/产品/功能说明书.md"),
             project.appendingPathComponent("Sources/AIBook/Resources/功能说明书.md"),
         ]
         return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
@@ -49,7 +50,7 @@ enum BookUserManual {
             return """
             # AIBook 功能说明书
 
-            未找到内置说明书文件。请从项目仓库打开 `功能说明书.md`，或重新安装应用。
+            未找到内置说明书文件。请从项目仓库打开 `docs/产品/功能说明书.md`，或重新安装应用。
 
             \(AIBookProduct.positioning)
             """

@@ -2,7 +2,9 @@
 
 Swift 实现的 macOS 辅助读书应用：左侧显示本地 `.txt` 原文，右侧由大模型讲解与选中文字相关的内容。
 
-**功能说明（用户手册）**：[功能说明书.md](./功能说明书.md)
+**功能说明（用户手册）**：[docs/产品/功能说明书.md](docs/产品/功能说明书.md)
+
+**文档与规约**：[docs/README.md](docs/README.md) · [代码规约](docs/规约/方便人理解代码规约.md)
 
 **界面语言**：book 设置 → 外观风格 → **界面语言**（文案由 `Localizable.xcstrings` 在运行时加载；SwiftPM 下不使用 `String(localized:)`）。（简体中文、English、日本語、Deutsch、Français、Italiano、Latina、Ελληνικά，或跟随系统）。文案表：`Sources/AIBook/Resources/Localizable.xcstrings`。维护流程：编辑 `scripts/l10n/string_table_extended.py` / `viewmodel_l10n.py` → `python3 scripts/generate-localizable-catalog.py`；批量替换 Swift 字面量可用 `scripts/l10n/apply_swift_l10n*.py` 与 `migrate_reading_viewmodel.py`。
 

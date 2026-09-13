@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift 5.9、SwiftUI、XCTest、Swift Package Manager、macOS 13+、现有 `LLMEvolutionAgent` / `CursorService` / `EvolutionLocalTools`。
 
-**Spec:** [aibook进化设计.md](./aibook进化设计.md)
+**Spec:** [aibook进化设计.md](./aibook进化设计.md)（`docs/进化/`）
 
 ## Global Constraints
 
@@ -49,7 +49,7 @@
 | `Sources/AIBook/Evolution/EvolutionAssistant.swift` | 欢迎语：先分析再进化 |
 | `Sources/AIBook/Core/AIBookProduct.swift` | about 文案 |
 | `Sources/AIBook/UI/SettingsView.swift` | 自动升级说明 |
-| `整体功能文档设计.md` / `整体UI文档设计.md` | 与实现同步 |
+| `docs/产品/整体功能文档设计.md` / `docs/UI/整体UI文档设计.md` | 与实现同步 |
 
 不要把 `LLMEvolutionAgent` 的改码主循环拆到 Task 1–6。不要在本计划做读书助手对话区修复（那是分析可能提出的优化项，不是本功能本身）。
 
@@ -1602,9 +1602,9 @@ EOF
 - Modify: `Sources/AIBook/Evolution/EvolutionAssistant.swift`
 - Modify: `Sources/AIBook/Core/AIBookProduct.swift`
 - Modify: `Sources/AIBook/UI/SettingsView.swift`（若 Task 4 未改完）
-- Modify: `整体功能文档设计.md`（§4.6、§6.1、§11.4）
-- Modify: `整体UI文档设计.md`（§3.9、§4.4）
-- Modify: `aibook进化设计.md` 仅当实现与设计有意偏移时回写一句
+- Modify: `docs/产品/整体功能文档设计.md`（§4.6、§6.1、§11.4）
+- Modify: `docs/UI/整体UI文档设计.md`（§3.9、§4.4）
+- Modify: `docs/进化/aibook进化设计.md` 仅当实现与设计有意偏移时回写一句
 
 **Interfaces:**
 - Consumes: 已落地行为
@@ -1642,7 +1642,7 @@ Run: `swift test && swift build`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/AIBook 整体功能文档设计.md 整体UI文档设计.md aibook进化设计.md
+git add Sources/AIBook docs/产品/整体功能文档设计.md docs/UI/整体UI文档设计.md docs/进化/aibook进化设计.md
 git commit -m "$(cat <<'EOF'
 docs: align evolution copy with analyze-then-upgrade
 

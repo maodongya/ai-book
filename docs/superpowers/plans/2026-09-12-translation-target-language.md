@@ -35,7 +35,7 @@
 - Create `Tests/AIBookL10nTests/TranslationTargetLanguageTests.swift`: migration and resolution tests.
 - Create `Tests/AIBookL10nTests/TranslationPromptBuilderTests.swift`: prompt-contract tests for both modes and all concrete targets.
 - Modify `Tests/AIBookL10nTests/BookL10nCatalogTests.swift`: catalog completeness checks for the new keys.
-- Modify `README.md` and `功能说明书.md`: document where and how the target language is selected.
+- Modify `README.md` and `docs/产品/功能说明书.md`: document where and how the target language is selected.
 
 ### Task 1: Target-language domain model and persistence
 
@@ -493,7 +493,7 @@ Expected: only the prompt and request-wiring changes are staged. Leave inseparab
 - Regenerate: `Sources/AIBook/Resources/Localizable.xcstrings`
 - Modify: `Tests/AIBookL10nTests/BookL10nCatalogTests.swift`
 - Modify: `README.md:1-10`
-- Modify: `功能说明书.md` in its translation/settings sections.
+- Modify: `docs/产品/功能说明书.md` in its translation/settings sections.
 
 **Interfaces:**
 - Consumes: `TranslationTargetLanguage.allCases`, `.localizedName`, and `AppSettings.translationTargetLanguage`.
@@ -647,7 +647,7 @@ Use the existing `@ObservedObject private var settings = AppSettings.shared` if 
 
 - [ ] **Step 6: Document the user-visible behavior**
 
-Update `README.md` and the translation/settings sections of `功能说明书.md` to state:
+Update `README.md` and the translation/settings sections of `docs/产品/功能说明书.md` to state:
 
 ```markdown
 翻译目标语言可在“book 设置 → AI模型设置 → 翻译目标语言”中设置，也可从工具栏“翻译操作 → 翻译目标语言”快速切换。默认跟随界面语言，支持简体中文、英语、日语、德语、法语、意大利语、拉丁语和希腊语；切换只影响之后发起的翻译。
