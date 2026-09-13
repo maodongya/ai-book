@@ -188,7 +188,10 @@ final class ReadingTranslationSession: ObservableObject {
             panelTitle: BookL10n.string("vm.panel.saveTranslation"),
             panelMessage: BookL10n.string("vm.panel.saveTranslationMsg"),
             suggestedName: lessonPlanFileName(),
-            successPrefix: BookL10n.string("vm.saved.translation")
+            successPrefix: BookL10n.string("vm.saved.translation"),
+            onSaved: { [weak self] url in
+                self?.saveTranslationAlignmentSidecar(near: url)  // 与 txt 同目录，打开时可恢复表格
+            }
         )
     }
 
@@ -214,11 +217,12 @@ final class ReadingTranslationSession: ObservableObject {
             isApplyingAlignment = true  // 成对写，抑制 stale
             lessonPlanContent = text  // 先上屏
             isApplyingAlignment = false  // 解开
-            guard alignTranslationWithSource(showFeedback: false) else { return }  // 对齐失败就停，保留正文
-            if var alignment = translationAlignment {  // 标来源
-                alignment.provenance = .importedPlain  // 不是模型 JSON
-                alignment.strictParagraphValidated = false  // 允许再修
-                translationAlignment = alignment  // 成对写
+            if !applyTranslationSidecarIfValid(from: url, content: text) {  // 优先 sidecar
+                guard alignTranslationWithSource(showFeedback: false) else { return }  // 再解析导出 txt / 启发式
+                if var alignment = translationAlignment {  // 标来源
+                    alignment.provenance = .importedPlain  // 外部 txt
+                    translationAlignment = alignment  // round-trip 可保留 strictParagraphValidated
+                }
             }
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()  // 记住
             host.errorMessage = nil  // 清旧错
@@ -226,6 +230,35 @@ final class ReadingTranslationSession: ObservableObject {
         } catch {
             host.errorMessage = BookL10n.format("vm.error.openTranslation", error.localizedDescription)  // 读失败
         }
+    }
+
+
+    /// txt 同目录 sidecar 有效则直接恢复对齐。
+    private func applyTranslationSidecarIfValid(from url: URL, content: String) -> Bool {
+        guard let sidecar = TranslationAlignmentSidecar.read(near: url) else { return false }  // 无 sidecar
+        let source = lessonPlanSourceText()  // 要和保存时同一原文
+        guard TranslationSourceHasher.hash(source) == sidecar.sourceContentHash else { return false }  // 原文变了
+        guard !sidecar.isStale, sidecar.mode == .paragraph else { return false }  // 只恢复整段表
+        guard TranslationContentFormatter.matchesRenderedContent(sidecar, content: content) else { return false }  // txt 被手改
+
+        isApplyingAlignment = true  // 成对写，抑制 stale
+        var alignment = sidecar
+        alignment.provenance = .importedPlain  // 外部文件
+        alignment.isStale = false  // 刚校验过 hash
+        translationAlignment = alignment  // 成对写
+        translationTableViewEnabled = true  // 恢复表格对照
+        isApplyingAlignment = false  // 解开
+        syncTranslationScrollPresentation()  // 刷对滚
+        host.persistChatSession()  // 落盘
+        return true  // 不再走启发式
+    }
+
+
+    /// 保存译文时写入 sidecar。
+    private func saveTranslationAlignmentSidecar(near txtURL: URL) {
+        guard let alignment = translationAlignment, !alignment.isStale else { return }  // 没对齐或过期不写
+        guard alignment.mode == .paragraph else { return }  // 逐词另说
+        TranslationAlignmentSidecar.write(alignment, near: txtURL)  // 失败不影响 txt
     }
 
 
@@ -547,9 +580,8 @@ final class ReadingTranslationSession: ObservableObject {
         if let rendered = outcome.renderedContent {  // 切段后重排了译文
             lessonPlanContent = rendered  // 右页换成切好的
         }
-        var alignment = outcome.alignment  // 本地启发式
-        if alignment.mode == .paragraph {  // 本地重排不算严格校验
-            alignment.strictParagraphValidated = false  // 允许再修
+        var alignment = outcome.alignment  // 本地对齐或 round-trip
+        if alignment.mode == .paragraph, !alignment.strictParagraphValidated {  // 启发式才降级
             alignment.provenance = .realignedHeuristic  // 来源
         }
         translationAlignment = alignment  // 成对写

@@ -22,8 +22,9 @@ enum TranslationContentFormatter {
         switch alignment.mode {
         case .paragraph:
             let paragraphs = blocks.filter { $0.level == .paragraph }
-            for (index, block) in paragraphs.enumerated() {
-                let range = builder.appendSection(formatParagraphBlock(block), isFirstInGroup: index == 0) // 组内第一段前空两行
+            for block in paragraphs {
+                // 段与段之间必须 \n\n，否则保存 txt 再打开会被合成一段。
+                let range = builder.appendSection(formatParagraphBlock(block), isFirstInGroup: true)
                 applyTranslationRange(range, to: block.id, in: &blocks)
             }
 
@@ -101,6 +102,47 @@ enum TranslationContentFormatter {
         let rendered = TranslationSourceHasher.normalize(render(alignment))
         let trimmed = TranslationSourceHasher.normalize(contentWithoutDisplayTitle(content))
         return rendered == trimmed
+    }
+
+    /// 从 `renderIndexed` 导出的纯文本解析整段译文；格式不符返回 nil。
+    static func parseRenderedParagraphSections(
+        from content: String
+    ) -> [(translationText: String, note: String?)]? {
+        var body = contentWithoutDisplayTitle(content)
+        guard !body.isEmpty else { return nil }  // 空文件
+
+        if let marker = body.range(of: "\n\n【注释】\n\n") {  // 摘要区不参与段数
+            body = String(body[..<marker.lowerBound])
+        } else if body.hasPrefix("【注释】\n\n") {
+            return []  // 只有注释、没有正文段
+        }
+
+        let chunks = body.components(separatedBy: "\n\n")
+        var sections: [(String, String?)] = []
+        for chunk in chunks {
+            let trimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            if trimmed.hasPrefix("【"), trimmed.hasSuffix("】") { continue }  //  stray 标题行
+            let parsed = splitRenderedParagraphChunk(trimmed)
+            guard !parsed.translationText.isEmpty else { return nil }  // 空段不算导出格式
+            sections.append((parsed.translationText, parsed.note))
+        }
+        return sections.isEmpty ? nil : sections
+    }
+
+    /// 段末单独一行的（注）与正文拆开。
+    private static func splitRenderedParagraphChunk(_ chunk: String) -> (translationText: String, note: String?) {
+        var lines = chunk.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        guard let last = lines.last?.trimmingCharacters(in: .whitespacesAndNewlines),
+              last.hasPrefix("（"),
+              last.hasSuffix("）"),
+              last.count > 2 else {
+            return (chunk.trimmingCharacters(in: .whitespacesAndNewlines), nil)
+        }
+        let note = String(last.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
+        lines.removeLast()
+        let text = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return (text, note.isEmpty ? nil : note)
     }
 
     /// 只格式化指定原文范围。

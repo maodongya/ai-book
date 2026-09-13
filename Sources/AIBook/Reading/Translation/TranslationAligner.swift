@@ -44,6 +44,14 @@ enum TranslationAligner {
         translation: String,
         title: String?
     ) -> Outcome? {
+        if let roundTrip = alignParagraphFromRenderedPlain(
+            source: source,
+            translation: translation,
+            title: title
+        ) {
+            return roundTrip  // 保存 txt 再打开，不走启发式切段
+        }
+
         let normalizedSource = TranslationParagraphText.collapsedBlankLines(source)
         let sourceParagraphs = TranslationParagraphText.contentParagraphRanges(in: normalizedSource)
         guard !sourceParagraphs.isEmpty else { return nil }
@@ -70,6 +78,61 @@ enum TranslationAligner {
         alignment.provenance = .realignedHeuristic
 
         return Outcome(alignment: alignment, renderedContent: rendered.content)
+    }
+
+    /// 右页导出格式与原文段数一致时，直接恢复严格对齐。
+    private static func alignParagraphFromRenderedPlain(
+        source: String,
+        translation: String,
+        title: String?
+    ) -> Outcome? {
+        let index = SourceParagraphIndex.build(from: source)
+        guard index.count > 0,
+              let sections = TranslationContentFormatter.parseRenderedParagraphSections(from: translation),
+              sections.count == index.count else {
+            return nil  // 不是导出格式或段数对不上
+        }
+
+        let blocks = sections.enumerated().map { order, section in
+            let slice = index.slices[order]
+            return TranslationBlock(
+                sourceRange: slice.range,
+                sourceText: slice.text,
+                translationText: section.translationText,
+                note: section.note,
+                level: .paragraph,
+                order: order
+            )
+        }
+
+        switch ParagraphAlignmentValidator.validate(
+            blocks: blocks,
+            index: index,
+            requireSourceTextMatch: false
+        ) {
+        case .success:
+            break
+        case .failure:
+            return nil  // 验收不过仍走启发式
+        }
+
+        var alignment = TranslationAlignment(
+            mode: .paragraph,
+            blocks: blocks,
+            sourceContentHash: TranslationSourceHasher.hash(source),
+            createdAt: Date(),
+            isStale: false,
+            strictParagraphValidated: true,
+            provenance: .importedPlain
+        )
+        let rendered = TranslationContentFormatter.renderIndexed(alignment, title: title)
+        alignment.blocks = rendered.blocks
+        let renderedFull = TranslationContentFormatter.render(alignment, title: title)  // 含【标题】与导出 txt 一致
+        guard TranslationSourceHasher.normalize(renderedFull)
+            == TranslationSourceHasher.normalize(translation) else {
+            return nil  // 用户改过排版，不能当严格 round-trip
+        }
+        return Outcome(alignment: alignment, renderedContent: nil)
     }
 
     /// 逐词：用 LineParser/JSON 建块。原文已是「词 → 译」就不再覆盖右页。

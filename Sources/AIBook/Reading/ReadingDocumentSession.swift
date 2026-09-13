@@ -362,7 +362,8 @@ final class ReadingDocumentSession: ObservableObject {
         panelTitle: String,
         panelMessage: String,
         suggestedName: String,
-        successPrefix: String
+        successPrefix: String,
+        onSaved: ((URL) -> Void)? = nil
     ) {
         guard !content.isEmpty else { return }  // 没笔记就保持未打开
 
@@ -389,6 +390,7 @@ final class ReadingDocumentSession: ObservableObject {
             }
             host.errorMessage = nil  // 清错
             host.document.showTransientSaveMessage("\(successPrefix) \(destination.lastPathComponent)")  // 3 秒提示
+            onSaved?(destination)  // 译文可写 sidecar
         } catch {
             host.errorMessage = BookL10n.format("vm.error.saveFile", error.localizedDescription)  // 写失败
         }
