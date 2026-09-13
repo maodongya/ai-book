@@ -7,6 +7,6 @@
 | [规约](规约/方便人理解代码规约.md) | 代码怎么写、文档放哪、改代码如何同步文档 |
 | [产品](产品/整体功能文档设计.md) | [整体功能设计](产品/整体功能文档设计.md) · [用户说明书](产品/功能说明书.md) |
 | [UI](UI/整体UI文档设计.md) | [整体界面](UI/整体UI文档设计.md) · [风格与主题](UI/aibook风格.md) |
-| [阅读](阅读/aibook阅读模式.md) | [阅读模式](阅读/aibook阅读模式.md) · [同步滑动翻页](阅读/同步滑动翻页设计.md) |
+| [阅读](阅读/aibook阅读模式.md) | [阅读模式](阅读/aibook阅读模式.md) · [同步滑动翻页](阅读/同步滑动翻页设计.md) · [ViewModel 拆分](阅读/ReadingViewModel拆分设计.md) |
 | [进化](进化/aibook进化设计.md) | [进化设计](进化/aibook进化设计.md) · [实现计划](进化/aibook进化实现计划.md) |
 | [superpowers](superpowers/specs/2026-09-12-translation-target-language-design.md) | 单次专题 spec / plan |

@@ -49,7 +49,10 @@ struct ContentView: View {
                 .bookStyleEnvironment(styleManager)
                 .bookLocalizationEnvironment()
         }
-        .sheet(isPresented: $viewModel.showDirectoryBrowser) {
+        .sheet(isPresented: Binding(
+            get: { viewModel.document.showDirectoryBrowser },
+            set: { viewModel.document.showDirectoryBrowser = $0 }
+        )) {
             directoryBrowserSheet
                 .bookStyleEnvironment(styleManager)
                 .bookLocalizationEnvironment()
@@ -60,7 +63,7 @@ struct ContentView: View {
         .onAppear {
             viewModel.onAppear()
         }
-        .onChange(of: viewModel.experienceMode) { mode in
+        .onChange(of: viewModel.mode.experienceMode) { mode in
             if mode == .reading, learningPaneFocus != .both {
                 setLearningPaneFocus(.both)
             }
@@ -80,7 +83,7 @@ struct ContentView: View {
             }
         }
         .overlay {
-            if viewModel.experienceMode == .reading {
+            if viewModel.mode.experienceMode == .reading {
                 ReadingSpreadView()
                     .bookStyleEnvironment(styleManager)
                     .transition(.opacity)
@@ -90,16 +93,16 @@ struct ContentView: View {
     }
 
     private var showsLearningWorkspace: Bool {
-        viewModel.experienceMode == .learning && learningPaneFocus == .both
+        viewModel.mode.experienceMode == .learning && learningPaneFocus == .both
     }
 
     private var showsLearningPaneFullscreen: Bool {
-        viewModel.experienceMode == .learning && learningPaneFocus != .both
+        viewModel.mode.experienceMode == .learning && learningPaneFocus != .both
     }
 
     private var learningModeKeyboardShortcuts: some View {
         Group {
-            if viewModel.experienceMode == .learning {
+            if viewModel.mode.experienceMode == .learning {
                 Button(BookL10n.string("layout.spread")) { setLearningPaneFocus(.both) }
                     .keyboardShortcut("1", modifiers: [.command, .option])
                 Button(BookL10n.string("layout.leftFullscreen")) { setLearningPaneFocus(.leading) }
@@ -107,19 +110,19 @@ struct ContentView: View {
                 Button(BookL10n.string("layout.rightFullscreen")) { setLearningPaneFocus(.trailing) }
                     .keyboardShortcut("3", modifiers: [.command, .option])
             }
-            if viewModel.canEnterReadingMode, viewModel.experienceMode == .learning {
+            if viewModel.mode.canEnterReadingMode, viewModel.mode.experienceMode == .learning {
                 Button(BookL10n.string("mode.reading")) {
-                    viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+                    viewModel.mode.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
                 }
                 .keyboardShortcut(BookKeyboardShortcuts.readingMode)
             }
-            if viewModel.experienceMode == .reading {
+            if viewModel.mode.experienceMode == .reading {
                 Button(BookL10n.string("mode.learning")) {
-                    viewModel.exitReadingMode()
+                    viewModel.mode.exitReadingMode()
                 }
                 .keyboardShortcut(.escape, modifiers: [])
                 Button(BookL10n.string("mode.exitReading")) {
-                    viewModel.exitReadingMode()
+                    viewModel.mode.exitReadingMode()
                 }
                 .keyboardShortcut(BookKeyboardShortcuts.readingMode)
             }
@@ -192,7 +195,7 @@ struct ContentView: View {
                     headerModeAndSourceControls
                 }
 
-                Text(viewModel.displayFileName)
+                Text(viewModel.document.displayFileName)
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.chromeMuted)
                     .lineLimit(1)
@@ -204,7 +207,7 @@ struct ContentView: View {
     /// 标签栏右侧：当前模式与对应模型摘要。
     private var headerModeAndSourceControls: some View {
         HStack(spacing: 8) {
-            if viewModel.isDirty {
+            if viewModel.document.isDirty {
                 BookStatusPill(title: BookL10n.string("status.unsaved"), icon: "circle.fill", tint: Color.orange.opacity(0.95))
                     .help(BookL10n.string("help.unsavedChanges"))
             }
@@ -219,7 +222,7 @@ struct ContentView: View {
 
     private var evolutionToolbarHelp: String {
         AppGuard.evolutionErrorMessage(for: settings)
-            ?? (viewModel.evolutionStatusLabel ?? BookL10n.string("help.evolutionDefault"))
+            ?? (viewModel.evolution.evolutionStatusLabel ?? BookL10n.string("help.evolutionDefault"))
     }
 
     @ViewBuilder
@@ -292,7 +295,7 @@ struct ContentView: View {
         }
         .frame(height: 24)
         .animation(.easeOut(duration: 0.2), value: viewModel.rightPageTab)
-        .animation(.easeOut(duration: 0.2), value: viewModel.readingAssistantPanel)
+        .animation(.easeOut(duration: 0.2), value: viewModel.assistant.readingAssistantPanel)
     }
 
     private static let toolbarDividerSpan: CGFloat = 21
@@ -322,10 +325,10 @@ struct ContentView: View {
                 bookSettingsToolbarButton
             }
             documentOperationsMenu
-            if isReadingToolbarContext, viewModel.readingAssistantPanel == .explanation {
+            if isReadingToolbarContext, viewModel.assistant.readingAssistantPanel == .explanation {
                 explanationOperationsMenu
             }
-            if isReadingToolbarContext, viewModel.readingAssistantPanel == .translation {
+            if isReadingToolbarContext, viewModel.assistant.readingAssistantPanel == .translation {
                 translationOperationsMenu
             }
             if isReadingToolbarContext {
@@ -339,9 +342,9 @@ struct ContentView: View {
         HStack(spacing: 8) {
             readingAssistantTabButton
             documentOperationsMenu
-            if isReadingToolbarContext, viewModel.readingAssistantPanel == .explanation {
+            if isReadingToolbarContext, viewModel.assistant.readingAssistantPanel == .explanation {
                 explanationOperationsMenu
-            } else if isReadingToolbarContext, viewModel.readingAssistantPanel == .translation {
+            } else if isReadingToolbarContext, viewModel.assistant.readingAssistantPanel == .translation {
                 translationOperationsMenu
             }
             if isReadingToolbarContext {
@@ -376,9 +379,9 @@ struct ContentView: View {
             isProminent: false,
             isCompact: true
         ) {
-            viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+            viewModel.mode.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
         }
-        .disabled(!viewModel.canEnterReadingMode || viewModel.isRunning)
+        .disabled(!viewModel.mode.canEnterReadingMode || viewModel.isRunning)
         .help(BookL10n.format("help.enterReadingMode", BookKeyboardShortcuts.readingModeHint))
     }
 
@@ -398,7 +401,7 @@ struct ContentView: View {
         bookLLMConfigGuideMenuItem
 
         Button {
-            viewModel.newDocument()
+            viewModel.document.newDocument()
         } label: {
             Text(BookL10n.string("action.new"))
         }
@@ -406,7 +409,7 @@ struct ContentView: View {
         .disabled(viewModel.isRunning)
 
         Button {
-            viewModel.openFile()
+            viewModel.document.openFile()
         } label: {
             Text(BookL10n.string("action.open"))
         }
@@ -414,32 +417,32 @@ struct ContentView: View {
         .disabled(viewModel.isRunning)
 
         Button {
-            viewModel.openDirectory()
+            viewModel.document.openDirectory()
         } label: {
             Text(BookL10n.string("action.openDirectoryShort"))
         }
         .disabled(viewModel.isRunning)
 
         Button {
-            viewModel.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+            viewModel.mode.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
         } label: {
             Text(BookL10n.string("mode.reading"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.readingMode)
-        .disabled(!viewModel.canEnterReadingMode || viewModel.isRunning)
+        .disabled(!viewModel.mode.canEnterReadingMode || viewModel.isRunning)
 
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.save()
+            viewModel.document.save()
         } label: {
             Text(BookL10n.string("action.save"))
         }
         .bookMenuShortcut(BookKeyboardShortcuts.save)
-        .disabled(viewModel.fileContent.isEmpty && !viewModel.isDirty)
+        .disabled(viewModel.fileContent.isEmpty && !viewModel.document.isDirty)
 
         Button {
-            viewModel.saveAs()
+            viewModel.document.saveAs()
         } label: {
             Text(BookL10n.string("action.saveAs"))
         }
@@ -447,7 +450,7 @@ struct ContentView: View {
         .disabled(viewModel.fileContent.isEmpty)
 
         Button {
-            viewModel.selectAllLeftPage()
+            viewModel.document.selectAllLeftPage()
         } label: {
             Text(BookL10n.string("action.selectAllSource"))
         }
@@ -457,7 +460,7 @@ struct ContentView: View {
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.supplementClassicLiterature()
+            viewModel.assistant.supplementClassicLiterature()
         } label: {
             Text(ClassicLiteratureSupplement.capabilityLabel)
         }
@@ -491,12 +494,12 @@ struct ContentView: View {
             }
 
             if isReadingToolbarContext {
-                if includeDocumentMenu || viewModel.readingAssistantPanel != .explanation {
+                if includeDocumentMenu || viewModel.assistant.readingAssistantPanel != .explanation {
                     BookToolbarSubmenu(title: BookL10n.string("menu.explanation")) {
                         explanationOperationsMenuContent
                     }
                 }
-                if includeDocumentMenu || viewModel.readingAssistantPanel != .translation {
+                if includeDocumentMenu || viewModel.assistant.readingAssistantPanel != .translation {
                     BookToolbarSubmenu(title: BookL10n.string("menu.translation")) {
                         translationOperationsMenuContent
                     }
@@ -520,7 +523,7 @@ struct ContentView: View {
         bookLLMConfigGuideMenuItem
 
         Button {
-            viewModel.explainSelection()
+            viewModel.assistant.explainSelection()
         } label: {
             Text(BookL10n.string("action.explainSelection"))
         }
@@ -528,7 +531,7 @@ struct ContentView: View {
         .disabled(requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
 
         Button {
-            viewModel.explainFullText()
+            viewModel.assistant.explainFullText()
         } label: {
             Text(BookL10n.string("action.explainFull"))
         }
@@ -542,48 +545,48 @@ struct ContentView: View {
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.newExplanationDocument()
+            viewModel.assistant.newExplanationDocument()
         } label: {
             Text(BookL10n.string("action.new"))
         }
         .disabled(viewModel.isRunning)
 
         Button {
-            viewModel.openExplanationDocument()
+            viewModel.assistant.openExplanationDocument()
         } label: {
             Text(BookL10n.string("action.open"))
         }
         .disabled(viewModel.isRunning)
 
         Button {
-            viewModel.saveExplanationDocument()
+            viewModel.assistant.saveExplanationDocument()
         } label: {
             Text(BookL10n.string("action.save"))
         }
-        .disabled(!viewModel.hasExplanationContent)
+        .disabled(!viewModel.assistant.hasExplanationContent)
 
         Button {
-            viewModel.selectAllExplanation()
+            viewModel.assistant.selectAllExplanation()
         } label: {
             Text(BookL10n.string("action.selectAll"))
         }
-        .disabled(!viewModel.hasExplanationContent)
+        .disabled(!viewModel.assistant.hasExplanationContent)
 
         Button(role: .destructive) {
-            viewModel.clearExplanation()
+            viewModel.assistant.clearExplanation()
         } label: {
             Text(BookL10n.string("action.clearExplanation"))
         }
-        .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
+        .disabled(viewModel.isRunning || !viewModel.assistant.hasExplanationContent)
 
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.readExplanationAloud()
+            viewModel.assistant.readExplanationAloud()
         } label: {
-            Text(viewModel.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readExplanation"))
+            Text(viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readExplanation"))
         }
-        .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
+        .disabled(viewModel.isRunning || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation))
     }
 
     private var translationOperationsMenu: some View {
@@ -640,21 +643,21 @@ struct ContentView: View {
 
         Button {
             viewModel.selectRightPageTab(.readingAssistant)
-            viewModel.readLessonPlanAloud()
+            viewModel.assistant.readLessonPlanAloud()
         } label: {
-            Text(viewModel.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readTranslation"))
+            Text(viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readTranslation"))
         }
         .bookMenuShortcut(
-            viewModel.isSpeakingExplanation ? nil : BookKeyboardShortcuts.readTranslationFull
+            viewModel.assistant.isSpeakingExplanation ? nil : BookKeyboardShortcuts.readTranslationFull
         )
         .disabled(
             viewModel.isRunning
                 || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    && !viewModel.isSpeakingExplanation)
+                    && !viewModel.assistant.isSpeakingExplanation)
         )
 
         Button {
-            viewModel.selectAllRightPage()
+            viewModel.translation.selectAllRightPage()
         } label: {
             Text(BookL10n.string("action.selectAllTranslation"))
         }
@@ -665,8 +668,8 @@ struct ContentView: View {
 
         Button {
             viewModel.selectRightPageTab(.readingAssistant)
-            viewModel.selectReadingAssistantPanel(.translation)
-            viewModel.openLessonPlanFile()
+            viewModel.assistant.selectReadingAssistantPanel(.translation)
+            viewModel.translation.openLessonPlanFile()
         } label: {
             Text(BookL10n.string("action.openTranslation"))
         }
@@ -674,17 +677,17 @@ struct ContentView: View {
 
         Button {
             viewModel.selectRightPageTab(.readingAssistant)
-            viewModel.selectReadingAssistantPanel(.translation)
-            viewModel.alignTranslationWithSource()
+            viewModel.assistant.selectReadingAssistantPanel(.translation)
+            viewModel.translation.alignTranslationWithSource()
         } label: {
             Text(BookL10n.string("translation.alignSource"))
         }
-        .disabled(!viewModel.canAlignTranslationWithSource)
+        .disabled(!viewModel.translation.canAlignTranslationWithSource)
 
         Button {
             viewModel.selectRightPageTab(.readingAssistant)
-            viewModel.selectReadingAssistantPanel(.translation)
-            viewModel.saveLessonPlan()
+            viewModel.assistant.selectReadingAssistantPanel(.translation)
+            viewModel.translation.saveLessonPlan()
         } label: {
             Text(BookL10n.string("action.saveTranslation"))
         }
@@ -692,8 +695,8 @@ struct ContentView: View {
 
         Button(role: .destructive) {
             viewModel.selectRightPageTab(.readingAssistant)
-            viewModel.selectReadingAssistantPanel(.translation)
-            viewModel.clearLessonPlan()
+            viewModel.assistant.selectReadingAssistantPanel(.translation)
+            viewModel.translation.clearLessonPlan()
         } label: {
             Text(BookL10n.string("action.clearTranslation"))
         }
@@ -710,30 +713,30 @@ struct ContentView: View {
     @ViewBuilder
     private var speechOperationsMenuContent: some View {
         Button {
-            viewModel.readOriginalFullTextAloud()
+            viewModel.assistant.readOriginalFullTextAloud()
         } label: {
             Text(BookL10n.string("menu.readOriginalFull"))
         }
         .disabled(
             viewModel.isRunning
                 || (viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    && !viewModel.isSpeakingExplanation)
+                    && !viewModel.assistant.isSpeakingExplanation)
         )
 
         Button {
-            viewModel.readOriginalSelectionAloud()
+            viewModel.assistant.readOriginalSelectionAloud()
         } label: {
             Text(BookL10n.string("menu.readOriginalSelection"))
         }
         .disabled(
             viewModel.isRunning
-                || (viewModel.effectiveSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+                || (viewModel.effectiveSelectedText.isEmpty && !viewModel.assistant.isSpeakingExplanation)
         )
 
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.readTranslationFullTextAloud()
+            viewModel.assistant.readTranslationFullTextAloud()
         } label: {
             Text(BookL10n.string("menu.readTranslationFull"))
         }
@@ -741,45 +744,45 @@ struct ContentView: View {
         .disabled(
             viewModel.isRunning
                 || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    && !viewModel.isSpeakingExplanation)
+                    && !viewModel.assistant.isSpeakingExplanation)
         )
 
         Button {
-            viewModel.readTranslationSelectionAloud()
+            viewModel.assistant.readTranslationSelectionAloud()
         } label: {
             Text(BookL10n.string("menu.readTranslationSelection"))
         }
         .disabled(
             viewModel.isRunning
-                || (viewModel.effectiveLessonPlanSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+                || (viewModel.effectiveLessonPlanSelectedText.isEmpty && !viewModel.assistant.isSpeakingExplanation)
         )
 
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.readExplanationFullTextAloud()
+            viewModel.assistant.readExplanationFullTextAloud()
         } label: {
             Text(BookL10n.string("menu.readExplanationFull"))
         }
         .disabled(
             viewModel.isRunning
-                || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation)
+                || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation)
         )
 
         Button {
-            viewModel.readExplanationSelectionAloud()
+            viewModel.assistant.readExplanationSelectionAloud()
         } label: {
             Text(BookL10n.string("menu.readExplanationSelection"))
         }
         .disabled(
             viewModel.isRunning
-                || (viewModel.effectiveExplanationPanelSelectedText.isEmpty && !viewModel.isSpeakingExplanation)
+                || (viewModel.effectiveExplanationPanelSelectedText.isEmpty && !viewModel.assistant.isSpeakingExplanation)
         )
     }
 
     private var readingActionBar: some View {
         Group {
-            if viewModel.isSpeakingExplanation {
+            if viewModel.assistant.isSpeakingExplanation {
                 BookToolbarOverflowRow {
                     unifiedSpeechPlaybackBarFull
                 } compact: {
@@ -806,14 +809,14 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .animation(.easeOut(duration: 0.18), value: viewModel.isSpeakingExplanation)
+        .animation(.easeOut(duration: 0.18), value: viewModel.assistant.isSpeakingExplanation)
         .animation(.easeOut(duration: 0.2), value: viewModel.rightPageTab)
     }
 
     private var readingPrimaryActionBarFull: some View {
         HStack(spacing: 8) {
             readingAssistantPanelSwitcher
-            switch viewModel.readingAssistantPanel {
+            switch viewModel.assistant.readingAssistantPanel {
             case .explanation:
                 explanationPrimaryActionButtons
             case .translation:
@@ -845,7 +848,7 @@ struct ContentView: View {
                 ForEach(ReadingAssistantPanel.allCases) { panel in
                     Button {
                         viewModel.selectRightPageTab(.readingAssistant)
-                        viewModel.selectReadingAssistantPanel(panel)
+                        viewModel.assistant.selectReadingAssistantPanel(panel)
                     } label: {
                         Text(panel.toolbarTitle)
                     }
@@ -853,10 +856,10 @@ struct ContentView: View {
                 BookToolbarMenuDivider()
             }
 
-            switch viewModel.readingAssistantPanel {
+            switch viewModel.assistant.readingAssistantPanel {
             case .explanation:
                 Button {
-                    viewModel.explainSelection()
+                    viewModel.assistant.explainSelection()
                 } label: {
                     Text(BookL10n.string("action.explainSelection"))
                 }
@@ -864,7 +867,7 @@ struct ContentView: View {
                 .disabled(requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning)
 
                 Button {
-                    viewModel.explainFullText()
+                    viewModel.assistant.explainFullText()
                 } label: {
                     Text(BookL10n.string("action.explainFull"))
                 }
@@ -906,11 +909,11 @@ struct ContentView: View {
                 BookActionButton(
                     title: panel.toolbarTitle,
                     isProminent: viewModel.rightPageTab == .readingAssistant
-                        && viewModel.readingAssistantPanel == panel,
+                        && viewModel.assistant.readingAssistantPanel == panel,
                     isCompact: true
                 ) {
                     viewModel.selectRightPageTab(.readingAssistant)
-                    viewModel.selectReadingAssistantPanel(panel)
+                    viewModel.assistant.selectReadingAssistantPanel(panel)
                 }
                 .help(panel.toolbarHelp)
             }
@@ -934,7 +937,7 @@ struct ContentView: View {
                 isCompact: true,
                 isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
-                viewModel.startEvolution()
+                viewModel.evolution.startEvolution()
             }
             .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.format("help.runNextEvolution", BookKeyboardShortcuts.evolutionHint))
 
@@ -955,7 +958,7 @@ struct ContentView: View {
         BookToolbarOverflowMenu(help: BookL10n.string("help.evolutionOverflow")) {
             if includeEvolution {
                 Button {
-                    viewModel.startEvolution()
+                    viewModel.evolution.startEvolution()
                 } label: {
                     Text(BookL10n.string("action.evolve"))
                 }
@@ -964,7 +967,7 @@ struct ContentView: View {
             }
 
             Button {
-                viewModel.analyzeOptimizations()
+                viewModel.evolution.analyzeOptimizations()
             } label: {
                 Text(BookL10n.string("action.analyze"))
             }
@@ -1006,7 +1009,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var speechSourcePill: some View {
-        if let source = viewModel.currentSpeechSource {
+        if let source = viewModel.assistant.currentSpeechSource {
             BookStatusPill(
                 title: source.label,
                 icon: source.icon,
@@ -1025,13 +1028,13 @@ struct ContentView: View {
 
     private var speechPauseResumeButton: some View {
         BookActionButton(
-            title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
+            title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
             isCompact: true,
             isDisabled: viewModel.isRunning
         ) {
-            viewModel.toggleExplanationSpeechPause()
+            viewModel.assistant.toggleExplanationSpeechPause()
         }
-        .help(viewModel.isExplanationSpeechPaused ? BookL10n.string("help.resumeSpeech") : BookL10n.string("help.pauseSpeech"))
+        .help(viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("help.resumeSpeech") : BookL10n.string("help.pauseSpeech"))
     }
 
     private var speechStopButton: some View {
@@ -1040,7 +1043,7 @@ struct ContentView: View {
             isCompact: true,
             isDisabled: viewModel.isRunning
         ) {
-            viewModel.stopExplanationSpeech()
+            viewModel.assistant.stopExplanationSpeech()
         }
         .help(BookL10n.string("help.stopSpeech"))
     }
@@ -1048,7 +1051,7 @@ struct ContentView: View {
     @ViewBuilder
     private func speechPlaybackOverflowMenu(includeSource: Bool) -> some View {
         BookToolbarOverflowMenu(help: BookL10n.string("help.speechControls")) {
-            if includeSource, let source = viewModel.currentSpeechSource {
+            if includeSource, let source = viewModel.assistant.currentSpeechSource {
                 BookToolbarMenuCaption(title: BookL10n.format("help.currentSpeech", source.label))
             } else if includeSource {
                 BookToolbarMenuCaption(title: BookL10n.string("status.speaking"))
@@ -1058,14 +1061,14 @@ struct ContentView: View {
             }
 
             Button {
-                viewModel.toggleExplanationSpeechPause()
+                viewModel.assistant.toggleExplanationSpeechPause()
             } label: {
-                Text(viewModel.isExplanationSpeechPaused ? BookL10n.string("help.resumeSpeech") : BookL10n.string("help.pauseSpeech"))
+                Text(viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("help.resumeSpeech") : BookL10n.string("help.pauseSpeech"))
             }
             .disabled(viewModel.isRunning)
 
             Button {
-                viewModel.stopExplanationSpeech()
+                viewModel.assistant.stopExplanationSpeech()
             } label: {
                 Text(BookL10n.string("menu.stopSpeaking"))
             }
@@ -1080,7 +1083,7 @@ struct ContentView: View {
                 isCompact: true,
                 isDisabled: requiresBookLLM || viewModel.effectiveSelectedText.isEmpty || viewModel.isRunning
             ) {
-                viewModel.explainSelection()
+                viewModel.assistant.explainSelection()
             }
             .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.explainSelection", BookKeyboardShortcuts.explainSelectionHint))
 
@@ -1091,7 +1094,7 @@ struct ContentView: View {
                     || viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     || viewModel.isRunning
             ) {
-                viewModel.explainFullText()
+                viewModel.assistant.explainFullText()
             }
             .help(requiresBookLLM ? bookLLMToolbarHelp : BookL10n.format("help.explainFull", BookKeyboardShortcuts.explainFullTextHint))
         }
@@ -1130,7 +1133,7 @@ struct ContentView: View {
                 isCompact: true,
                 isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
-                viewModel.startEvolution()
+                viewModel.evolution.startEvolution()
             }
             .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.format("help.runNextEvolution", BookKeyboardShortcuts.evolutionHint))
 
@@ -1139,7 +1142,7 @@ struct ContentView: View {
                 isCompact: true,
                 isDisabled: requiresEvolutionBackend || viewModel.isRunning
             ) {
-                viewModel.analyzeOptimizations()
+                viewModel.evolution.analyzeOptimizations()
             }
             .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.string("help.analyzeSource"))
         }
@@ -1212,7 +1215,7 @@ struct ContentView: View {
         BookToolbarOverflowMenu(
             help: requiresEvolutionBackend
                 ? evolutionToolbarHelp
-                : (viewModel.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary))
+                : (viewModel.evolution.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary))
         ) {
             if includeTab {
                 Button {
@@ -1237,7 +1240,7 @@ struct ContentView: View {
         ) {
             evolutionOperationsMenuContent
         }
-        .help(requiresEvolutionBackend ? evolutionToolbarHelp : (viewModel.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary)))
+        .help(requiresEvolutionBackend ? evolutionToolbarHelp : (viewModel.evolution.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary)))
     }
 
     @ViewBuilder
@@ -1246,7 +1249,7 @@ struct ContentView: View {
 
         Button {
             viewModel.selectRightPageTab(.aiEvolution)
-            viewModel.startEvolution()
+            viewModel.evolution.startEvolution()
         } label: {
             Text(BookL10n.string("action.evolve"))
         }
@@ -1255,7 +1258,7 @@ struct ContentView: View {
 
         Button {
             viewModel.selectRightPageTab(.aiEvolution)
-            viewModel.analyzeOptimizations()
+            viewModel.evolution.analyzeOptimizations()
         } label: {
             Text(BookL10n.string("action.analyze"))
         }
@@ -1270,14 +1273,14 @@ struct ContentView: View {
         BookToolbarMenuDivider()
 
         Button {
-            viewModel.saveEvolutionCommands()
+            viewModel.evolution.saveEvolutionCommands()
         } label: {
             Text(BookL10n.string("action.saveEvolutionCommands"))
         }
         .disabled(!viewModel.canSaveEvolutionCommands)
 
         Button {
-            viewModel.openEvolutionCommands()
+            viewModel.evolution.openEvolutionCommands()
         } label: {
             Text(BookL10n.string("action.openEvolutionCommands"))
         }
@@ -1403,21 +1406,24 @@ struct ContentView: View {
 
             ZStack {
                 SelectableTextView(
-                    text: $viewModel.fileContent,
+                    text: Binding(
+                        get: { viewModel.fileContent },
+                        set: { viewModel.fileContent = $0 }
+                    ),
                     onSelectionChange: { selection, range in
-                        viewModel.updateSelection(selection, range: range)
+                        viewModel.document.updateSelection(selection, range: range)
                     },
                     onVisibleRangeChange: { range, _ in
                         viewModel.handleSourceTextScroll(visibleRange: range)
                     },
-                    scrollProxy: viewModel.sourceTextScrollProxy,
-                    selectAllSignal: viewModel.leftSelectAllSignal
+                    scrollProxy: viewModel.translation.sourceTextScrollProxy,
+                    selectAllSignal: viewModel.document.leftSelectAllSignal
                 )
                 .id("leftPageTextView")
 
-                if viewModel.fileContent.isEmpty && !viewModel.isDocumentOpen {
+                if viewModel.fileContent.isEmpty && !viewModel.document.isDocumentOpen {
                     BookInterface.EmptyPageWelcome {
-                        viewModel.openFile()
+                        viewModel.document.openFile()
                     }
                 }
             }
@@ -1444,7 +1450,7 @@ struct ContentView: View {
             }
             Spacer()
             Button(BookL10n.string("action.selectAll")) {
-                viewModel.selectAllLeftPage()
+                viewModel.document.selectAllLeftPage()
             }
             .buttonStyle(.plain)
             .font(BookTheme.captionFont)
@@ -1452,7 +1458,7 @@ struct ContentView: View {
             .disabled(viewModel.fileContent.isEmpty)
             .help(BookL10n.string("help.selectAllLeftPage"))
             Text(leftPageSaveStatus)
-                .foregroundStyle(viewModel.isDirty ? Color.orange : BookTheme.inkMuted)
+                .foregroundStyle(viewModel.document.isDirty ? Color.orange : BookTheme.inkMuted)
         }
         .font(BookTheme.captionFont)
         .foregroundStyle(BookTheme.inkMuted)
@@ -1494,7 +1500,7 @@ struct ContentView: View {
 
     private var learningPaneFullscreenTitle: String {
         if learningPaneFocus == .leading {
-            return viewModel.displayFileName
+            return viewModel.document.displayFileName
         }
         if viewModel.rightPageTab == .readingAssistant {
             return viewModel.readingAssistantPanel.toolbarTitle
@@ -1592,13 +1598,13 @@ struct ContentView: View {
     }
 
     private var leftPageSaveStatus: String {
-        if let message = viewModel.lastSaveMessage {
+        if let message = viewModel.document.lastSaveMessage {
             return message
         }
-        if viewModel.isEditingNotes {
-            return viewModel.isDirty ? BookL10n.string("status.saving") : BookL10n.string("status.autosaved")
+        if viewModel.document.isEditingNotes {
+            return viewModel.document.isDirty ? BookL10n.string("status.saving") : BookL10n.string("status.autosaved")
         }
-        return viewModel.isDirty ? BookL10n.string("status.unsaved") : BookL10n.string("status.saved")
+        return viewModel.document.isDirty ? BookL10n.string("status.unsaved") : BookL10n.string("status.saved")
     }
 
     private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
@@ -1611,7 +1617,7 @@ struct ContentView: View {
                   let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
 
             Task { @MainActor in
-                viewModel.openDroppedFile(at: url)
+                viewModel.document.openDroppedFile(at: url)
             }
         }
         return true
@@ -1619,25 +1625,25 @@ struct ContentView: View {
 
     private var directoryBrowserSheet: some View {
         DirectoryBrowserView(
-            sessions: viewModel.directoryBrowserSessions,
-            selectedSessionID: viewModel.selectedDirectorySessionID,
+            sessions: viewModel.document.directoryBrowserSessions,
+            selectedSessionID: viewModel.document.selectedDirectorySessionID,
             onSelectSession: { id in
-                viewModel.selectDirectorySession(id)
+                viewModel.document.selectDirectorySession(id)
             },
             onAddDirectory: {
-                viewModel.addDirectoryFromPanel()
+                viewModel.document.addDirectoryFromPanel()
             },
             onRemoveSession: { id in
-                viewModel.removeDirectorySession(id)
+                viewModel.document.removeDirectorySession(id)
             },
             onToggleExpanded: { sessionID, path in
-                viewModel.toggleDirectoryNodeExpanded(sessionID: sessionID, path: path)
+                viewModel.document.toggleDirectoryNodeExpanded(sessionID: sessionID, path: path)
             },
             onOpen: { url, target in
-                viewModel.openFileFromDirectory(at: url, target: target)
+                viewModel.document.openFileFromDirectory(at: url, target: target)
             },
             onDismiss: {
-                viewModel.dismissDirectoryBrowser()
+                viewModel.document.dismissDirectoryBrowser()
             }
         )
     }

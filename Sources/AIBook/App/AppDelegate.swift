@@ -20,10 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let viewModel = readingViewModel, viewModel.isDirty else {
+        guard let viewModel = readingViewModel, viewModel.document.isDirty else {
             return .terminateNow
         }
-        return viewModel.confirmDiscardUnsavedIfNeeded() ? .terminateNow : .terminateCancel
+        return viewModel.document.confirmDiscardUnsavedIfNeeded() ? .terminateNow : .terminateCancel
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

@@ -20,74 +20,74 @@ struct AIBookApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button(BookL10n.string("action.new")) {
-                    viewModel.newDocument()
+                    viewModel.document.newDocument()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.newDocument)
 
                 Button(BookL10n.string("action.openFile")) {
-                    viewModel.openFile()
+                    viewModel.document.openFile()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.openDocument)
 
                 Button(BookL10n.string("action.openDirectory")) {
-                    viewModel.openDirectory()
+                    viewModel.document.openDirectory()
                 }
                 .disabled(viewModel.isRunning)
             }
 
             CommandGroup(after: .saveItem) {
                 Button(BookL10n.string("action.save")) {
-                    viewModel.save()
+                    viewModel.document.save()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.save)
 
                 Button(BookL10n.string("action.saveAs")) {
-                    viewModel.saveAs()
+                    viewModel.document.saveAs()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.saveAs)
                 .disabled(viewModel.fileContent.isEmpty)
 
                 Button(BookL10n.string("action.exportSelection")) {
-                    viewModel.saveSelectionAs()
+                    viewModel.document.saveSelectionAs()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.exportSelection)
                 .disabled(viewModel.selectedText.isEmpty)
 
                 Button(BookL10n.string("action.explainSelection")) {
-                    viewModel.explainSelection()
+                    viewModel.assistant.explainSelection()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.explainSelection)
 
                 Button(BookL10n.string("action.explainFull")) {
-                    viewModel.explainFullText()
+                    viewModel.assistant.explainFullText()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.explainFullText)
                 .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button(BookL10n.string("menu.selectAllLeft")) {
-                    viewModel.selectAllLeftPage()
+                    viewModel.document.selectAllLeftPage()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.selectAllLeftPage)
                 .disabled(viewModel.fileContent.isEmpty)
 
                 Button(BookL10n.string("menu.selectAllTranslation")) {
-                    viewModel.selectAllRightPage()
+                    viewModel.translation.selectAllRightPage()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.selectAllTranslation)
                 .disabled(viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Button(
-                    viewModel.isSpeakingExplanation
+                    viewModel.assistant.isSpeakingExplanation
                         ? BookL10n.string("menu.stopSpeaking")
                         : BookL10n.string("menu.readOriginalSelectionOrFull")
                 ) {
-                    viewModel.readSelectionAloud()
+                    viewModel.assistant.readSelectionAloud()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.readOriginalSelectionOrFull)
-                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.isSpeakingExplanation))
+                .disabled(viewModel.isRunning || (!viewModel.canReadAloud && !viewModel.assistant.isSpeakingExplanation))
 
                 Button(BookL10n.string("menu.readOriginalFull")) {
-                    viewModel.readOriginalFullTextAloud()
+                    viewModel.assistant.readOriginalFullTextAloud()
                 }
                 .disabled(
                     viewModel.isRunning
@@ -95,43 +95,43 @@ struct AIBookApp: App {
                 )
 
                 Button(BookL10n.string("menu.readOriginalSelection")) {
-                    viewModel.readOriginalSelectionAloud()
+                    viewModel.assistant.readOriginalSelectionAloud()
                 }
                 .disabled(viewModel.isRunning || viewModel.effectiveSelectedText.isEmpty)
 
                 Button(BookL10n.string("menu.readTranslationFull")) {
-                    viewModel.readTranslationFullTextAloud()
+                    viewModel.assistant.readTranslationFullTextAloud()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.readTranslationFull)
                 .disabled(
                     viewModel.isRunning
                         || (viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && !viewModel.isSpeakingExplanation)
+                            && !viewModel.assistant.isSpeakingExplanation)
                 )
 
                 Button(BookL10n.string("menu.readTranslationSelection")) {
-                    viewModel.readTranslationSelectionAloud()
+                    viewModel.assistant.readTranslationSelectionAloud()
                 }
                 .disabled(viewModel.isRunning || viewModel.effectiveLessonPlanSelectedText.isEmpty)
 
                 Button(BookL10n.string("menu.readExplanationFull")) {
-                    viewModel.readExplanationFullTextAloud()
+                    viewModel.assistant.readExplanationFullTextAloud()
                 }
-                .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
+                .disabled(viewModel.isRunning || !viewModel.assistant.hasExplanationContent)
 
                 Button(BookL10n.string("menu.readExplanationSelection")) {
-                    viewModel.readExplanationSelectionAloud()
+                    viewModel.assistant.readExplanationSelectionAloud()
                 }
                 .disabled(viewModel.isRunning || viewModel.effectiveExplanationPanelSelectedText.isEmpty)
 
                 Button(ClassicLiteratureSupplement.localizedCapabilityLabel) {
-                    viewModel.supplementClassicLiterature()
+                    viewModel.assistant.supplementClassicLiterature()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.classicSupplement)
                 .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
 
                 Button(BookL10n.string("action.evolution")) {
-                    viewModel.startEvolution()
+                    viewModel.evolution.startEvolution()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.evolution)
             }

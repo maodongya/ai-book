@@ -20,22 +20,22 @@ struct LLMComposerView: View {
     private var canAnalyze: Bool {
         mode == .aiEvolution
             && !viewModel.isRunning
-            && !viewModel.isEvolutionRebuilding
+            && !viewModel.evolution.isEvolutionRebuilding
             && viewModel.canRunEvolution
     }
 
     private var activeChatInput: String {
-        mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput
+        mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput
     }
 
     private var activeChatInputBinding: Binding<String> {
         Binding(
-            get: { mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput },
+            get: { mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput },
             set: { newValue in
                 if mode == .readingAssistant {
-                    viewModel.readingChatInput = newValue
+                    viewModel.assistant.readingChatInput = newValue
                 } else {
-                    viewModel.evolutionChatInput = newValue
+                    viewModel.evolution.evolutionChatInput = newValue
                 }
             }
         )
@@ -412,7 +412,7 @@ struct LLMComposerView: View {
                     isProminent: canAnalyze,
                     isDisabled: !canAnalyze
                 ) {
-                    viewModel.analyzeOptimizations()
+                    viewModel.evolution.analyzeOptimizations()
                 }
             }
 
@@ -425,13 +425,13 @@ struct LLMComposerView: View {
                 sendActiveChatInput()
             }
 
-            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+            if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {
                 BookPageActionButton(
-                    title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
-                    icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
+                    icon: viewModel.assistant.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
                     isDisabled: false
                 ) {
-                    viewModel.toggleExplanationSpeechPause()
+                    viewModel.assistant.toggleExplanationSpeechPause()
                 }
 
                 BookPageActionButton(
@@ -439,13 +439,13 @@ struct LLMComposerView: View {
                     icon: "stop.fill",
                     isDisabled: false
                 ) {
-                    viewModel.stopExplanationSpeech()
+                    viewModel.assistant.stopExplanationSpeech()
                 }
             } else {
                 BookPageActionButton(
                     title: BookL10n.string("action.stop"),
                     icon: "stop.fill",
-                    isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
+                    isDisabled: !viewModel.isRunning && !viewModel.assistant.isSpeakingExplanation
                 ) {
                     viewModel.stopCurrentRun()
                 }
@@ -480,12 +480,12 @@ struct LLMComposerView: View {
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.leather)
                 }
-            } else if viewModel.isSpeakingExplanation {
+            } else if viewModel.assistant.isSpeakingExplanation {
                 HStack(spacing: 8) {
-                    Image(systemName: viewModel.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
+                    Image(systemName: viewModel.assistant.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(BookTheme.leather)
-                    Text(viewModel.isExplanationSpeechPaused ? BookL10n.string("speech.paused") : BookL10n.string("speech.speakingExplanation"))
+                    Text(viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("speech.paused") : BookL10n.string("speech.speakingExplanation"))
                         .font(BookTheme.captionFont)
                         .foregroundStyle(BookTheme.leather)
                 }
@@ -501,7 +501,7 @@ struct LLMComposerView: View {
     private var composerPlaceholder: String {
         switch mode {
         case .readingAssistant:
-            switch viewModel.readingAssistantPanel {
+            switch viewModel.assistant.readingAssistantPanel {
             case .explanation:
                 return BookL10n.string("placeholder.explanation")
             case .translation:

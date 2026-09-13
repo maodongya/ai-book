@@ -18,31 +18,31 @@ struct CursorComposerView: View {
     private var canAnalyze: Bool {
         mode == .aiEvolution
             && !viewModel.isRunning
-            && !viewModel.isEvolutionRebuilding
+            && !viewModel.evolution.isEvolutionRebuilding
             && viewModel.canRunEvolution
     }
 
     private var canEvolve: Bool {
         mode == .aiEvolution
             && !viewModel.isRunning
-            && !viewModel.isEvolutionRebuilding
+            && !viewModel.evolution.isEvolutionRebuilding
             && viewModel.canRunEvolution
-            && viewModel.hasPendingOptimization
+            && viewModel.evolution.hasPendingOptimization
             && settings.isCursorRunnable
     }
 
     private var activeChatInput: String {
-        mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput
+        mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput
     }
 
     private var activeChatInputBinding: Binding<String> {
         Binding(
-            get: { mode == .readingAssistant ? viewModel.readingChatInput : viewModel.evolutionChatInput },
+            get: { mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput },
             set: { newValue in
                 if mode == .readingAssistant {
-                    viewModel.readingChatInput = newValue
+                    viewModel.assistant.readingChatInput = newValue
                 } else {
-                    viewModel.evolutionChatInput = newValue
+                    viewModel.evolution.evolutionChatInput = newValue
                 }
             }
         )
@@ -323,7 +323,7 @@ struct CursorComposerView: View {
                     isProminent: canAnalyze,
                     isDisabled: !canAnalyze
                 ) {
-                    viewModel.analyzeOptimizations()
+                    viewModel.evolution.analyzeOptimizations()
                 }
 
                 BookPageActionButton(
@@ -332,7 +332,7 @@ struct CursorComposerView: View {
                     isProminent: canEvolve,
                     isDisabled: !canEvolve
                 ) {
-                    viewModel.startEvolution()
+                    viewModel.evolution.startEvolution()
                 }
 
                 BookPageActionButton(
@@ -347,7 +347,7 @@ struct CursorComposerView: View {
                 BookPageActionButton(
                     title: BookL10n.string("action.stop"),
                     icon: "stop.fill",
-                    isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
+                    isDisabled: !viewModel.isRunning && !viewModel.assistant.isSpeakingExplanation
                 ) {
                     viewModel.stopCurrentRun()
                 }
@@ -376,13 +376,13 @@ struct CursorComposerView: View {
                     sendActiveChatInput()
                 }
 
-                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {
                     BookPageActionButton(
-                        title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
-                        icon: viewModel.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
+                        title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause"),
+                        icon: viewModel.assistant.isExplanationSpeechPaused ? "play.fill" : "pause.fill",
                         isDisabled: false
                     ) {
-                        viewModel.toggleExplanationSpeechPause()
+                        viewModel.assistant.toggleExplanationSpeechPause()
                     }
 
                     BookPageActionButton(
@@ -390,13 +390,13 @@ struct CursorComposerView: View {
                         icon: "stop.fill",
                         isDisabled: false
                     ) {
-                        viewModel.stopExplanationSpeech()
+                        viewModel.assistant.stopExplanationSpeech()
                     }
                 } else {
                     BookPageActionButton(
                         title: BookL10n.string("action.stop"),
                         icon: "stop.fill",
-                        isDisabled: !viewModel.isRunning && !viewModel.isSpeakingExplanation
+                        isDisabled: !viewModel.isRunning && !viewModel.assistant.isSpeakingExplanation
                     ) {
                         viewModel.stopCurrentRun()
                     }
@@ -431,12 +431,12 @@ struct CursorComposerView: View {
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.leather)
                     }
-                } else if viewModel.isSpeakingExplanation {
+                } else if viewModel.assistant.isSpeakingExplanation {
                     HStack(spacing: 8) {
-                        Image(systemName: viewModel.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
+                        Image(systemName: viewModel.assistant.isExplanationSpeechPaused ? "pause.circle.fill" : "speaker.wave.2.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(BookTheme.leather)
-                        Text(viewModel.isExplanationSpeechPaused ? BookL10n.string("speech.paused") : BookL10n.string("speech.speakingExplanation"))
+                        Text(viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("speech.paused") : BookL10n.string("speech.speakingExplanation"))
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.leather)
                     }

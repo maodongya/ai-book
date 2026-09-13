@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// 右页：读书助手与 AI 进化（讲解 / 翻译 / 对话区壳层）。
 struct ExplanationChatView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
@@ -49,7 +50,7 @@ struct ExplanationChatView: View {
 
     @ViewBuilder
     private var readingAssistantContent: some View {
-        switch viewModel.readingAssistantPanel {
+        switch viewModel.assistant.readingAssistantPanel {
         case .explanation:
             explanationPanel
         case .translation:
@@ -123,7 +124,10 @@ struct ExplanationChatView: View {
 
     private var readingAssistantPanelSwitcher: some View {
         HStack(spacing: 8) {
-            Picker(BookL10n.string("picker.rightPanel"), selection: $viewModel.readingAssistantPanel) {
+            Picker(BookL10n.string("picker.rightPanel"), selection: Binding(
+                get: { viewModel.readingAssistantPanel },
+                set: { viewModel.readingAssistantPanel = $0 }
+            )) {
                 ForEach(ReadingAssistantPanel.allCases) { panel in
                     Text(panel.toolbarTitle).tag(panel)
                 }
@@ -187,17 +191,20 @@ struct ExplanationChatView: View {
 
     private var explanationPanel: some View {
         ZStack(alignment: .topLeading) {
-            chatList
+            ExplanationChatTranscriptView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             SelectableTextView(
-                text: $viewModel.explanationSelectionText,
+                text: Binding(
+                    get: { viewModel.explanationSelectionText },
+                    set: { viewModel.explanationSelectionText = $0 }
+                ),
                 onSelectionChange: { selection, _ in
-                    viewModel.updateExplanationPanelSelection(selection)
+                    viewModel.assistant.updateExplanationPanelSelection(selection)
                 },
                 appearance: .editor,
                 isEditable: false,
-                selectAllSignal: viewModel.explanationSelectAllSignal
+                selectAllSignal: viewModel.assistant.explanationSelectAllSignal
             )
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
@@ -218,44 +225,44 @@ struct ExplanationChatView: View {
     private var explanationToolbar: some View {
         HStack(spacing: 8) {
             explanationToolbarButton(title: BookL10n.string("action.new")) {
-                viewModel.newExplanationDocument()
+                viewModel.assistant.newExplanationDocument()
             }
             .disabled(viewModel.isRunning)
 
             explanationToolbarButton(title: BookL10n.string("action.save")) {
-                viewModel.saveExplanationDocument()
+                viewModel.assistant.saveExplanationDocument()
             }
-            .disabled(!viewModel.hasExplanationContent)
+            .disabled(!viewModel.assistant.hasExplanationContent)
 
             explanationToolbarButton(title: BookL10n.string("action.open")) {
-                viewModel.openExplanationDocument()
+                viewModel.assistant.openExplanationDocument()
             }
             .disabled(viewModel.isRunning)
 
             explanationToolbarButton(title: BookL10n.string("action.selectAll")) {
-                viewModel.selectAllExplanation()
+                viewModel.assistant.selectAllExplanation()
             }
-            .disabled(!viewModel.hasExplanationContent || viewModel.isRunning)
+            .disabled(!viewModel.assistant.hasExplanationContent || viewModel.isRunning)
 
             explanationToolbarButton(title: BookL10n.string("action.clear")) {
-                viewModel.clearExplanation()
+                viewModel.assistant.clearExplanation()
             }
-            .disabled(viewModel.isRunning || !viewModel.hasExplanationContent)
+            .disabled(viewModel.isRunning || !viewModel.assistant.hasExplanationContent)
 
-            if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+            if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {
                 explanationToolbarButton(
-                    title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
+                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
                 ) {
-                    viewModel.toggleExplanationSpeechPause()
+                    viewModel.assistant.toggleExplanationSpeechPause()
                 }
             }
 
             explanationToolbarButton(
-                title: viewModel.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
+                title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
             ) {
-                viewModel.readExplanationAloud()
+                viewModel.assistant.readExplanationAloud()
             }
-            .disabled(viewModel.isRunning || (!viewModel.hasExplanationContent && !viewModel.isSpeakingExplanation))
+            .disabled(viewModel.isRunning || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation))
         }
         .id(styleManager.revision)
     }
@@ -280,7 +287,7 @@ struct ExplanationChatView: View {
             if isReadingChromeVisible {
                 translationToolbar
             }
-            if viewModel.showsTranslationTableView, let alignment = viewModel.translationAlignment {
+            if viewModel.translation.showsTranslationTableView, let alignment = viewModel.translation.translationAlignment {
                 TranslationTableColumnHeader(
                     alignment: alignment,
                     isEditable: !viewModel.isRunning
@@ -289,18 +296,18 @@ struct ExplanationChatView: View {
             }
             ZStack(alignment: .topTrailing) {
                 Group {
-                    if viewModel.showsTranslationTableView, let alignment = viewModel.translationAlignment {
+                    if viewModel.translation.showsTranslationTableView, let alignment = viewModel.translation.translationAlignment {
                         TranslationTableView(
                             alignment: alignment,
                             isEditable: !viewModel.isRunning,
-                            highlightedBlockID: viewModel.translationTableHighlightedBlockID,
-                            scrollTargetBlockID: viewModel.translationTableScrollTargetID,
-                            focusTranslationBlockID: viewModel.translationTableFocusTranslationBlockID,
+                            highlightedBlockID: viewModel.translation.translationTableHighlightedBlockID,
+                            scrollTargetBlockID: viewModel.translation.translationTableScrollTargetID,
+                            focusTranslationBlockID: viewModel.translation.translationTableFocusTranslationBlockID,
                             onSelectBlock: { block in
-                                viewModel.handleTranslationTableVisibleBlock(block)
+                                viewModel.translation.handleTranslationTableVisibleBlock(block)
                             },
                             onUpdateBlock: { id, source, translation, note in
-                                viewModel.updateTranslationTableBlock(
+                                viewModel.translation.updateTranslationTableBlock(
                                     id: id,
                                     sourceText: source,
                                     translationText: translation,
@@ -315,7 +322,7 @@ struct ExplanationChatView: View {
                                 )
                             },
                             onClearFocusTranslation: {
-                                viewModel.translationTableFocusTranslationBlockID = nil
+                                viewModel.translation.translationTableFocusTranslationBlockID = nil
                             }
                         )
                     } else {
@@ -323,7 +330,7 @@ struct ExplanationChatView: View {
                     }
                 }
 
-                if viewModel.isLoading && viewModel.readingAssistantActiveTask == .translation {
+                if viewModel.isLoading && viewModel.assistant.readingAssistantActiveTask == .translation {
                     translationLoadingBadge
                 }
             }
@@ -344,29 +351,32 @@ struct ExplanationChatView: View {
 
     private var translationToolbar: some View {
         HStack(spacing: 10) {
-            if viewModel.translationAlignment?.isStale == true {
+            if viewModel.translation.translationAlignment?.isStale == true {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(BookTheme.captionFont)
                     .foregroundStyle(.orange)
                     .help(BookL10n.string("help.alignStale"))
             }
 
-            Toggle(BookL10n.string("translation.tableCompare"), isOn: $viewModel.translationTableViewEnabled)
+            Toggle(BookL10n.string("translation.tableCompare"), isOn: Binding(
+                get: { viewModel.translationTableViewEnabled },
+                set: { viewModel.translationTableViewEnabled = $0 }
+            ))
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .font(BookTheme.captionFont)
-                .disabled(!viewModel.canUseTranslationTableView)
+                .disabled(!viewModel.translation.canUseTranslationTableView)
 
             translationToolbarButton(title: BookL10n.string("translation.alignSource")) {
-                viewModel.alignTranslationWithSource()
+                viewModel.translation.alignTranslationWithSource()
             }
-            .disabled(!viewModel.canAlignTranslationWithSource)
+            .disabled(!viewModel.translation.canAlignTranslationWithSource)
 
-            if viewModel.isTranslationAlignmentLocked {
+            if viewModel.translation.isTranslationAlignmentLocked {
                 translationToolbarButton(title: BookL10n.string("translation.unlock")) {
                     viewModel.unlockTranslationAlignment()
                 }
-            } else if viewModel.canUseTranslationTableView {
+            } else if viewModel.translation.canUseTranslationTableView {
                 translationToolbarButton(title: BookL10n.string("translation.lock"), prominent: true) {
                     viewModel.lockTranslationAlignment()
                 }
@@ -374,37 +384,37 @@ struct ExplanationChatView: View {
 
             Spacer(minLength: 8)
 
-            if !viewModel.showsTranslationTableView {
+            if !viewModel.translation.showsTranslationTableView {
                 translationToolbarButton(title: BookL10n.string("action.selectAll")) {
-                    viewModel.selectAllRightPage()
+                    viewModel.translation.selectAllRightPage()
                 }
                 .disabled(
                     viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || viewModel.isRunning
                 )
 
-                if viewModel.isSpeakingExplanation && !viewModel.isRunning {
+                if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {
                     translationToolbarButton(
-                        title: viewModel.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
+                        title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
                     ) {
-                        viewModel.toggleExplanationSpeechPause()
+                        viewModel.assistant.toggleExplanationSpeechPause()
                     }
                 }
 
                 translationToolbarButton(
-                    title: viewModel.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
+                    title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
                 ) {
-                    if viewModel.isSpeakingExplanation {
-                        viewModel.stopExplanationSpeech()
+                    if viewModel.assistant.isSpeakingExplanation {
+                        viewModel.assistant.stopExplanationSpeech()
                     } else {
-                        viewModel.readLessonPlanAloud()
+                        viewModel.assistant.readLessonPlanAloud()
                     }
                 }
                 .disabled(
                     viewModel.isRunning
                         || (
                             viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                && !viewModel.isSpeakingExplanation
+                                && !viewModel.assistant.isSpeakingExplanation
                         )
                 )
             }
@@ -431,29 +441,29 @@ struct ExplanationChatView: View {
             configurationNotice
 
             EvolutionUtilityTabsPanel(
-                items: viewModel.evolutionItems,
+                items: viewModel.evolution.evolutionItems,
                 projectPath: SelfEvolution.sourceProjectPath(),
                 isRunning: viewModel.isRunning,
                 isAnalyzing: viewModel.isAnalyzing,
-                executingCommandNumber: viewModel.executingEvolutionCommandNumber,
+                executingCommandNumber: viewModel.evolution.executingEvolutionCommandNumber,
                 budget: viewModel.evolutionTokenBudget,
                 liveToolLabel: viewModel.evolutionLiveToolLabel,
-                lastRequestId: viewModel.evolutionLastRequestId,
-                hasPending: viewModel.hasPendingOptimization,
-                onAddUserItem: { viewModel.addUserOptimization(title: $0) },
-                onSkip: { viewModel.skipOptimization(id: $0) },
-                onDelete: { viewModel.deleteOptimization(id: $0) },
-                onPin: { viewModel.pinOptimization(id: $0) },
-                onRestore: { viewModel.restoreOptimization(id: $0) }
+                lastRequestId: viewModel.evolution.evolutionLastRequestId,
+                hasPending: viewModel.evolution.hasPendingOptimization,
+                onAddUserItem: { viewModel.evolution.addUserOptimization(title: $0) },
+                onSkip: { viewModel.evolution.skipOptimization(id: $0) },
+                onDelete: { viewModel.evolution.deleteOptimization(id: $0) },
+                onPin: { viewModel.evolution.pinOptimization(id: $0) },
+                onRestore: { viewModel.evolution.restoreOptimization(id: $0) }
             )
 
-            if viewModel.isEvolutionRebuilding {
-                EvolutionRebuildBanner(status: viewModel.evolutionRebuildStatus)
+            if viewModel.evolution.isEvolutionRebuilding {
+                EvolutionRebuildBanner(status: viewModel.evolution.evolutionRebuildStatus)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 4)
             }
 
-            chatList
+            ExplanationChatTranscriptView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             composer(for: .aiEvolution)
@@ -520,16 +530,19 @@ struct ExplanationChatView: View {
             }
 
             SelectableTextView(
-                text: $viewModel.lessonPlanContent,
+                text: Binding(
+                    get: { viewModel.lessonPlanContent },
+                    set: { viewModel.lessonPlanContent = $0 }
+                ),
                 onSelectionChange: { selection, _ in
-                    viewModel.updateLessonPlanSelection(selection)
+                    viewModel.assistant.updateLessonPlanSelection(selection)
                 },
                 onVisibleRangeChange: { range, _ in
-                    viewModel.handleTranslationTextScroll(visibleRange: range)
+                    viewModel.translation.handleTranslationTextScroll(visibleRange: range)
                 },
-                scrollProxy: viewModel.translationTextScrollProxy,
+                scrollProxy: viewModel.translation.translationTextScrollProxy,
                 isEditable: !viewModel.isRunning,
-                selectAllSignal: viewModel.rightSelectAllSignal
+                selectAllSignal: viewModel.document.rightSelectAllSignal
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -555,261 +568,4 @@ struct ExplanationChatView: View {
             .allowsHitTesting(false)
     }
 
-    private var displayedChatMessages: [ChatMessage] {
-        if viewModel.rightPageTab == .readingAssistant {
-            return viewModel.explanationDisplayMessages
-        }
-        return viewModel.chatMessages
-    }
-
-    private var chatList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    ForEach(displayedChatMessages) { message in
-                        chatBubble(for: message)
-                            .id(message.id)
-                    }
-
-                    if showsActiveStreamingBubble {
-                        streamingBubble
-                            .id("loading")
-                    }
-                }
-                .padding(.horizontal, 36)
-                .padding(.vertical, 32)
-            }
-            .onChange(of: displayedChatMessages.count) { _ in
-                scrollToBottom(proxy: proxy)
-            }
-            .onChange(of: viewModel.showsExecutionTrace) { _ in
-                scrollToBottom(proxy: proxy)
-            }
-            .onChange(of: viewModel.streamingThinking) { _ in
-                guard viewModel.showsExecutionTrace else { return }
-                scrollToBottom(proxy: proxy)
-            }
-            .onChange(of: viewModel.streamingResponse) { _ in
-                scrollToBottom(proxy: proxy)
-            }
-            .onChange(of: viewModel.streamingToolSteps.count) { _ in
-                guard viewModel.showsExecutionTrace else { return }
-                scrollToBottom(proxy: proxy)
-            }
-            .onChange(of: viewModel.isLoading) { _ in
-                scrollToBottom(proxy: proxy)
-            }
-        }
-    }
-
-    private func chatBubble(for message: ChatMessage) -> some View {
-        Group {
-            if message.role == .assistant {
-                VStack(alignment: .leading, spacing: 10) {
-                    if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
-                        AssistantExecutionTraceCard(
-                            thinking: message.thinking,
-                            toolSteps: message.toolSteps,
-                            defaultExpanded: viewModel.rightPageTab == .aiEvolution
-                        )
-                    }
-                    if !message.content.isEmpty {
-                        assistantContent(message)
-                    }
-                }
-                .contextMenu {
-                    assistantMessageMenu(for: message)
-                }
-                .help(BookL10n.string("help.aiMessageContext"))
-            } else {
-                bubbleContent(message.content, isUser: true)
-                .contextMenu {
-                    userMessageMenu(for: message)
-                }
-                .help(BookL10n.string("help.chatMessageContext"))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func assistantMessageMenu(for message: ChatMessage) -> some View {
-        Button {
-            viewModel.saveAssistantMessage(id: message.id)
-        } label: {
-            Label(BookL10n.string("action.saveAIOutput"), systemImage: "square.and.arrow.down")
-        }
-        .disabled(message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-        Button {
-            viewModel.readAssistantMessage(id: message.id)
-        } label: {
-            Label(viewModel.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.speechThisMessage"), systemImage: viewModel.isSpeakingExplanation ? "stop.fill" : "speaker.wave.2.fill")
-        }
-        .disabled(message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
-
-        Divider()
-
-        Button {
-            copyToPasteboard(message.content)
-        } label: {
-            Label(BookL10n.string("action.copyContent"), systemImage: "doc.on.doc")
-        }
-        .disabled(message.content.isEmpty)
-
-        if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {
-            Button {
-                copyToPasteboard(message.executionTraceText)
-            } label: {
-                Label(BookL10n.string("action.copyTrace"), systemImage: "timeline.selection")
-            }
-        }
-
-        Button(role: .destructive) {
-            viewModel.deleteChatMessage(id: message.id)
-        } label: {
-            Label(BookL10n.string("action.deleteAIMessage"), systemImage: "trash")
-        }
-        .disabled(viewModel.isRunning || viewModel.chatMessages.count <= 1)
-    }
-
-    @ViewBuilder
-    private func userMessageMenu(for message: ChatMessage) -> some View {
-        Button {
-            copyToPasteboard(message.content)
-        } label: {
-            Label(BookL10n.string("action.copyContent"), systemImage: "doc.on.doc")
-        }
-        .disabled(message.content.isEmpty)
-
-        Divider()
-
-        Button(role: .destructive) {
-            viewModel.deleteChatMessage(id: message.id)
-        } label: {
-            Label(BookL10n.string("action.deleteMessage"), systemImage: "trash")
-        }
-        .disabled(viewModel.isRunning || viewModel.chatMessages.count <= 1)
-    }
-
-    private func assistantContent(_ message: ChatMessage) -> some View {
-        Group {
-            if viewModel.canEditExplanationMessage(message) && !viewModel.isRunning {
-                editableAssistantContent(message)
-            } else {
-                bubbleContent(message.content, isUser: false)
-            }
-        }
-    }
-
-    private func editableAssistantContent(_ message: ChatMessage) -> some View {
-        TextEditor(text: Binding(
-            get: { messageContent(for: message.id) },
-            set: { viewModel.updateAssistantMessage(id: message.id, content: $0) }
-        ))
-        .font(BookTheme.readingContentFont)
-        .foregroundStyle(BookTheme.ink)
-        .lineSpacing(BookTheme.readingLineSpacing)
-        .scrollContentBackground(.hidden)
-        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
-        .disabled(viewModel.isRunning)
-    }
-
-    private func bubbleContent(_ text: String, isUser: Bool) -> some View {
-        Text(text)
-            .font(BookTheme.readingContentFont)
-            .foregroundStyle(isUser ? BookTheme.inkSecondary : BookTheme.ink)
-            .lineSpacing(BookTheme.readingLineSpacing)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .multilineTextAlignment(.leading)
-            .textSelection(.enabled)
-    }
-
-    private var streamingBubble: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if viewModel.showsExecutionTrace {
-                cursorStreamingContent
-            } else {
-                llmStreamingContent
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private var cursorStreamingContent: some View {
-        if !viewModel.streamingThinking.isEmpty || !viewModel.streamingToolSteps.isEmpty {
-            AssistantExecutionTraceCard(
-                thinking: viewModel.streamingThinking.isEmpty ? nil : viewModel.streamingThinking,
-                toolSteps: viewModel.streamingToolSteps.isEmpty ? nil : viewModel.streamingToolSteps,
-                isLive: true,
-                defaultExpanded: true
-            )
-        } else if !viewModel.streamingToolStatus.isEmpty {
-            HStack(spacing: 8) {
-                ProgressView().controlSize(.small)
-                Text(viewModel.streamingToolStatus)
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
-            }
-        }
-        if !viewModel.streamingResponse.isEmpty {
-            bubbleContent(viewModel.streamingResponse, isUser: false)
-        } else if viewModel.streamingThinking.isEmpty
-                    && viewModel.streamingToolSteps.isEmpty
-                    && viewModel.streamingToolStatus.isEmpty {
-            HStack(spacing: 10) {
-                ProgressView().controlSize(.small)
-                Text(viewModel.rightPageTab == .aiEvolution ? BookL10n.string("vm.evolutionRunning") : BookL10n.string("evolution.cursorExecuting"))
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var llmStreamingContent: some View {
-        if !viewModel.streamingResponse.isEmpty {
-            bubbleContent(viewModel.streamingResponse, isUser: false)
-        } else {
-            HStack(spacing: 10) {
-                ProgressView().controlSize(.small)
-                Text(BookL10n.string("llm.generating"))
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
-            }
-        }
-    }
-
-
-    private func messageContent(for id: UUID) -> String {
-        viewModel.chatMessages.first(where: { $0.id == id })?.content ?? ""
-    }
-
-    private func copyToPasteboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-    }
-
-    private var showsActiveStreamingBubble: Bool {
-        if viewModel.rightPageTab == .aiEvolution {
-            return viewModel.isLoading
-        }
-        return viewModel.isLoading && viewModel.readingAssistantActiveTask == .explanation
-    }
-
-    private func scrollToBottom(proxy: ScrollViewProxy) {
-        if showsActiveStreamingBubble {
-            withAnimation(.easeOut(duration: 0.2)) {
-                proxy.scrollTo("loading", anchor: .bottom)
-            }
-            return
-        }
-
-        if let last = displayedChatMessages.last {
-            withAnimation(.easeOut(duration: 0.2)) {
-                proxy.scrollTo(last.id, anchor: .bottom)
-            }
-        }
-    }
 }

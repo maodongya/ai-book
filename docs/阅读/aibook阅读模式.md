@@ -1,7 +1,7 @@
 # AIBook 阅读模式设计
 
 > 文档性质：实现设计  
-> 关联：`ContentView` · `ReadingViewModel` · `BookPaginator` · `ReadingSpreadView`
+> 关联：`ContentView` · `ReadingViewModel` · `BookPaginator` · `ReadingSpreadView` · [ReadingViewModel拆分设计.md](./ReadingViewModel拆分设计.md)
 
 ---
 
