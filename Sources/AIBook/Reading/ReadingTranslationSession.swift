@@ -134,13 +134,6 @@ final class ReadingTranslationSession: ObservableObject {
         runLessonPlanTask(  // 流式请求
             displayText: BookL10n.string("vm.display.wordTranslation"),  // 气泡标题
             mode: .wordByWord,  // 逐词 JSON
-            prompt: buildLessonPlanPrompt(
-                source: source,
-                existingPlan: nil,
-                instruction: nil,
-                mode: .wordByWord
-            ),
-            existingPlan: nil,  // 逐词不改已有译文
             instruction: nil  // 逐词不带修订指令
         )
     }
@@ -159,8 +152,6 @@ final class ReadingTranslationSession: ObservableObject {
         runLessonPlanTask(  // 流式请求
             displayText: BookL10n.string("vm.display.paragraphTranslation"),  // 整段
             mode: .paragraph,  // 严格段对齐
-            prompt: nil,  // 整段按批现拼，保证每段都译到
-            existingPlan: existingTranslationForPrompt(),  // 已有译文让模型改
             instruction: trimmedInstruction?.isEmpty == false ? trimmedInstruction : nil  // 空串不传
         )
     }
@@ -254,6 +245,31 @@ final class ReadingTranslationSession: ObservableObject {
     }
 
 
+    /// 用包里的一种语言替换当前译文。哈希或正文对不上时对照表标过期。
+    func installBundledTranslation(text: String, alignment: TranslationAlignment?) {
+        isApplyingAlignment = true
+        lessonPlanContent = text
+        if var alignment {
+            let source = host.document.fileContent
+            let hashMatches = TranslationSourceHasher.hash(source) == alignment.sourceContentHash
+            let textMatches = TranslationContentFormatter.matchesRenderedContent(alignment, content: text)
+            alignment.isStale = !(hashMatches && textMatches)
+            translationAlignment = alignment
+            translationTableViewEnabled = hashMatches && textMatches && !alignment.blocks.isEmpty
+        } else {
+            translationAlignment = nil
+            translationTableViewEnabled = false
+        }
+        isApplyingAlignment = false
+        if translationAlignment == nil,
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            _ = alignTranslationWithSource(showFeedback: false)
+        } else {
+            syncTranslationScrollPresentation()
+        }
+        host.persistChatSession()
+    }
+
     /// 保存译文时写入 sidecar。
     private func saveTranslationAlignmentSidecar(near txtURL: URL) {
         guard let alignment = translationAlignment, !alignment.isStale else { return }  // 没对齐或过期不写
@@ -262,18 +278,21 @@ final class ReadingTranslationSession: ObservableObject {
     }
 
 
-    /// 讲解/翻译共用的请求壳：取消旧任务、流式写回。
+    /// 按已勾选的语言逐个翻译。一种完成后再请求下一种。
     private func runLessonPlanTask(
         displayText: String,
         mode: TranslationAlignmentMode,
-        prompt: String?,
-        existingPlan: String?,
         instruction: String?
     ) {
         let settings = AppSettings.shared  // 本轮快照
         if let configError = AppGuard.bookLLMErrorMessage(for: settings) {  // fail-closed
             host.errorMessage = configError  // 顶栏
             return  // 原文没变，结束
+        }
+        let targets = settings.translationTargetLanguages
+        guard !targets.isEmpty else {
+            host.errorMessage = BookL10n.string("vm.error.translationLanguageMissing")
+            return
         }
 
         host.assistant.readingAssistantActiveTask = .translation  // 顶栏「翻译中」
@@ -283,30 +302,67 @@ final class ReadingTranslationSession: ObservableObject {
         host.errorMessage = nil  // 清旧错
 
         let llmMode = AIBookLLMPrompt.Mode.translation  // 翻译 system prompt
+        let source = lessonPlanSourceText()
         host.activeTask?.cancel()  // 取消上一轮
         host.activeTask = Task {  // 主线程 Task
-            defer { endTranslationProgress() }  // 成败都关弹出层
+            var lastSuccess: TranslationTargetLanguage?
+            defer {
+                if let lastSuccess {
+                    settings.translationTargetLanguage = lastSuccess  // 右页停在最后一种成功的语言
+                }
+                endTranslationProgress()  // 成败都关弹出层
+            }
             do {
-                switch mode {  // 整段分批覆盖，逐词一次请求
-                case .paragraph:  // 段数必须对上
-                    try await runCoveringParagraphTranslation(  // 分批 + 缺段补译
-                        displayText: displayText,
-                        existingPlan: existingPlan,
-                        instruction: instruction,
-                        settings: settings,
-                        llmMode: llmMode
+                for (offset, target) in targets.enumerated() {
+                    try Task.checkCancellation()
+                    host.errorMessage = nil
+                    let scope = languageScopeTitle(target, index: offset + 1, count: targets.count)
+                    let payload = host.document.bundledLanguages[target.rawValue]
+                    host.document.bundledTranslationLanguageID = target.rawValue
+                    installBundledTranslation(
+                        text: payload?.translationText ?? "",
+                        alignment: payload?.translationAlignment
                     )
-                case .wordByWord:  // 宽松：坏 JSON 走纯文本
-                    guard let prompt else { return }  // 逐词必须已拼好提示
-                    let outcome = try await host.fetchAssistantReply(  // 走读书 LLM
-                        prompt: prompt,
-                        history: llmMode.apiHistory,
-                        settings: settings,
-                        llmMode: llmMode
-                    )
-                    guard !Task.isCancelled else { return }  // 停止不写
-                    let resolvedPlan = outcome.text.isEmpty ? translationStreamPreview : outcome.text  // 流在弹出层
-                    applyTranslationResult(resolvedPlan, title: displayText, mode: mode)  // 建对齐刷右页
+                    if !scope.isEmpty {
+                        appendTranslationProgressMarker(scope)
+                    }
+                    let accepted: Bool
+                    switch mode {
+                    case .paragraph:
+                        accepted = try await runCoveringParagraphTranslation(
+                            displayText: displayText,
+                            existingPlan: payload?.translationText,
+                            instruction: instruction,
+                            settings: settings,
+                            llmMode: llmMode,
+                            target: target,
+                            scope: scope
+                        )
+                    case .wordByWord:
+                        translationProgressTitle = scopedTitle(displayText, scope: scope)
+                        let prompt = buildLessonPlanPrompt(
+                            source: source,
+                            existingPlan: nil,
+                            instruction: nil,
+                            mode: .wordByWord,
+                            targetLanguage: target
+                        )
+                        let outcome = try await host.fetchAssistantReply(
+                            prompt: prompt,
+                            history: llmMode.apiHistory,
+                            settings: settings,
+                            llmMode: llmMode
+                        )
+                        guard !Task.isCancelled else { return }
+                        let previewStart = translationStreamPreview.count
+                        let streamed = String(translationStreamPreview.dropFirst(previewStart))
+                        let resolvedPlan = outcome.text.isEmpty ? streamed : outcome.text
+                        accepted = applyTranslationResult(resolvedPlan, title: displayText, mode: mode)
+                    }
+                    if accepted {
+                        host.document.captureDisplayedTranslation(languageID: target.rawValue)
+                        lastSuccess = target
+                    }
                 }
             } catch {
                 guard !Task.isCancelled else { return }  // 停止不写
@@ -322,6 +378,17 @@ final class ReadingTranslationSession: ObservableObject {
         }
     }
 
+    /// 多种语言时的进度前缀，例如「日语（2/3）」。
+    private func languageScopeTitle(_ language: TranslationTargetLanguage, index: Int, count: Int) -> String {
+        guard count > 1 else { return "" }
+        return BookL10n.format("translation.progress.language", language.localizedName, index, count)
+    }
+
+    private func scopedTitle(_ detail: String, scope: String) -> String {
+        guard !scope.isEmpty else { return detail }
+        return "\(scope) · \(detail)"
+    }
+
 
     /// 按原文段分批请求，缺段再补，保证每一段都有译文。
     private func runCoveringParagraphTranslation(
@@ -329,26 +396,30 @@ final class ReadingTranslationSession: ObservableObject {
         existingPlan: String?,
         instruction: String?,
         settings: AppSettings,
-        llmMode: AIBookLLMPrompt.Mode
-    ) async throws {
+        llmMode: AIBookLLMPrompt.Mode,
+        target: TranslationTargetLanguage,
+        scope: String
+    ) async throws -> Bool {
         let source = lessonPlanSourceText()  // 选区优先
         let index = SourceParagraphIndex.build(from: source)  // 和 Prompt / 验收同一套段
         guard index.count > 0 else {  // 切不出段
             host.errorMessage = BookL10n.string("vm.error.translationSourceFirst")  // 先选或打开
-            return  // 原文没变，结束
+            return false
         }
 
-        let target = settings.resolvedTranslationTargetLanguage  // 调用前已 resolved
         var collected: [ParagraphTranslationItem] = []  // 各批合并后的译文
 
         for batch in ParagraphTranslationCoverage.batches(count: index.count) {  // 后段单独请求，避免截断漏译
             try Task.checkCancellation()  // 用户点停止
             let indices = Array(batch)  // 本批下标
-            translationProgressTitle = BookL10n.format(  // 弹出层标题跟批走
-                "translation.progress.batch",
-                (indices.first ?? 0) + 1,  // 给用户看 1-based
-                (indices.last ?? 0) + 1,
-                index.count
+            translationProgressTitle = scopedTitle(  // 弹出层标题跟批走
+                BookL10n.format(
+                    "translation.progress.batch",
+                    (indices.first ?? 0) + 1,  // 给用户看 1-based
+                    (indices.last ?? 0) + 1,
+                    index.count
+                ),
+                scope: scope
             )
             appendTranslationProgressMarker(  // 预览里标本批起点
                 BookL10n.format(
@@ -385,7 +456,10 @@ final class ReadingTranslationSession: ObservableObject {
             try Task.checkCancellation()  // 用户点停止
             fillRound += 1  // 下一轮补译
             let missing = ParagraphTranslationCoverage.missingIndices(in: collected, expectedCount: index.count)  // 还没译到的
-            translationProgressTitle = BookL10n.format("translation.progress.fillMissing", missing.count)  // 弹出层标题
+            translationProgressTitle = scopedTitle(
+                BookL10n.format("translation.progress.fillMissing", missing.count),
+                scope: scope
+            )
             appendTranslationProgressMarker(BookL10n.format("translation.progress.fillHeader", missing.count))  // 预览分隔
             let previewStart = translationStreamPreview.count  // 只要本轮新流出的
             let prompt = TranslationPromptBuilder.build(  // 只带缺段
@@ -405,7 +479,7 @@ final class ReadingTranslationSession: ObservableObject {
             collected = ParagraphTranslationCoverage.merge(collected, with: incoming)  // 补进总表
         }
 
-        applyTranslationResult(  // 走原验收门，仍缺则报错不覆盖旧译
+        return applyTranslationResult(  // 走原验收门，仍缺则报错不覆盖旧译
             ParagraphTranslationCoverage.encodedJSON(collected),
             title: displayText,
             mode: .paragraph
@@ -490,11 +564,12 @@ final class ReadingTranslationSession: ObservableObject {
 
 
     /// 模型回来后建对齐并刷新右页。
+    @discardableResult
     private func applyTranslationResult(
         _ result: String,
         title: String,
         mode: TranslationAlignmentMode
-    ) {
+    ) -> Bool {
         let source = lessonPlanSourceText()  // 选区优先
 
         switch mode {  // 整段严格，逐词宽松
@@ -511,8 +586,10 @@ final class ReadingTranslationSession: ObservableObject {
                 isApplyingAlignment = false  // 解开
                 syncTranslationScrollPresentation()  // 刷对滚
                 host.persistChatSession()  // 落盘
+                return true
             case .failure(let failure):  // 不改现有译文
                 host.errorMessage = paragraphValidationErrorMessage(failure)  // 段数/空译/原文不符
+                return false
             }
         case .wordByWord:  // 宽松：坏 JSON 走纯文本
             var alignment = TranslationAlignmentBuilder.build(from: result, source: source, mode: mode)  // 先 JSON 再纯文本
@@ -527,6 +604,7 @@ final class ReadingTranslationSession: ObservableObject {
             isApplyingAlignment = false  // 解开
             syncTranslationScrollPresentation()  // 刷对滚
             host.persistChatSession()  // 落盘
+            return true
         }
     }
 
@@ -973,14 +1051,15 @@ final class ReadingTranslationSession: ObservableObject {
         source: String,
         existingPlan: String?,
         instruction: String?,
-        mode: TranslationAlignmentMode
+        mode: TranslationAlignmentMode,
+        targetLanguage: TranslationTargetLanguage
     ) -> String {
         TranslationPromptBuilder.build(  // 拼提示
             source: source,
             existingPlan: existingPlan,
             instruction: instruction,
             mode: mode,
-            targetLanguage: AppSettings.shared.resolvedTranslationTargetLanguage  // 本书设置的目标语
+            targetLanguage: targetLanguage
         )
     }
 

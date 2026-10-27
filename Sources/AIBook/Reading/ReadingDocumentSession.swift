@@ -2,6 +2,7 @@ import AIBookEvolution
 import AppKit
 import Combine
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 /// 左页文档会话：打开/保存、选区、目录浏览与 readme 笔记状态。
@@ -33,6 +34,12 @@ final class ReadingDocumentSession: ObservableObject {
     @Published var selectedDirectorySessionID: UUID?  // 当前根
     @Published private(set) var lastSaveMessage: String?  // 顶栏短暂提示
     var currentFileURL: URL?  // nil 表示笔记档
+    /// 当前 .aibook 里已装入的各语言译文和讲解。
+    @Published var bundledLanguages: [String: AIBookLanguagePayload] = [:]
+    var bundledTranslationLanguageID: String?
+    var bundledExplanationLanguageID: String?
+    /// 讲解多语言切换。语言包仍放在本会话。
+    lazy var explanationBundle = ReadingExplanationLanguages(document: self)
     private var savedContent = ""  // 上次成功写入的正文
     var selectedTextRange: NSRange?  // 和 selectedText 一起更新
     private var autoSaveTask: Task<Void, Never>?  // 笔记防抖
@@ -76,6 +83,7 @@ final class ReadingDocumentSession: ObservableObject {
         host.assistant.readingPromptMessages = [ReadingAssistantSession.defaultWelcomeMessage]  // 讲解回欢迎
         host.syncDisplayedChatMessages()  // 气泡空
         host.assistant.readingChatInput = ""  // 输入框
+        clearBundledLanguages()
         host.errorMessage = nil  // 清错
         host.persistChatSession()  // 落盘空档
     }
@@ -87,12 +95,16 @@ final class ReadingDocumentSession: ObservableObject {
 
         let panel = NSOpenPanel()  // 系统打开框
         panel.title = BookL10n.string("vm.panel.openTextFile")  // 只要文本
-        panel.allowedContentTypes = [.plainText]  // txt 等
+        var types: [UTType] = [.plainText]
+        if let aibook = UTType(filenameExtension: "aibook") {
+            types.append(aibook)
+        }
+        panel.allowedContentTypes = types  // txt 与 .aibook
         panel.allowsMultipleSelection = false  // 一次一个
         panel.canChooseDirectories = false  // 目录走另一入口
 
         guard panel.runModal() == .OK, let url = panel.url else { return }  // 取消就停
-        loadFile(at: url)  // 当原文
+        openDocument(at: url)
     }
 
 
@@ -155,7 +167,7 @@ final class ReadingDocumentSession: ObservableObject {
         switch target {  // 同一文件三种打开方式
         case .original:  // 当左页
             guard confirmDiscardUnsavedIfNeeded() else { return }  // 脏了先问
-            loadFile(at: url)  // 当原文
+            openDocument(at: url)  // txt 或 .aibook
         case .translation:  // 当译文
             host.selectRightPageTab(.readingAssistant)  // 先切到译文
             host.assistant.selectReadingAssistantPanel(.translation)  // 否则全选信号没人收
@@ -263,12 +275,13 @@ final class ReadingDocumentSession: ObservableObject {
 
     /// 拖入的文件按原文打开。
     func openDroppedFile(at url: URL) {
-        guard url.pathExtension.lowercased() == "txt" || url.pathExtension.isEmpty else {  // 只收纯文本
-            host.errorMessage = BookL10n.string("vm.error.txtOnly")  // 别的格式拒
-            return  // 不追加
+        let ext = url.pathExtension.lowercased()
+        guard ext == "txt" || ext == "aibook" || ext.isEmpty else {  // 纯文本或 AIBook 包
+            host.errorMessage = BookL10n.string("vm.error.txtOnly")
+            return
         }
         guard confirmDiscardUnsavedIfNeeded() else { return }  // 脏了先问
-        loadFile(at: url)  // 当原文
+        openDocument(at: url)
     }
 
 
@@ -299,6 +312,7 @@ final class ReadingDocumentSession: ObservableObject {
                 host.evolution.evolutionPromptMessages = []  // 进化也清
                 host.syncDisplayedChatMessages()  // 气泡空
             }
+            clearBundledLanguages()
             host.errorMessage = nil  // 清错
             host.persistChatSession()  // 落盘空档
             host.translation.refreshTranslationAlignmentAfterSourceChange()  // 能修对齐就修
@@ -309,8 +323,12 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
 
-    /// 保存。
+    /// 保存。`.aibook` 回写整包，其它文件只写原文。
     func save() {
+        if let url = currentFileURL, url.pathExtension.lowercased() == "aibook" {
+            writeAIBook(to: url)
+            return
+        }
         if let url = currentFileURL {  // 已绑文件也回写磁盘
             writeContent(to: url)  // 有路径写文件
             syncReadmeNotesIfNeeded()  // 笔记档还要回写 store
@@ -644,8 +662,310 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
 
+    /// txt 当原文，`.aibook` 同时恢复各语言译文和讲解。
+    func openDocument(at url: URL) {
+        if url.pathExtension.lowercased() == "aibook" {
+            openAIBook(at: url)
+        } else {
+            loadFile(at: url)
+        }
+    }
+
+    /// 另存为 `.aibook`。已打开的包里其它语言会保留。
+    func saveAsAIBook() {
+        guard !host.isRunning else { return }
+        guard !fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            host.errorMessage = BookL10n.string("vm.error.aibookEmpty")
+            return
+        }
+        let directory = DocumentExporter.defaultDirectory(currentFileURL: currentFileURL)
+        guard let destination = runAIBookSavePanel(
+            suggestedName: aibookSuggestedName(),
+            directory: directory
+        ) else { return }
+        writeAIBook(to: destination)
+    }
+
+    /// 把当前右页译文记到指定语言，供多语言队列和 .aibook 保存。
+    func captureDisplayedTranslation(languageID: String) {
+        guard AIBookBundle.isLanguageID(languageID) else { return }
+        bundledTranslationLanguageID = languageID
+        snapshotActiveBundledLanguages()
+    }
+
+    /// 右页正在显示的译文语言。
+    var displayedTranslationLanguage: TranslationTargetLanguage {
+        if let id = bundledTranslationLanguageID,
+           let language = TranslationTargetLanguage(rawValue: id),
+           language != .followAppLanguage {
+            return language
+        }
+        return AppSettings.shared.resolvedTranslationTargetLanguage
+    }
+
+    /// 已经有译文、可以在右页切换的语言。
+    var translationLanguagesAvailableToShow: [TranslationTargetLanguage] {
+        TranslationTargetLanguage.selectableTargets.filter { language in
+            bundledLanguages[language.rawValue]?.hasTranslation == true
+        }
+    }
+
+    /// 右页已有译文但还没进语言包时，记到当前显示语言下。
+    func adoptDisplayedTranslationIfNeeded() {
+        let text = host.translation.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        let id = displayedTranslationLanguage.rawValue
+        guard AIBookBundle.isLanguageID(id) else { return }
+        if bundledLanguages[id]?.hasTranslation == true { return }
+        captureDisplayedTranslation(languageID: id)
+    }
+
+    /// 切换右页显示的译文。先写回当前语言，再装入所选语言。
+    func showTranslationLanguage(_ language: TranslationTargetLanguage) {
+        guard AIBookBundle.isLanguageID(language.rawValue) else { return }
+        let current = displayedTranslationLanguage
+        if current != language {
+            captureDisplayedTranslation(languageID: current.rawValue)
+        }
+        guard let payload = bundledLanguages[language.rawValue], payload.hasTranslation else { return }
+        bundledTranslationLanguageID = language.rawValue
+        host.translation.installBundledTranslation(
+            text: payload.translationText ?? "",
+            alignment: payload.translationAlignment
+        )
+        if AppSettings.shared.translationTargetLanguage != language {
+            AppSettings.shared.translationTargetLanguage = language
+        }
+    }
+
+    /// 菜单点一种语言：有译文就显示，否则切换是否参加下次翻译。
+    func handleTranslationLanguageMenuClick(_ language: TranslationTargetLanguage) {
+        let settings = AppSettings.shared
+        let selected = settings.translationTargetLanguages.contains(language)
+        let hasTranslation = bundledLanguages[language.rawValue]?.hasTranslation == true
+        switch BundledLanguageSelection.effect(alreadySelected: selected, hasContent: hasTranslation) {
+        case .show:
+            showTranslationLanguage(language) // 有译文就切右页，不取消勾选
+        case .toggle(let thenShow):
+            settings.toggleTranslationTargetLanguage(language) // 没译文才改勾选
+            if thenShow, settings.translationTargetLanguages.contains(language) {
+                showTranslationLanguage(language) // 刚勾上且包里已有译文
+            }
+        }
+    }
+
+    /// 目标语言或界面语言变化时，换上包里对应的译文和讲解。
+    func activateBundledLanguagesForCurrentSettings() {
+        guard !bundledLanguages.isEmpty else { return }
+        snapshotActiveBundledLanguages()
+        let translationID = AppSettings.shared.resolvedTranslationTargetLanguage.rawValue
+        if let payload = bundledLanguages[translationID], payload.hasTranslation {
+            bundledTranslationLanguageID = translationID
+            host.translation.installBundledTranslation(
+                text: payload.translationText ?? "",
+                alignment: payload.translationAlignment
+            )
+        }
+        let explanationID = AppSettings.shared.resolvedExplanationTargetLanguage.rawValue // 讲解不跟界面语言走
+        if let payload = bundledLanguages[explanationID], payload.hasExplanation {
+            bundledExplanationLanguageID = explanationID
+            host.assistant.installBundledExplanation(
+                text: payload.explanationText ?? "",
+                alignment: payload.explanationAlignment
+            )
+        }
+    }
+
+    private func openAIBook(at url: URL) {
+        do {
+            let data = try Data(contentsOf: url)
+            let bundle = try AIBookBundle.decode(data)
+            host.assistant.stopExplanationSpeech()
+            bundledLanguages = bundle.languages
+            currentFileURL = url
+            fileName = url.lastPathComponent
+            fileContent = bundle.source
+            savedContent = bundle.source
+            isDirty = false
+            isDocumentOpen = true
+            selectedText = ""
+            lastCommittedSelectionText = ""
+            lastCommittedSelectionRange = nil
+            selectedTextRange = nil
+            host.assistant.readingPromptMessages = [ReadingAssistantSession.defaultWelcomeMessage]
+            host.evolution.evolutionPromptMessages = [ReadingEvolutionSession.defaultEvolutionWelcomeMessage]
+            host.syncDisplayedChatMessages()
+            host.assistant.readingChatInput = ""
+            applyBundledLanguage(bundle, kind: .translation)
+            applyBundledLanguage(bundle, kind: .explanation)
+            host.errorMessage = nil
+            host.persistChatSession()
+            showTransientSaveMessage(BookL10n.format("vm.opened.aibook", url.lastPathComponent))
+        } catch {
+            host.errorMessage = BookL10n.format("vm.error.aibookRead", error.localizedDescription)
+        }
+    }
+
+    private enum BundledPart {
+        case translation
+        case explanation
+    }
+
+    private func applyBundledLanguage(_ bundle: AIBookBundle, kind: BundledPart) {
+        switch kind {
+        case .translation:
+            let preferred = AppSettings.shared.resolvedTranslationTargetLanguage.rawValue
+            let id = bundle.languages[preferred]?.hasTranslation == true
+                ? preferred
+                : bundle.languages.keys.sorted().first { bundle.languages[$0]?.hasTranslation == true }
+            if let id, let payload = bundle.languages[id] {
+                bundledTranslationLanguageID = id
+                host.translation.installBundledTranslation(
+                    text: payload.translationText ?? "",
+                    alignment: payload.translationAlignment
+                )
+            } else {
+                bundledTranslationLanguageID = nil
+                host.translation.installBundledTranslation(text: "", alignment: nil)
+            }
+        case .explanation:
+            let preferred = AppSettings.shared.resolvedExplanationTargetLanguage.rawValue // 打开后先看记住的讲解语言
+            let id = bundle.languages[preferred]?.hasExplanation == true
+                ? preferred
+                : bundle.languages.keys.sorted().first { bundle.languages[$0]?.hasExplanation == true }
+            if let id, let payload = bundle.languages[id] {
+                bundledExplanationLanguageID = id
+                host.assistant.installBundledExplanation(
+                    text: payload.explanationText ?? "",
+                    alignment: payload.explanationAlignment
+                )
+            } else {
+                bundledExplanationLanguageID = nil
+                host.assistant.installBundledExplanation(text: "", alignment: nil)
+            }
+        }
+    }
+
+    private func writeAIBook(to url: URL) {
+        snapshotActiveBundledLanguages()
+        let stem = (url.deletingPathExtension().lastPathComponent as NSString).deletingPathExtension
+        let title = stem.isEmpty ? BookL10n.string("file.articleStem") : url.deletingPathExtension().lastPathComponent
+        let bundle = AIBookBundle(title: title, source: fileContent, languages: bundledLanguages)
+        do {
+            let data = try bundle.encoded()
+            try data.write(to: url, options: .atomic)
+            currentFileURL = url
+            fileName = url.lastPathComponent
+            savedContent = fileContent
+            isDirty = false
+            host.errorMessage = nil
+            DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
+            showTransientSaveMessage(BookL10n.format("vm.saved.aibook", url.lastPathComponent))
+            host.persistChatSession()
+        } catch {
+            host.errorMessage = BookL10n.format("vm.error.aibookSave", error.localizedDescription)
+        }
+    }
+
+    /// 把当前右页写回正在显示的语言，其它语言不动。
+    func snapshotActiveBundledLanguages() { // 讲解切换也要写回当前语言
+        let translationID = bundledTranslationLanguageID
+            ?? AppSettings.shared.resolvedTranslationTargetLanguage.rawValue
+        if AIBookBundle.isLanguageID(translationID) {
+            let text = host.translation.lessonPlanContent
+            var payload = bundledLanguages[translationID] ?? AIBookLanguagePayload()
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if bundledTranslationLanguageID == translationID {
+                    payload.translationText = nil
+                    payload.translationAlignment = nil
+                }
+            } else {
+                payload.translationText = text
+                payload.translationAlignment = bundledAlignment(
+                    host.translation.translationAlignment,
+                    content: text
+                )
+                bundledTranslationLanguageID = translationID
+            }
+            storePayload(payload, languageID: translationID)
+        }
+
+        let explanationID = bundledExplanationLanguageID
+            ?? AppSettings.shared.resolvedExplanationTargetLanguage.rawValue // 没记住时用讲解设置
+        if AIBookBundle.isLanguageID(explanationID) {
+            let text = host.assistant.bundledExplanationExportText()
+            var payload = bundledLanguages[explanationID] ?? AIBookLanguagePayload()
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if bundledExplanationLanguageID == explanationID {
+                    payload.explanationText = nil
+                    payload.explanationAlignment = nil
+                }
+            } else {
+                payload.explanationText = text
+                payload.explanationAlignment = bundledAlignment(
+                    host.assistant.explanationAlignment,
+                    content: text
+                )
+                bundledExplanationLanguageID = explanationID
+            }
+            storePayload(payload, languageID: explanationID)
+        }
+    }
+
+    private func bundledAlignment(_ alignment: TranslationAlignment?, content: String) -> TranslationAlignment? {
+        guard let alignment, !alignment.isStale else { return nil }
+        guard TranslationSourceHasher.hash(fileContent) == alignment.sourceContentHash else { return nil }
+        guard TranslationContentFormatter.matchesRenderedContent(alignment, content: content) else { return nil }
+        return alignment
+    }
+
+    private func storePayload(_ payload: AIBookLanguagePayload, languageID: String) {
+        if payload.hasTranslation || payload.hasExplanation {
+            bundledLanguages[languageID] = payload
+        } else {
+            bundledLanguages.removeValue(forKey: languageID)
+        }
+    }
+
+    private func clearBundledLanguages() {
+        bundledLanguages = [:]
+        bundledTranslationLanguageID = nil
+        bundledExplanationLanguageID = nil
+    }
+
+    private func aibookSuggestedName() -> String {
+        let stem = ((currentFileURL?.deletingPathExtension().lastPathComponent) ?? fileName)
+        let base = (stem as NSString).deletingPathExtension
+        let name = base.isEmpty || base == ReadingViewModel.untitledMarker
+            ? BookL10n.string("file.articleStem")
+            : base
+        return "\(name).aibook"
+    }
+
+    private func runAIBookSavePanel(suggestedName: String, directory: URL) -> URL? {
+        let panel = NSSavePanel()
+        panel.title = BookL10n.string("vm.panel.saveAIBook")
+        panel.message = BookL10n.string("vm.panel.saveAIBookMsg")
+        if let type = UTType(filenameExtension: "aibook") {
+            panel.allowedContentTypes = [type]
+        }
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = suggestedName
+        panel.directoryURL = directory
+        guard panel.runModal() == .OK, var url = panel.url else { return nil }
+        if url.pathExtension.lowercased() != "aibook" {
+            url = url.appendingPathExtension("aibook")
+        }
+        DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
+        return url
+    }
+
     /// 左页按当前文件路径存。
     func persistLeftPage() {
+        if let url = currentFileURL, url.pathExtension.lowercased() == "aibook" {
+            writeAIBook(to: url)
+            return
+        }
         if let url = currentFileURL {  // 已绑文件也回写磁盘
             writeContent(to: url)  // 有路径写文件
         } else {  // 没选区整页替换

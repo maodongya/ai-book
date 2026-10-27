@@ -328,6 +328,53 @@ extension ReadingAssistantSession {
         return explanationTranscriptText()
     }
 
+    /// 用包里的一种语言替换当前讲解。
+    func installBundledExplanation(text: String, alignment: TranslationAlignment?) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            readingPromptMessages = [ReadingAssistantSession.defaultWelcomeMessage]
+        } else {
+            readingPromptMessages = [
+                ReadingAssistantSession.defaultWelcomeMessage,
+                ChatMessage(role: .assistant, content: trimmed),
+            ]
+        }
+        if host.isDisplaying(.reading) {
+            chatMessages = readingPromptMessages
+        }
+        explanationSelectionText = explanationTranscriptText()
+
+        isApplyingExplanationAlignment = true
+        if var alignment, !trimmed.isEmpty {
+            let source = host.document.fileContent
+            let hashMatches = TranslationSourceHasher.hash(source) == alignment.sourceContentHash
+            let textMatches = TranslationContentFormatter.matchesRenderedContent(alignment, content: trimmed)
+            alignment.isStale = !(hashMatches && textMatches)
+            explanationAlignment = alignment
+            explanationTableViewEnabled = hashMatches && textMatches && !alignment.blocks.isEmpty
+        } else {
+            explanationAlignment = nil
+            explanationTableViewEnabled = false
+        }
+        isApplyingExplanationAlignment = false
+        if explanationAlignment == nil, !trimmed.isEmpty {
+            _ = alignExplanationWithSource(showFeedback: false)
+        }
+        host.persistChatSession()
+    }
+
+    /// 写入包时用的讲解正文：有对照表时用无标题的段式文本。
+    func bundledExplanationExportText() -> String {
+        if let alignment = explanationAlignment,
+           !alignment.isStale,
+           alignment.mode == .paragraph,
+           !alignment.blocks.isEmpty {
+            return TranslationContentFormatter.render(alignment)
+        }
+        let body = explanationBodyForAlignment()
+        return body
+    }
+
     func saveExplanationAlignmentSidecar(near txtURL: URL) {
         guard let alignment = explanationAlignment, !alignment.isStale else { return }
         guard alignment.mode == .paragraph else { return }

@@ -5,8 +5,10 @@ enum ExplanationPromptBuilder {
     static func build(
         source: String,
         paragraphIndices: [Int]? = nil,
-        optionalContext: String? = nil
+        optionalContext: String? = nil,
+        targetLanguage: TranslationTargetLanguage
     ) -> String {
+        precondition(targetLanguage != .followAppLanguage) // 未解析的跟随值禁止进提示
         let paragraphCount = SourceParagraphIndex.build(from: source).count
         let selectedIndices = resolvedParagraphIndices(paragraphIndices, count: paragraphCount)
         let batchCount = selectedIndices.count
@@ -39,6 +41,7 @@ enum ExplanationPromptBuilder {
 
         var sections = [
             "本请求完全自包含：不要依赖任何对话历史。即使刚清空上下文，也必须只根据下面的【左侧文章】完成讲解。",
+            targetLanguageSection(for: targetLanguage),
             taskIntro,
             outputFormat,
             paragraphIndexJSON,
@@ -52,6 +55,23 @@ enum ExplanationPromptBuilder {
         }
 
         return sections.joined(separator: "\n\n")
+    }
+
+    /// 调用方必须先传入具体语言。讲解正文和注释用目标语言，JSON 字段名不译。
+    private static func targetLanguageSection(
+        for targetLanguage: TranslationTargetLanguage
+    ) -> String {
+        precondition(targetLanguage != .followAppLanguage)
+        var requirements = [
+            "【目标语言】\(targetLanguage.promptLanguageName)（\(targetLanguage.bcp47Identifier)）",
+            "所有讲解正文和注释必须使用目标语言；JSON 字段名保持不变。",
+        ]
+        if targetLanguage == .zhHans {
+            requirements.append(
+                "输出现代简体中文；原文若为古文、文言文或古典汉语，讲解须用通顺的现代白话文。"
+            )
+        }
+        return requirements.joined(separator: "\n")
     }
 
     private static func resolvedParagraphIndices(_ requested: [Int]?, count: Int) -> [Int] {

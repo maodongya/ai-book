@@ -15,6 +15,41 @@ enum TranslationTargetLanguage: String, CaseIterable, Identifiable, Codable {
     /// Identifiable id，等于 rawValue，和 UserDefaults 一致。
     var id: String { rawValue }
 
+    /// 多选里的具体语言，不含「跟随界面语言」。
+    static var selectableTargets: [TranslationTargetLanguage] {
+        allCases.filter { $0 != .followAppLanguage }
+    }
+
+    /// 按菜单顺序排，去掉重复和跟随项。
+    static func orderedSelection(_ languages: [TranslationTargetLanguage]) -> [TranslationTargetLanguage] {
+        let selected = Set(languages)
+        return selectableTargets.filter { selected.contains($0) }
+    }
+
+    /// 界面语言收成具体目标语言。跟随系统时按当前地区映射。
+    static func matching(appLanguage: BookAppLanguage) -> TranslationTargetLanguage {
+        switch appLanguage {
+        case .system:
+            return matchingSystemLocale()
+        case .zhHans:
+            return .zhHans
+        case .en:
+            return .en
+        case .ja:
+            return .ja
+        case .de:
+            return .de
+        case .fr:
+            return .fr
+        case .it:
+            return .it
+        case .la:
+            return .la
+        case .el:
+            return .el
+        }
+    }
+
     /// 读盘迁移：空值、乱值变成跟随界面语言，读者从名字知道会回退。
     static func migrated(from stored: String?) -> TranslationTargetLanguage {
         guard let stored, !stored.isEmpty else { return .followAppLanguage } // 从未选过
@@ -108,6 +143,11 @@ enum TranslationTargetLanguage: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// 当前系统地区对应的具体语言，供 .aibook 语言目录使用。
+    static func matchingSystemLocale(identifier: String = Locale.current.identifier) -> TranslationTargetLanguage {
+        from(localeIdentifier: identifier)
+    }
+
     /// 把系统 Locale 标识映射到具体目标语言，未覆盖的当英文。
     private static func from(localeIdentifier: String) -> TranslationTargetLanguage {
         let identifier = localeIdentifier.lowercased()
@@ -144,5 +184,36 @@ enum TranslationTargetLanguageStore {
         to defaults: UserDefaults = .standard
     ) {
         defaults.set(language.rawValue, forKey: key)
+    }
+
+    /// 多选落盘键。
+    static let selectionKey = "aiBook.translationTargetLanguages"
+
+    /// 读多选。没有新键时，把旧的单选收成一种具体语言。
+    static func loadSelection(
+        appLanguage: BookAppLanguage,
+        from defaults: UserDefaults = .standard
+    ) -> [TranslationTargetLanguage] {
+        if let stored = defaults.stringArray(forKey: selectionKey) {
+            let languages = TranslationTargetLanguage.orderedSelection(
+                stored.compactMap { TranslationTargetLanguage(rawValue: $0) }
+            )
+            if !languages.isEmpty { return languages }
+        }
+        let single = load(from: defaults)
+        let concrete = single == .followAppLanguage
+            ? TranslationTargetLanguage.matching(appLanguage: appLanguage)
+            : single
+        return [concrete]
+    }
+
+    /// 写入多选。空数组不落盘，避免下次读成迁移前的单选。
+    static func saveSelection(
+        _ languages: [TranslationTargetLanguage],
+        to defaults: UserDefaults = .standard
+    ) {
+        let ordered = TranslationTargetLanguage.orderedSelection(languages)
+        guard !ordered.isEmpty else { return }
+        defaults.set(ordered.map(\.rawValue), forKey: selectionKey)
     }
 }

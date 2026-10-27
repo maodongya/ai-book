@@ -36,6 +36,13 @@ extension ReadingAssistantSession {
             return
         }
 
+        let settings = AppSettings.shared
+        let targets = settings.explanationTargetLanguages
+        guard !targets.isEmpty else {
+            host.errorMessage = BookL10n.string("vm.error.explanationLanguageMissing")
+            return
+        }
+
         host.selectRightPageTab(.readingAssistant)
         selectReadingAssistantPanel(.explanation)
         readingAssistantActiveTask = .explanation
@@ -45,25 +52,62 @@ extension ReadingAssistantSession {
         host.errorMessage = nil
 
         let llmMode = AIBookLLMPrompt.Mode.readingAssistant
+        let starting = host.document.explanationBundle.displayed
+        host.document.explanationBundle.preserveDisplayed()
         host.activeTask?.cancel()
         host.activeTask = Task {
+            var lastSuccess: TranslationTargetLanguage?
+            var pendingSpeech: String?
+            var stoppedByError = false
             defer { endExplanationProgress() }
             do {
-                try await runCoveringParagraphExplanation(
-                    displayText: displayText,
-                    source: source,
-                    optionalContext: optionalContext,
-                    settings: AppSettings.shared,
-                    llmMode: llmMode
-                )
+                for (offset, target) in targets.enumerated() {
+                    try Task.checkCancellation()
+                    host.errorMessage = nil
+                    let scope = languageScopeTitle(target, index: offset + 1, count: targets.count)
+                    if host.document.explanationBundle.displayed != target {
+                        stopExplanationSpeech()
+                        host.document.explanationBundle.present(target)
+                    }
+                    if !scope.isEmpty {
+                        appendExplanationProgressMarker(scope)
+                    }
+                    let spoken = try await runCoveringParagraphExplanation(
+                        displayText: displayText,
+                        source: source,
+                        optionalContext: optionalContext,
+                        settings: settings,
+                        llmMode: llmMode,
+                        target: target,
+                        scope: scope
+                    )
+                    try Task.checkCancellation()
+                    if let spoken {
+                        host.document.explanationBundle.capture(languageID: target.rawValue)
+                        lastSuccess = target
+                        pendingSpeech = spoken
+                    } else {
+                        pendingSpeech = nil
+                    }
+                }
             } catch {
-                guard !Task.isCancelled else { return }
-                if !(error is CancellationError) {
+                stoppedByError = true
+                if !Task.isCancelled, !(error is CancellationError) {
                     host.errorMessage = LLMServiceErrorPresenter.message(
                         for: error,
                         provider: AppSettings.shared.bookProvider
                     )
                 }
+            }
+            let restore = lastSuccess ?? starting
+            if host.document.explanationBundle.displayed != restore,
+               host.document.bundledLanguages[restore.rawValue]?.hasExplanation == true {
+                host.document.explanationBundle.show(restore)
+            } else if let lastSuccess, settings.explanationTargetLanguage != lastSuccess {
+                settings.explanationTargetLanguage = lastSuccess
+            }
+            if !stoppedByError, let pendingSpeech, !host.suppressReplySpeech {
+                speakExplanation(pendingSpeech, source: .aiReply)
             }
             host.isLoading = false
             host.isRunning = false
@@ -72,17 +116,30 @@ extension ReadingAssistantSession {
         }
     }
 
+    /// 多种语言时的进度前缀，例如「日语（2/3）」。
+    private func languageScopeTitle(_ language: TranslationTargetLanguage, index: Int, count: Int) -> String {
+        guard count > 1 else { return "" }
+        return BookL10n.format("translation.progress.language", language.localizedName, index, count)
+    }
+
+    private func scopedTitle(_ detail: String, scope: String) -> String {
+        guard !scope.isEmpty else { return detail }
+        return "\(scope) · \(detail)"
+    }
+
     private func runCoveringParagraphExplanation(
         displayText: String,
         source: String,
         optionalContext: String?,
         settings: AppSettings,
-        llmMode: AIBookLLMPrompt.Mode
-    ) async throws {
+        llmMode: AIBookLLMPrompt.Mode,
+        target: TranslationTargetLanguage,
+        scope: String
+    ) async throws -> String? {
         let index = SourceParagraphIndex.build(from: source)
         guard index.count > 0 else {
             host.errorMessage = BookL10n.string("vm.error.explanationSourceParagraphs")
-            return
+            return nil
         }
 
         var collected: [ParagraphTranslationItem] = []
@@ -90,11 +147,14 @@ extension ReadingAssistantSession {
         for batch in ParagraphTranslationCoverage.batches(count: index.count) {
             try Task.checkCancellation()
             let indices = Array(batch)
-            explanationProgressTitle = BookL10n.format(
-                "explanation.progress.batch",
-                (indices.first ?? 0) + 1,
-                (indices.last ?? 0) + 1,
-                index.count
+            explanationProgressTitle = scopedTitle(
+                BookL10n.format(
+                    "explanation.progress.batch",
+                    (indices.first ?? 0) + 1,
+                    (indices.last ?? 0) + 1,
+                    index.count
+                ),
+                scope: scope
             )
             appendExplanationProgressMarker(
                 BookL10n.format(
@@ -107,7 +167,8 @@ extension ReadingAssistantSession {
             let prompt = ExplanationPromptBuilder.build(
                 source: source,
                 paragraphIndices: indices,
-                optionalContext: optionalContext
+                optionalContext: optionalContext,
+                targetLanguage: target
             )
             let incoming = try await fetchParagraphExplanationItems(
                 prompt: prompt,
@@ -124,13 +185,17 @@ extension ReadingAssistantSession {
             try Task.checkCancellation()
             fillRound += 1
             let missing = ParagraphTranslationCoverage.missingIndices(in: collected, expectedCount: index.count)
-            explanationProgressTitle = BookL10n.format("explanation.progress.fillMissing", missing.count)
+            explanationProgressTitle = scopedTitle(
+                BookL10n.format("explanation.progress.fillMissing", missing.count),
+                scope: scope
+            )
             appendExplanationProgressMarker(BookL10n.format("explanation.progress.fillHeader", missing.count))
             let previewStart = explanationStreamPreview.count
             let prompt = ExplanationPromptBuilder.build(
                 source: source,
                 paragraphIndices: missing,
-                optionalContext: optionalContext
+                optionalContext: optionalContext,
+                targetLanguage: target
             )
             let incoming = try await fetchParagraphExplanationItems(
                 prompt: prompt,
@@ -142,10 +207,7 @@ extension ReadingAssistantSession {
         }
 
         let json = ParagraphTranslationCoverage.encodedJSON(collected)
-        let speakText = applyExplanationParagraphResult(json, title: displayText, source: source)
-        if let speakText, !host.suppressReplySpeech, !Task.isCancelled {
-            speakExplanation(speakText, source: .aiReply)
-        }
+        return applyExplanationParagraphResult(json, title: displayText, source: source)
     }
 
     private func fetchParagraphExplanationItems(

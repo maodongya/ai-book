@@ -269,6 +269,7 @@ final class ReadingAssistantSession: ObservableObject {
         explanationPanelSelectedText = ""  // 选区
         host.document.lastCommittedExplanationPanelSelectedText = ""  // 提交值
         clearExplanationTableState()
+        host.document.explanationBundle.discardDisplayed() // 只清当前语言，其它语言留在包里
         host.errorMessage = nil  // 清错
         host.persistChatSession()  // 记住子栏
     }
@@ -288,6 +289,7 @@ final class ReadingAssistantSession: ObservableObject {
         explanationPanelSelectedText = ""  // 选区
         host.document.lastCommittedExplanationPanelSelectedText = ""  // 提交值
         clearExplanationTableState()
+        host.document.explanationBundle.discardDisplayed() // 只清当前语言，其它语言留在包里
         host.errorMessage = nil  // 清错
         host.persistChatSession()  // 记住子栏
     }
@@ -354,6 +356,7 @@ final class ReadingAssistantSession: ObservableObject {
                 }
             }
             host.errorMessage = nil  // 清错
+            host.document.explanationBundle.capture(languageID: host.document.explanationBundle.displayed.rawValue) // 打开的稿记入当前语言
             host.document.showTransientSaveMessage(BookL10n.format("vm.opened.explanation", url.lastPathComponent))  // 打开提示
         } catch {
             host.errorMessage = BookL10n.format("vm.error.openExplanation", error.localizedDescription)  // 读失败

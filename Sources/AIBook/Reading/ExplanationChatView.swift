@@ -320,6 +320,26 @@ struct ExplanationChatView: View {
                     .help(BookL10n.string("help.alignStale"))
             }
 
+            if viewModel.document.explanationBundle.availableToShow.count >= 1 {
+                Picker(BookL10n.string("explanation.displayLanguage"), selection: Binding(
+                    get: {
+                        let available = viewModel.document.explanationBundle.availableToShow
+                        let current = viewModel.document.explanationBundle.displayed
+                        return available.contains(current) ? current : (available.first ?? .en)
+                    },
+                    set: { viewModel.document.explanationBundle.show($0) }
+                )) {
+                    ForEach(viewModel.document.explanationBundle.availableToShow) { language in
+                        Text(language.localizedName).tag(language)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .controlSize(.small)
+                .disabled(viewModel.isRunning || viewModel.document.explanationBundle.availableToShow.count < 2)
+                .help(BookL10n.string("explanation.displayLanguage.hint"))
+            }
+
             Toggle(BookL10n.string("explanation.tableCompare"), isOn: Binding(
                 get: { viewModel.explanationTableViewEnabled },
                 set: { viewModel.explanationTableViewEnabled = $0 }
@@ -394,6 +414,9 @@ struct ExplanationChatView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
         .id(styleManager.revision)
+        .onAppear {
+            viewModel.document.explanationBundle.adoptDisplayedIfNeeded()
+        }
     }
 
     /// 讲解栏工具按钮。
@@ -509,6 +532,26 @@ struct ExplanationChatView: View {
                     .help(BookL10n.string("help.alignStale"))  // 过期原因
             }
 
+            if viewModel.document.translationLanguagesAvailableToShow.count >= 1 {
+                Picker(BookL10n.string("translation.displayLanguage"), selection: Binding(
+                    get: {
+                        let available = viewModel.document.translationLanguagesAvailableToShow
+                        let current = viewModel.document.displayedTranslationLanguage
+                        return available.contains(current) ? current : (available.first ?? .en)
+                    },
+                    set: { viewModel.document.showTranslationLanguage($0) }
+                )) {
+                    ForEach(viewModel.document.translationLanguagesAvailableToShow) { language in
+                        Text(language.localizedName).tag(language)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .controlSize(.small)
+                .disabled(viewModel.isRunning || viewModel.document.translationLanguagesAvailableToShow.count < 2)
+                .help(BookL10n.string("translation.displayLanguage.hint"))
+            }
+
             Toggle(BookL10n.string("translation.tableCompare"), isOn: Binding(  // 对照表/长文
                 get: { viewModel.translationTableViewEnabled },  // 偏好里的开关
                 set: { viewModel.translationTableViewEnabled = $0 }  // 写回，立刻切视图
@@ -573,6 +616,12 @@ struct ExplanationChatView: View {
         .font(BookTheme.captionFont)  // 说明字号
         .padding(.horizontal, 12)  // 和表头左右对齐
         .padding(.vertical, 6)  // 上下边距
+        .onAppear {
+            viewModel.document.adoptDisplayedTranslationIfNeeded()
+        }
+        .onChange(of: viewModel.lessonPlanContent) { _ in
+            viewModel.document.adoptDisplayedTranslationIfNeeded()
+        }
     }
 
     /// 翻译栏工具按钮。

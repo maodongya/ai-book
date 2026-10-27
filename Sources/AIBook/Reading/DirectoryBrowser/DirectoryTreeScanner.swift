@@ -51,7 +51,7 @@ enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
 /// 扫一层孩子。跳过隐藏项。非根空目录丢掉。
 enum DirectoryTreeScanner {
     private static let textExtensions: Set<String> = [
-        "txt", "text", "md", "markdown", "rtf", // 只收这些；无扩展名当文本
+        "txt", "text", "md", "markdown", "rtf", "aibook", // 只收这些；无扩展名当文本
     ]
 
     private static let skippedNames: Set<String> = [

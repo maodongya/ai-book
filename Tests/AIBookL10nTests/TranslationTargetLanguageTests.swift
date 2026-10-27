@@ -98,4 +98,22 @@ final class TranslationTargetLanguageTests: XCTestCase {
             .followAppLanguage
         )
     }
+
+    /// 旧的「跟随界面语言」收成一种具体语言；已保存的多选按菜单顺序读回。
+    func testSelectionMigratesSingleValueAndKeepsStoredList() {
+        let suiteName = "TranslationTargetLanguageTests.selection.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        XCTAssertEqual(
+            TranslationTargetLanguageStore.loadSelection(appLanguage: .ja, from: defaults),
+            [.ja]
+        )
+
+        TranslationTargetLanguageStore.saveSelection([.ja, .en], to: defaults)
+        XCTAssertEqual(
+            TranslationTargetLanguageStore.loadSelection(appLanguage: .zhHans, from: defaults),
+            [.en, .ja]
+        )
+    }
 }

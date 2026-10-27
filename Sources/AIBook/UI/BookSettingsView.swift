@@ -183,6 +183,10 @@ struct BookSettingsView: View {
                 TranslationLanguageSettingsView()
             }
 
+            settingsSection(title: BookL10n.string("explanation.target.title"), icon: "text.quote") {
+                ExplanationLanguageSettingsView()
+            }
+
             settingsSection(title: BookL10n.string("settings.contextPercent"), icon: "text.book.closed") {
                 HStack {
                     Text(BookL10n.string("settings.contextPercent"))

@@ -87,6 +87,9 @@ struct ContentView: View {
         .onAppear {
             viewModel.onAppear()  // 自动进化若需要就串
         }
+        .onChange(of: settings.appLanguage) { _ in
+            viewModel.document.activateBundledLanguagesForCurrentSettings()
+        }
         .onChange(of: viewModel.mode.experienceMode) { mode in
             if mode == .reading, learningPaneFocus != .both {  // 进阅读前先收回全屏栏
                 setLearningPaneFocus(.both)  // 避免回来还是单栏
@@ -497,6 +500,13 @@ struct ContentView: View {
         .disabled(viewModel.fileContent.isEmpty)  // 空页
 
         Button {
+            viewModel.document.saveAsAIBook()
+        } label: {
+            Text(BookL10n.string("action.saveAIBook"))
+        }
+        .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isRunning)
+
+        Button {
             viewModel.document.selectAllLeftPage()  // 发全选信号
         } label: {
             Text(BookL10n.string("action.selectAllSource"))  // 全选原文
@@ -572,6 +582,40 @@ struct ContentView: View {
     /// 讲解菜单：生成、朗读、清空。
     private var explanationOperationsMenuContent: some View {
         bookLLMConfigGuideMenuItem  // 没配先插引导
+
+        if viewModel.document.explanationBundle.availableToShow.count >= 2 {
+            BookToolbarSubmenu(title: BookL10n.string("explanation.displayLanguage")) {
+                ForEach(viewModel.document.explanationBundle.availableToShow) { language in
+                    Button {
+                        viewModel.document.explanationBundle.show(language)
+                    } label: {
+                        HStack {
+                            Text(language.localizedName)
+                            if viewModel.document.explanationBundle.displayed == language {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        BookToolbarSubmenu(title: BookL10n.string("explanation.target.title")) {
+            ForEach(TranslationTargetLanguage.selectableTargets) { language in
+                Button {
+                    viewModel.document.explanationBundle.handleMenuClick(language)
+                } label: {
+                    HStack {
+                        Text(language.localizedName)
+                        if settings.explanationTargetLanguages.contains(language) {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        }
+
+        BookToolbarMenuDivider()
 
         Button {
             viewModel.assistant.explainSelection()  // 选区+上下文
@@ -653,15 +697,32 @@ struct ContentView: View {
     private var translationOperationsMenuContent: some View {
         bookLLMConfigGuideMenuItem  // 没配先插引导
 
+        if viewModel.document.translationLanguagesAvailableToShow.count >= 2 {
+            BookToolbarSubmenu(title: BookL10n.string("translation.displayLanguage")) {
+                ForEach(viewModel.document.translationLanguagesAvailableToShow) { language in
+                    Button {
+                        viewModel.document.showTranslationLanguage(language)
+                    } label: {
+                        HStack {
+                            Text(language.localizedName)
+                            if viewModel.document.displayedTranslationLanguage == language {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         BookToolbarSubmenu(title: BookL10n.string("translation.target.title")) {
-            ForEach(TranslationTargetLanguage.allCases) { language in
+            ForEach(TranslationTargetLanguage.selectableTargets) { language in
                 Button {
-                    settings.translationTargetLanguage = language  // 立刻生效，下次出译文用
+                    viewModel.document.handleTranslationLanguageMenuClick(language)
                 } label: {
                     HStack {
-                        Text(language.localizedName)  // 语名
-                        if settings.translationTargetLanguage == language {  // 当前打勾
-                            Image(systemName: "checkmark")  // 勾
+                        Text(language.localizedName)
+                        if settings.translationTargetLanguages.contains(language) {
+                            Image(systemName: "checkmark")
                         }
                     }
                 }

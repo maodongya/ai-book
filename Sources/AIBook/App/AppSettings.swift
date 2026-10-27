@@ -152,7 +152,22 @@ final class AppSettings: ObservableObject {
     }
 
     @Published var translationTargetLanguage: TranslationTargetLanguage {
-        didSet { TranslationTargetLanguageStore.save(translationTargetLanguage) } // 键在 Store 里，这里不写死
+        didSet { TranslationTargetLanguageStore.save(translationTargetLanguage) } // 当前右页显示的语言
+    }
+
+    /// 下次翻译要生成的语言，按菜单顺序。
+    @Published var translationTargetLanguages: [TranslationTargetLanguage] {
+        didSet { TranslationTargetLanguageStore.saveSelection(translationTargetLanguages) }
+    }
+
+    /// 当前右页显示的讲解语言。
+    @Published var explanationTargetLanguage: TranslationTargetLanguage {
+        didSet { ExplanationTargetLanguageStore.save(explanationTargetLanguage) }
+    }
+
+    /// 下次讲解要生成的语言，按菜单顺序。
+    @Published var explanationTargetLanguages: [TranslationTargetLanguage] {
+        didSet { ExplanationTargetLanguageStore.saveSelection(explanationTargetLanguages) }
     }
 
     @Published var appLanguage: BookAppLanguage {
@@ -268,8 +283,21 @@ final class AppSettings: ObservableObject {
         speechEngineMode = SpeechEngineMode.migrated(from: storedSpeechMode)
         let storedLanguageMode = UserDefaults.standard.string(forKey: Keys.speechLanguageMode)
         speechLanguageMode = SpeechLanguageMode(rawValue: storedLanguageMode ?? "") ?? .deep
-        translationTargetLanguage = TranslationTargetLanguageStore.load()
-        appLanguage = BookAppLanguage.migrated(from: UserDefaults.standard.string(forKey: Keys.appLanguage))
+        let resolvedAppLanguage = BookAppLanguage.migrated(from: UserDefaults.standard.string(forKey: Keys.appLanguage))
+        let selectedLanguages = TranslationTargetLanguageStore.loadSelection(appLanguage: resolvedAppLanguage)
+        let storedDisplay = TranslationTargetLanguageStore.load()
+        appLanguage = resolvedAppLanguage
+        translationTargetLanguages = selectedLanguages
+        translationTargetLanguage = storedDisplay == .followAppLanguage
+            ? (selectedLanguages.first ?? .en)
+            : storedDisplay
+        let explanationLanguages = ExplanationTargetLanguageStore.loadSelection(appLanguage: resolvedAppLanguage)
+        explanationTargetLanguages = explanationLanguages
+        explanationTargetLanguage = ExplanationTargetLanguageStore.load(appLanguage: resolvedAppLanguage)
+        TranslationTargetLanguageStore.saveSelection(translationTargetLanguages)
+        TranslationTargetLanguageStore.save(translationTargetLanguage)
+        ExplanationTargetLanguageStore.saveSelection(explanationTargetLanguages)
+        ExplanationTargetLanguageStore.save(explanationTargetLanguage)
         normalizeExplanationVoiceSelection()
     }
 
@@ -295,6 +323,37 @@ final class AppSettings: ObservableObject {
     /// 使用时解析「跟随界面语言」，不要在点选时写死。
     var resolvedTranslationTargetLanguage: TranslationTargetLanguage {
         translationTargetLanguage.resolved(appLanguage: appLanguage)
+    }
+
+    /// 讲解显示语言。设置里只存具体语言。
+    var resolvedExplanationTargetLanguage: TranslationTargetLanguage {
+        explanationTargetLanguage.resolved(appLanguage: appLanguage)
+    }
+
+    /// 勾选或取消一种翻译语言。只剩一种时不能再取消。
+    func toggleTranslationTargetLanguage(_ language: TranslationTargetLanguage) {
+        guard TranslationTargetLanguage.selectableTargets.contains(language) else { return }
+        var next = translationTargetLanguages
+        if let index = next.firstIndex(of: language) {
+            guard next.count > 1 else { return }
+            next.remove(at: index)
+        } else {
+            next.append(language)
+        }
+        translationTargetLanguages = TranslationTargetLanguage.orderedSelection(next)
+    }
+
+    /// 勾选或取消一种讲解语言。只剩一种时不能再取消。
+    func toggleExplanationTargetLanguage(_ language: TranslationTargetLanguage) {
+        guard TranslationTargetLanguage.selectableTargets.contains(language) else { return }
+        var next = explanationTargetLanguages
+        if let index = next.firstIndex(of: language) {
+            guard next.count > 1 else { return }
+            next.remove(at: index)
+        } else {
+            next.append(language)
+        }
+        explanationTargetLanguages = TranslationTargetLanguage.orderedSelection(next)
     }
 
     var selectedCursorModel: CursorModelOption {

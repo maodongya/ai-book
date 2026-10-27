@@ -52,6 +52,11 @@ struct AIBookApp: App {
                 .bookMenuShortcut(BookKeyboardShortcuts.saveAs)
                 .disabled(viewModel.fileContent.isEmpty) // 空书不另存
 
+                Button(BookL10n.string("action.saveAIBook")) {
+                    viewModel.document.saveAsAIBook()
+                }
+                .disabled(viewModel.fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
                 Button(BookL10n.string("action.exportSelection")) {
                     viewModel.document.saveSelectionAs() // 只导出左页当前选区
                 }

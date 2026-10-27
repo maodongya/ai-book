@@ -8,16 +8,22 @@ struct TranslationLanguageSettingsView: View {
     var body: some View {
         let _ = settings.localizationRevision // 读世代号，切界面语言时重绘选项文案
         VStack(alignment: .leading, spacing: 12) {
-            LabeledContent(BookL10n.string("translation.target.title")) {
-                Picker("", selection: $settings.translationTargetLanguage) {
-                    ForEach(TranslationTargetLanguage.allCases) { language in
-                        Text(language.localizedName).tag(language) // 显示名走目录，tag 是枚举本身
+            Text(BookL10n.string("translation.target.title"))
+                .font(BookTheme.captionFont)
+
+            ForEach(TranslationTargetLanguage.selectableTargets) { language in
+                Toggle(language.localizedName, isOn: Binding(
+                    get: { settings.translationTargetLanguages.contains(language) },
+                    set: { isOn in
+                        let selected = settings.translationTargetLanguages.contains(language)
+                        if isOn != selected {
+                            settings.toggleTranslationTargetLanguage(language)
+                        }
                     }
-                }
-                .labelsHidden() // 标题已在 LabeledContent
+                ))
             }
 
-            Text(BookL10n.string("translation.target.hint")) // 说明「跟随」在使用时解析
+            Text(BookL10n.string("translation.target.multiHint"))
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.settingsSecondary)
         }

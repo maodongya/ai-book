@@ -284,6 +284,7 @@ final class ReadingViewModel: ObservableObject {
             ]
         }
         syncDisplayedChatMessages()  // 按恢复的 Tab 填
+        document.activateBundledLanguagesForCurrentSettings()
     }
 
 
