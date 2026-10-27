@@ -34,6 +34,9 @@ final class ReadingMessageOrchestrator {
         case .textDelta(let delta):  // 读书助手只拼正文
             if host.assistant.readingAssistantActiveTask == .translation {  // 翻译进弹出层
                 host.translation.appendTranslationStreamPreview(delta)
+            } else if host.assistant.readingAssistantActiveTask == .explanation,
+                      host.assistant.showsExplanationProgressSheet {  // 全文讲解进弹出层
+                host.assistant.appendExplanationStreamPreview(delta)
             } else {
                 host.streamingResponse += delta  // 增量追加，不整段替换
             }
@@ -70,6 +73,11 @@ final class ReadingMessageOrchestrator {
             if host.assistant.readingAssistantActiveTask == .translation {  // 翻译不写讲解流
                 if host.translation.translationStreamPreview.isEmpty, !text.isEmpty {
                     host.translation.translationStreamPreview = text
+                }
+            } else if host.assistant.readingAssistantActiveTask == .explanation,
+                      host.assistant.showsExplanationProgressSheet {  // 全文讲解弹出层
+                if host.assistant.explanationStreamPreview.isEmpty, !text.isEmpty {
+                    host.assistant.explanationStreamPreview = text
                 }
             } else if host.streamingResponse.isEmpty, !text.isEmpty {  // 流里没拼到才用收尾全文
                 host.streamingResponse = text  // 补正文
@@ -203,6 +211,9 @@ final class ReadingMessageOrchestrator {
         }
         host.evolution.evolutionRunKind = runKind  // fetch 里按这个选 system prompt
         beginRun(showsExecutionTrace: runKind != .none)  // 讲解不露工具轨迹
+        if runKind == .none {  // beginRun 会清任务标，此处补回
+            host.assistant.readingAssistantActiveTask = .explanation
+        }
         if runKind == .evolution {  // 记下命令号，失败好回滚
             host.evolution.executingEvolutionCommandNumber = evolutionCommandNumber  // 停止/出错时 revert
         } else {  // 讲解用模板历史
@@ -312,6 +323,9 @@ final class ReadingMessageOrchestrator {
                     let failureMessage = ChatMessage(role: .assistant, content: BookL10n.format("vm.error.parseFailed", message))  // 对话里也留一条
                     host.appendDisplayedMessage(failureMessage, to: promptContext)  // 写进对应历史
                 }
+            }
+            if host.assistant.showsExplanationProgressSheet {  // 失败/取消时也要关弹出层
+                host.assistant.endExplanationProgress()
             }
             host.isLoading = false  // 无论成败收转圈
             host.isRunning = false  // 停止按钮灰掉

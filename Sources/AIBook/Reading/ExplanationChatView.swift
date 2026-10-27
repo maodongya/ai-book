@@ -199,95 +199,213 @@ struct ExplanationChatView: View {
         }
     }
 
-    /// 讲解对话区。
+    /// 讲解对话区或对照表。
     private var explanationPanel: some View {
-        ZStack(alignment: .topLeading) {  // 叠层
-            ExplanationChatTranscriptView()  // 讲解气泡，输入在外
-                .frame(maxWidth: .infinity, maxHeight: .infinity)  // 吃掉右页剩余
-
-            SelectableTextView(  // 译文长文，和左页同一套编辑器
-                text: Binding(  // 和会话正文双向绑
-                    get: { viewModel.explanationSelectionText },  // 讲解面板划词
-                    set: { viewModel.explanationSelectionText = $0 }  // 写回，供插入引用
-                ),
-                onSelectionChange: { selection, _ in
-                    viewModel.assistant.updateExplanationPanelSelection(selection)  // 划词范围记下
-                },
-                appearance: .editor,  // 讲解用编辑器外观
-                isEditable: false,
-                selectAllSignal: viewModel.assistant.explanationSelectAllSignal  // 工具条全选打到这篇
-            )
-            .frame(width: 0, height: 0)  // 锁宽
-            .accessibilityHidden(true)  // 装饰铬不对 VoiceOver 重复读
-
-            if isReadingChromeVisible {  // 沉浸时藏讲解工具
-                VStack {
-                    HStack(spacing: 8) {  // 转圈和状态
-                        Spacer()  // 把后续控件推开
-                        explanationToolbar  // 新建/存/读/清
+        VStack(spacing: 0) {
+            if isReadingChromeVisible {
+                explanationToolbarWithTableControls
+            }
+            if viewModel.assistant.showsExplanationTableView,
+               let alignment = viewModel.assistant.explanationAlignment,
+               alignment.mode == .paragraph,
+               !alignment.strictParagraphValidated,
+               !alignment.isStale {
+                Text(BookL10n.string("translation.table.nonStrictHint"))
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.inkSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+            }
+            if viewModel.assistant.showsExplanationTableView,
+               let alignment = viewModel.assistant.explanationAlignment {
+                TranslationTableColumnHeader(
+                    alignment: alignment,
+                    isEditable: !viewModel.isRunning,
+                    translationColumnTitleKey: "explanation.header.content"
+                )
+                .padding(.horizontal, 12)
+            }
+            ZStack(alignment: .topLeading) {
+                Group {
+                    if viewModel.assistant.showsExplanationTableView,
+                       let alignment = viewModel.assistant.explanationAlignment {
+                        TranslationTableView(
+                            alignment: alignment,
+                            isEditable: !viewModel.isRunning,
+                            isSourceColumnEditable: !viewModel.assistant.usesStrictExplanationTable,
+                            allowsSplitTranslation: !viewModel.assistant.usesStrictExplanationTable,
+                            highlightedBlockID: viewModel.assistant.explanationTableHighlightedBlockID,
+                            scrollTargetBlockID: viewModel.assistant.explanationTableScrollTargetID,
+                            focusTranslationBlockID: viewModel.assistant.explanationTableFocusTranslationBlockID,
+                            onSelectBlock: { block in
+                                viewModel.assistant.handleExplanationTableVisibleBlock(block)
+                            },
+                            onUpdateBlock: { id, source, translation, note in
+                                viewModel.assistant.updateExplanationTableBlock(
+                                    id: id,
+                                    sourceText: source,
+                                    translationText: translation,
+                                    note: note
+                                )
+                            },
+                            onSplitTranslation: { id, before, after in
+                                viewModel.assistant.splitExplanationTableBlock(
+                                    id: id,
+                                    translationBefore: before,
+                                    translationAfter: after
+                                )
+                            },
+                            onClearFocusTranslation: {
+                                viewModel.assistant.explanationTableFocusTranslationBlockID = nil
+                            }
+                        )
+                    } else if viewModel.assistant.showsExplanationProgressSheet {
+                        explanationProgressInSheetPlaceholder
+                    } else {
+                        explanationChatStack
                     }
-                    Spacer()  // 把后续控件推开
                 }
-                .padding(10)  // 离开角一点，避免贴边难点
             }
         }
     }
 
-    /// 讲解工具条。
-    private var explanationToolbar: some View {
-        HStack(spacing: 8) {  // 转圈和状态
-            explanationToolbarButton(title: BookL10n.string("action.new")) {  // 新开讲解
-                viewModel.assistant.newExplanationDocument()  // 新开一份讲解，旧的先确认
-            }
-            .disabled(viewModel.isRunning)  // 不可用时灰掉，避免误操作
+    /// 讲解气泡 + 隐藏选区视图。
+    private var explanationChatStack: some View {
+        ZStack(alignment: .topLeading) {
+            ExplanationChatTranscriptView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            explanationToolbarButton(title: BookL10n.string("action.save")) {  // 另存讲解
-                viewModel.assistant.saveExplanationDocument()  // 另存讲解
-            }
-            .disabled(!viewModel.assistant.hasExplanationContent)  // 不可用时灰掉，避免误操作
+            SelectableTextView(
+                text: Binding(
+                    get: { viewModel.explanationSelectionText },
+                    set: { viewModel.explanationSelectionText = $0 }
+                ),
+                onSelectionChange: { selection, _ in
+                    viewModel.assistant.updateExplanationPanelSelection(selection)
+                },
+                appearance: .editor,
+                isEditable: false,
+                selectAllSignal: viewModel.assistant.explanationSelectAllSignal
+            )
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+        }
+    }
 
-            explanationToolbarButton(title: BookL10n.string("action.open")) {  // 打开已存讲解
-                viewModel.assistant.openExplanationDocument()  // 打开已存讲解
+    private var explanationProgressInSheetPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ProgressView().controlSize(.small)
+                Text(BookL10n.string("explanation.progress.inSheet"))
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(BookTheme.leather)
             }
-            .disabled(viewModel.isRunning)  // 不可用时灰掉，避免误操作
+            Text(BookL10n.string("explanation.progress.hint"))
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+        }
+        .padding(.horizontal, 36)
+        .padding(.vertical, 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
 
-            explanationToolbarButton(title: BookL10n.string("action.selectAll")) {  // 全选讲解
-                viewModel.assistant.selectAllExplanation()  // 全选讲解正文
+    /// 讲解工具条（含对照表）。
+    private var explanationToolbarWithTableControls: some View {
+        HStack(spacing: 8) {
+            if viewModel.assistant.explanationAlignment?.isStale == true {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(BookTheme.captionFont)
+                    .foregroundStyle(.orange)
+                    .help(BookL10n.string("help.alignStale"))
             }
-            .disabled(!viewModel.assistant.hasExplanationContent || viewModel.isRunning)  // 不可用时灰掉，避免误操作
 
-            explanationToolbarButton(title: BookL10n.string("action.clear")) {  // 清空讲解
-                viewModel.assistant.clearExplanation()  // 清空讲解，留欢迎
+            Toggle(BookL10n.string("explanation.tableCompare"), isOn: Binding(
+                get: { viewModel.explanationTableViewEnabled },
+                set: { viewModel.explanationTableViewEnabled = $0 }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .font(BookTheme.captionFont)
+            .disabled(!viewModel.assistant.canUseExplanationTableView)
+
+            explanationToolbarButton(title: BookL10n.string("translation.alignSource")) {
+                viewModel.assistant.alignExplanationWithSource()
             }
-            .disabled(viewModel.isRunning || !viewModel.assistant.hasExplanationContent)  // 不可用时灰掉，避免误操作
+            .disabled(
+                viewModel.isRunning
+                    || viewModel.assistant.explanationBodyForAlignment().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            )
 
-            if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {  // 朗读中才给暂停，跑任务时不给
-                explanationToolbarButton(  // 朗读/暂停
-                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")  // 朗读中才出现暂停
-                ) {
-                    viewModel.assistant.toggleExplanationSpeechPause()  // 暂停/继续这条讲解
+            if viewModel.assistant.isExplanationAlignmentLocked {
+                explanationToolbarButton(title: BookL10n.string("translation.unlock")) {
+                    viewModel.assistant.unlockExplanationAlignment()
+                }
+            } else if viewModel.assistant.canUseExplanationTableView {
+                explanationToolbarButton(title: BookL10n.string("translation.lock"), prominent: true) {
+                    viewModel.assistant.lockExplanationAlignment()
                 }
             }
 
-            explanationToolbarButton(  // 朗读/暂停
-                title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")  // 在读显示停
-            ) {
-                viewModel.assistant.readExplanationAloud()  // 没有在读就读全文，在读就停
+            Spacer(minLength: 8)
+
+            explanationToolbarButton(title: BookL10n.string("action.new")) {
+                viewModel.assistant.newExplanationDocument()
             }
-            .disabled(viewModel.isRunning || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation))  // 不可用时灰掉，避免误操作
+            .disabled(viewModel.isRunning)
+
+            explanationToolbarButton(title: BookL10n.string("action.save")) {
+                viewModel.assistant.saveExplanationDocument()
+            }
+            .disabled(!viewModel.assistant.hasExplanationContent)
+
+            explanationToolbarButton(title: BookL10n.string("action.open")) {
+                viewModel.assistant.openExplanationDocument()
+            }
+            .disabled(viewModel.isRunning)
+
+            if !viewModel.assistant.showsExplanationTableView {
+                explanationToolbarButton(title: BookL10n.string("action.selectAll")) {
+                    viewModel.assistant.selectAllExplanation()
+                }
+                .disabled(!viewModel.assistant.hasExplanationContent || viewModel.isRunning)
+            }
+
+            if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {
+                explanationToolbarButton(
+                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
+                ) {
+                    viewModel.assistant.toggleExplanationSpeechPause()
+                }
+            }
+
+            explanationToolbarButton(
+                title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
+            ) {
+                viewModel.assistant.readExplanationAloud()
+            }
+            .disabled(viewModel.isRunning || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation))
+
+            explanationToolbarButton(title: BookL10n.string("action.clear")) {
+                viewModel.assistant.clearExplanation()
+            }
+            .disabled(viewModel.isRunning || !viewModel.assistant.hasExplanationContent)
         }
-        .id(styleManager.revision)  // 字体变整页重建，避免残列宽
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .id(styleManager.revision)
     }
 
     /// 讲解栏工具按钮。
     private func explanationToolbarButton(
         title: String,
+        prominent: Bool = false,
         action: @escaping () -> Void  // 点按
     ) -> some View {
         Button(action: action) {  // 工具条小按钮
             Text(title)  // 按钮文案
                 .font(styleManager.tokens.typography.captionFont)  // 跟当前主题说明字
-                .foregroundStyle(styleManager.tokens.colors.ink)  // 跟当前主题墨
+                .foregroundStyle(prominent ? BookTheme.leather : styleManager.tokens.colors.ink)  // 强调用皮色
                 .padding(.horizontal, 10)  // 左右边距
                 .padding(.vertical, 6)  // 上下边距
                 .background { lessonPlanToolbarCapsule }  // 和教案工具同一粒

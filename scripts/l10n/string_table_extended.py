@@ -172,6 +172,7 @@ EXTENDED: dict[str, dict[str, str]] = {
     "guard.apiKey": _e("请先在 book 设置中为「%@」配置 API Key。", "Configure API Key for %@ in Book Settings.", "book 設定で %@ の API Key を設定してください。", "API-Key für %@ in Book-Einstellungen setzen.", "Configurez la clé API pour %@.", "Configura API Key per %@.", "Configura API Key pro %@.", "Ρυθμίστε API Key για %@."),
     "guard.cursorEvolution": _e("请在「进化设置」中配置 Cursor API Key 并确保 cursor-bridge 已安装。", "Configure Cursor in Evolution Settings and install cursor-bridge.", "進化設定で Cursor を設定し cursor-bridge をインストールしてください。", "Cursor in Evolutions-Einstellungen konfigurieren.", "Configurez Cursor dans Réglages évolution.", "Configura Cursor in Impostazioni evoluzione.", "Configura Cursor in Evolution Settings.", "Ρυθμίστε Cursor."),
     "translation.header.translation": _e("译文", "Translation", "訳文", "Übersetzung", "Traduction", "Traduzione", "Translatio", "Μετάφραση"),
+    "explanation.header.content": _e("讲解", "Explanation", "解説", "Erklärung", "Explication", "Spiegazione", "Explicatio", "Εξήγηση"),
     "translation.row.difficult": _e("难点词语", "Difficult terms", "難語", "Schwierige Begriffe", "Termes difficiles", "Termini difficili", "Verba difficilia", "Δύσκολοι όροι"),
     "translation.row.summary": _e("一句话总译", "One-line summary", "一行要約", "Kurzübersetzung", "Résumé en une ligne", "Riassunto in una riga", "Summarium unius versus", "Μονογραμμική περίληψη"),
     "style.ribbon": _e("书脊丝带", "Bookmark ribbon", "しおり", "Leseband", "Ruban marque-page", "Nastro segnalibro", "Fascia libri", "Κορδέλα σελιδοδείκτη"),

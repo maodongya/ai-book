@@ -40,6 +40,27 @@ final class ReadingAssistantSession: ObservableObject {
         host.document.updateLessonPlanSelection(text, range: range)  // 转文档
     }
     @Published private(set) var explanationSelectAllSignal = UUID()  // 变一次讲解全选
+
+    @Published var showsExplanationProgressSheet = false
+    @Published var explanationStreamPreview = ""
+    @Published var explanationProgressTitle = ""
+    @Published var explanationAlignment: TranslationAlignment? {
+        didSet {
+            guard !host.isRestoringSession else { return }
+            host.persistChatSession()
+        }
+    }
+    @Published var explanationTableViewEnabled = false {
+        didSet {
+            guard !host.isRestoringSession else { return }
+            host.persistChatSession()
+        }
+    }
+    @Published var explanationTableHighlightedBlockID: UUID?
+    @Published var explanationTableScrollTargetID: UUID?
+    @Published var explanationTableFocusTranslationBlockID: UUID?
+    var isApplyingExplanationAlignment = false
+
     @Published private(set) var isSpeakingExplanation = false  // 朗读中
     @Published private(set) var isExplanationSpeechPaused = false  // 暂停中
     @Published private(set) var currentSpeechSource: SpeechSource?  // 工具栏用来源高亮
@@ -247,6 +268,7 @@ final class ReadingAssistantSession: ObservableObject {
         explanationSelectionText = ""  // 复制全文空
         explanationPanelSelectedText = ""  // 选区
         host.document.lastCommittedExplanationPanelSelectedText = ""  // 提交值
+        clearExplanationTableState()
         host.errorMessage = nil  // 清错
         host.persistChatSession()  // 记住子栏
     }
@@ -265,6 +287,7 @@ final class ReadingAssistantSession: ObservableObject {
         explanationSelectionText = ""  // 复制全文空
         explanationPanelSelectedText = ""  // 选区
         host.document.lastCommittedExplanationPanelSelectedText = ""  // 提交值
+        clearExplanationTableState()
         host.errorMessage = nil  // 清错
         host.persistChatSession()  // 记住子栏
     }
@@ -275,7 +298,7 @@ final class ReadingAssistantSession: ObservableObject {
         host.selectRightPageTab(.readingAssistant)  // 朗读前切助手，按钮状态对得上
         host.assistant.selectReadingAssistantPanel(.explanation)  // 讲解栏
         host.persistChatSession()  // 记住子栏
-        let content = explanationTranscriptText()  // 带【助手】标记
+        let content = explanationFileExportContent()  // 有对照表时用可 round-trip 的段式纯文本
         guard !content.isEmpty else {  // 没内容
             host.errorMessage = BookL10n.string("vm.error.noExplanationToSave")  // 提示
             return  // 不换文再读
@@ -285,7 +308,10 @@ final class ReadingAssistantSession: ObservableObject {
             panelTitle: BookL10n.string("vm.panel.saveExplanation"),
             panelMessage: BookL10n.string("vm.panel.saveExplanationMsg"),
             suggestedName: explanationFileName(),  // 文章名+讲解
-            successPrefix: BookL10n.string("vm.saved.explanation")
+            successPrefix: BookL10n.string("vm.saved.explanation"),
+            onSaved: { [weak self] url in
+                self?.saveExplanationAlignmentSidecar(near: url)  // 与 txt 同目录，打开时恢复对照表
+            }
         )
     }
 
@@ -318,7 +344,15 @@ final class ReadingAssistantSession: ObservableObject {
                 return  // 不换文再读
             }
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()  // 记住
+            clearExplanationTableState()
             applyImportedExplanationText(text)  // 按标记拆，失败整篇一条
+            if !applyExplanationSidecarIfValid(from: url, content: text) {
+                if alignExplanationWithSource(showFeedback: false),
+                   var alignment = explanationAlignment {
+                    alignment.provenance = .importedPlain
+                    explanationAlignment = alignment
+                }
+            }
             host.errorMessage = nil  // 清错
             host.document.showTransientSaveMessage(BookL10n.format("vm.opened.explanation", url.lastPathComponent))  // 打开提示
         } catch {
@@ -456,7 +490,7 @@ final class ReadingAssistantSession: ObservableObject {
 
 
     /// 欢迎语不进 API 历史。
-    private func isReadingWelcomeMessage(_ message: ChatMessage) -> Bool {
+    func isReadingWelcomeMessage(_ message: ChatMessage) -> Bool {
         message.id == ReadingAssistantSession.defaultWelcomeMessage.id  // id 对上
             || (message.role == .assistant && message.content == ReadingAssistant.welcomeMessage)  // 语言变了 id 可能不同，比正文
     }
@@ -556,22 +590,7 @@ final class ReadingAssistantSession: ObservableObject {
             return  // 不换文再读
         }
 
-        let context = surroundingContext(for: selection, in: host.document.fileContent) // 选中段落在原文中的上下文节选
-        let prompt = """
-        请讲解下面这段文字：
-
-        【选中内容】
-        \(selection)
-
-        【上下文】
-        \(context)
-        """ // 组装讲解用 user prompt
-
-        host.sendMessage( // 发起讲解流式请求
-            prompt,
-            displayText: BookL10n.format("vm.display.explainSelection", selection.count), // 气泡里展示的摘要
-            speakReplyWhenDone: true // 完成后朗读回复
-        )
+        runSelectionParagraphExplanation()  // 选区按段 + 严格对照
     }
 
 
@@ -591,18 +610,7 @@ final class ReadingAssistantSession: ObservableObject {
             return  // 不换文再读
         }
 
-        let prompt = """
-        请讲解下面这篇全文：
-
-        【全文】
-        \(fullText)
-        """ // 全文讲解 user prompt
-
-        host.sendMessage( // 发起全文讲解
-            prompt,
-            displayText: BookL10n.format("vm.display.explainFull", fullText.count),
-            speakReplyWhenDone: true // 完成后朗读
-        )
+        runFullTextParagraphExplanation()  // 按段分批 + 严格对照
     }
 
 
@@ -739,7 +747,7 @@ final class ReadingAssistantSession: ObservableObject {
 
 
     /// 选区前后文，按上下文百分比截。
-    private func surroundingContext(for selection: String, in content: String) -> String {
+    func surroundingContext(for selection: String, in content: String) -> String {
         let percent = AppSettings.shared.bookContextPercent  // 和提示同一套
         let radius = max(Int(Double(content.count) * percent / 100.0 / 2.0), 300)  // 前后各一半，至少 300 字
         guard let range = content.range(of: selection) else {  // 选区不在全文（已改过）

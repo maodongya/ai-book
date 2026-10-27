@@ -244,6 +244,7 @@ final class ReadingViewModel: ObservableObject {
     func stopCurrentRun() {
         let wasRunning = isRunning || activeTask != nil // 是否在跑 AI/进化
         let wasTranslationProgress = translation.showsTranslationProgressSheet  // 翻译弹出层
+        let wasExplanationProgress = assistant.showsExplanationProgressSheet  // 全文讲解弹出层
         let stoppedEvolutionNumber = evolution.executingEvolutionCommandNumber // 便于回滚队列项
         suppressReplySpeech = true // 停止后不再自动朗读收尾
         activeTask?.cancel()  // 取消网络 Task
@@ -260,10 +261,11 @@ final class ReadingViewModel: ObservableObject {
         evolution.executingEvolutionCommandNumber = nil  // 不再指向那条命令
         evolution.showsExecutionTrace = false  // 轨迹区收起
         translation.endTranslationProgress()  // 关翻译弹出层
+        assistant.endExplanationProgress()  // 关讲解弹出层
         if wasRunning, let number = stoppedEvolutionNumber {  // 进化中途停
             evolution.revertRunningOptimization(number: number) // 进化中途停止则恢复 pending
         }
-        if wasRunning, !wasTranslationProgress {  // 翻译停止不插「已停止」进讲解对话
+        if wasRunning, !wasTranslationProgress, !wasExplanationProgress {  // 翻译/全文讲解停止不插「已停止」
             appendDisplayedMessage(  // 「已停止」
                 ChatMessage(role: .assistant, content: BookL10n.string("vm.stopped")),  // 本地化
                 to: activePromptContext  // 写进当前 Tab 的历史
@@ -323,6 +325,9 @@ final class ReadingViewModel: ObservableObject {
         guard isRunning else { return "" }  // 没在跑不占位
         if translation.showsTranslationProgressSheet {
             return BookL10n.string("translation.generating")
+        }
+        if assistant.showsExplanationProgressSheet {
+            return BookL10n.string("explanation.generating")
         }
         if mode == .aiEvolution, evolution.showsExecutionTrace {  // 进化轨迹优先工具文案
             if !streamingToolStatus.isEmpty { return streamingToolStatus }  // 短状态
@@ -474,6 +479,15 @@ final class ReadingViewModel: ObservableObject {
         if let tableViewEnabled = session.translationTableViewEnabled, tableViewEnabled {  // 只恢复「开」，关是默认
             translation.translationTableViewEnabled = translation.canUseTranslationTableView  // 对齐不可用则仍关
         }
+        assistant.explanationAlignment = session.explanationAlignment
+        if assistant.explanationAlignment == nil,
+           assistant.hasExplanationContent {
+            _ = assistant.alignExplanationWithSource(showFeedback: false)
+        }
+        assistant.refreshExplanationAlignmentStaleState()
+        if let explanationTable = session.explanationTableViewEnabled, explanationTable {
+            assistant.explanationTableViewEnabled = assistant.canUseExplanationTableView
+        }
         translation.syncTranslationScrollPresentation()  // 代理和锚点
         if let panelName = session.readingAssistantPanel,  // 讲解/译文子面板
            let panel = ReadingAssistantPanel.fromPersisted(panelName) {  // 旧名兼容
@@ -506,7 +520,9 @@ final class ReadingViewModel: ObservableObject {
                 lastOpenedFilePath: document.currentFileURL?.path,  // 未命名则 nil
                 lessonPlanContent: translation.lessonPlanContent,  // 译文全文
                 translationAlignment: translation.translationAlignment,  // 对齐快照
-                translationTableViewEnabled: translation.translationTableViewEnabled  // 对照表开关
+                translationTableViewEnabled: translation.translationTableViewEnabled,  // 对照表开关
+                explanationAlignment: assistant.explanationAlignment,
+                explanationTableViewEnabled: assistant.explanationTableViewEnabled
             )
         } catch {  // 磁盘满/权限
             errorMessage = BookL10n.format("vm.error.saveChat", error.localizedDescription)  // 顶栏，内存仍在

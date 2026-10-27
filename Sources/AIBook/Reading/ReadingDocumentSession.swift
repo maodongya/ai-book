@@ -302,6 +302,7 @@ final class ReadingDocumentSession: ObservableObject {
             host.errorMessage = nil  // 清错
             host.persistChatSession()  // 落盘空档
             host.translation.refreshTranslationAlignmentAfterSourceChange()  // 能修对齐就修
+            host.assistant.refreshExplanationAlignmentStaleState()
         } catch {
             host.errorMessage = BookL10n.format("vm.error.readFile", error.localizedDescription)  // 读失败
         }

@@ -12325,6 +12325,58 @@
         }
       }
     },
+    "explanation.header.content": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explicatio"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εξήγηση"
+          }
+        }
+      }
+    },
     "translation.row.difficult": {
       "localizations": {
         "zh-Hans": {
@@ -27667,80 +27719,1042 @@
     },
     "vm.error.paragraphAlign.countMismatch": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整段翻译段数不一致（期望 %lld 段，实际 %lld 段）。请重新整段翻译。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Paragraph count mismatch (expected %lld, got %lld)." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整段翻译段数不一致（期望 %lld 段，实际 %lld 段）。请重新整段翻译。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph count mismatch (expected %lld, got %lld). Run paragraph translation again."
+          }
+        }
       }
     },
     "vm.error.paragraphAlign.indexCoverage": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整段翻译缺少或重复段落序号。请重新整段翻译。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Missing or duplicate paragraph index." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整段翻译缺少或重复段落序号。请重新整段翻译。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing or duplicate paragraph index. Run paragraph translation again."
+          }
+        }
       }
     },
     "vm.error.paragraphAlign.emptyTranslation": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "第 %lld 段译文为空。请重新整段翻译。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Paragraph %lld translation is empty." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %lld 段译文为空。请重新整段翻译。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld translation is empty. Run paragraph translation again."
+          }
+        }
       }
     },
     "vm.error.paragraphAlign.sourceMismatch": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "第 %lld 段原文与左页不一致。请重新整段翻译。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Paragraph %lld source text mismatch." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %lld 段原文与左页不一致。请重新整段翻译。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph %lld source text mismatch. Run paragraph translation again."
+          }
+        }
       }
     },
     "vm.error.paragraphAlign.anchoringIncomplete": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "整段对齐锚点不完整（%lld/%lld）。请重新整段翻译。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Incomplete paragraph anchors (%lld/%lld)." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整段对齐锚点不完整（%lld/%lld）。请重新整段翻译。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete paragraph anchors (%lld/%lld). Run paragraph translation again."
+          }
+        }
       }
     },
     "vm.align.nonStrictHeuristic": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "非严格对齐" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Non-strict alignment" } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非严格对齐"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-strict alignment"
+          }
+        }
       }
     },
-    "translation.table.nonStrictHint": {
+    "explanation.progress.hint": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前为导入或本地对齐，段对段不保证严格一致。请使用「整段翻译」恢复严格表格对照。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Imported or heuristic alignment; use paragraph translation for strict table compare." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按原文段逐批生成讲解 JSON；完成后写入讲解对话，并以严格段对齐打开原文/讲解对照表。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation JSON is generated paragraph by paragraph; when done, results appear in the chat and a strict source/explanation table opens."
+          }
+        }
+      }
+    },
+    "explanation.progress.inSheet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全文讲解进行中，请查看弹出窗口"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-text explanation in progress — see the popup window"
+          }
+        }
+      }
+    },
+    "explanation.generating": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在生成讲解…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating explanation…"
+          }
+        }
+      }
+    },
+    "explanation.progress.batch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在讲解第 %lld–%lld 段（共 %lld 段）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explaining paragraphs %lld–%lld of %lld"
+          }
+        }
+      }
+    },
+    "explanation.progress.fillMissing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在补讲缺段（%lld 段）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        }
+      }
+    },
+    "explanation.progress.batchHeader": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— 第 %lld–%lld 段 ——"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        }
+      }
+    },
+    "explanation.progress.fillHeader": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— 补讲 %lld 段 ——"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        }
+      }
+    },
+    "explanation.tableCompare": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表格对照"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table view"
+          }
+        }
       }
     },
     "translation.progress.hint": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "模型输出仅在此窗口显示；完成后写入译文区，不会出现在讲解对话或教案编辑器中。" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Output appears only here; results go to the translation panel, not explanation chat or the lesson editor." } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型输出仅在此窗口显示；完成后写入译文区，不会出现在讲解对话或教案编辑器中。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model output appears only here; results go to the translation panel, not the explanation chat or lesson editor."
+          }
+        }
       }
     },
     "translation.progress.inSheet": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "翻译进行中，请查看弹出窗口" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Translation in progress — see the popup window" } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译进行中，请查看弹出窗口"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation in progress — see the popup window"
+          }
+        }
       }
     },
     "translation.progress.batch": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在翻译第 %lld–%lld 段（共 %lld 段）" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Translating paragraphs %lld–%lld of %lld" } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在翻译第 %lld–%lld 段（共 %lld 段）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating paragraphs %lld–%lld of %lld"
+          }
+        }
       }
     },
     "translation.progress.fillMissing": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在补译缺段（%lld 段）" } },
-        "en": { "stringUnit": { "state": "translated", "value": "Filling %lld missing paragraphs" } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在补译缺段（%lld 段）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filling %lld missing paragraphs"
+          }
+        }
       }
     },
     "translation.progress.batchHeader": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "—— 第 %lld–%lld 段 ——" } },
-        "en": { "stringUnit": { "state": "translated", "value": "—— Paragraphs %lld–%lld ——" } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— 第 %lld–%lld 段 ——"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Paragraphs %lld–%lld ——"
+          }
+        }
       }
     },
     "translation.progress.fillHeader": {
       "localizations": {
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "—— 补译 %lld 段 ——" } },
-        "en": { "stringUnit": { "state": "translated", "value": "—— Fill %lld paragraphs ——" } }
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— 补译 %lld 段 ——"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—— Fill %lld paragraphs ——"
+          }
+        }
       }
     },
     "vm.align.resegmentedSuffix": {

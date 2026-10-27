@@ -40,6 +40,12 @@ extension ReadingViewModel {
         set { translation.translationTableViewEnabled = newValue }
     }
 
+    /// 转给助手的讲解对照表开关。
+    var explanationTableViewEnabled: Bool {
+        get { assistant.explanationTableViewEnabled }
+        set { assistant.explanationTableViewEnabled = newValue }
+    }
+
     /// 转给助手的聊天记录。
     var chatMessages: [ChatMessage] {
         get { assistant.chatMessages }

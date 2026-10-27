@@ -70,6 +70,17 @@ struct ContentView: View {
                 .bookStyleEnvironment(styleManager)
                 .bookLocalizationEnvironment()
         }
+        .sheet(isPresented: Binding(
+            get: { viewModel.assistant.showsExplanationProgressSheet },
+            set: { presented in
+                if !presented { viewModel.assistant.endExplanationProgress() }
+            }
+        )) {
+            ExplanationProgressSheet()
+                .environmentObject(viewModel)
+                .bookStyleEnvironment(styleManager)
+                .bookLocalizationEnvironment()
+        }
         .frame(minWidth: 960, minHeight: 640)  // 双页最小
         .animation(.easeOut(duration: 0.2), value: styleManager.presetID)  // 换主题
         .animation(.easeOut(duration: 0.2), value: learningPaneFocus)  // 切全屏栏

@@ -144,6 +144,7 @@ struct TranslationTableView: View {
 struct TranslationTableColumnHeader: View {
     let alignment: TranslationAlignment  // 当前对齐，行数据源
     var isEditable: Bool = true  // 跑着时宿主会关掉编辑
+    var translationColumnTitleKey: String = "translation.header.translation"  // 第二列标题（译文/讲解）
 
     /// 有注或可编辑才留注列。
     private var showsNotes: Bool {
@@ -160,7 +161,7 @@ struct TranslationTableColumnHeader: View {
             HStack(alignment: .top, spacing: 0) {  // 三列贴齐，分隔靠细线
                 headerCell(BookL10n.string("translation.header.source"), width: layout.source)  // 原文列头
                 tableDivider
-                headerCell(BookL10n.string("translation.header.translation"), width: layout.translation)  // 译文列头
+                headerCell(BookL10n.string(translationColumnTitleKey), width: layout.translation)  // 译文/讲解列头
                 if showsNotes {  // 没注列就不要第三头
                     tableDivider
                     headerCell(BookL10n.string("translation.header.note"), width: layout.note)  // 注列头

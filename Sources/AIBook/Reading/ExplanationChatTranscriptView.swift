@@ -263,7 +263,9 @@ struct ExplanationChatTranscriptView: View {
         if viewModel.rightPageTab == .aiEvolution {  // 进化：只要在跑就出流式泡
             return viewModel.isLoading  // 分析/执行都算
         }
-        return viewModel.isLoading && viewModel.assistant.readingAssistantActiveTask == .explanation  // 讲解栏翻译任务不要冒讲解流式泡
+        return viewModel.isLoading
+            && viewModel.assistant.readingAssistantActiveTask == .explanation
+            && !viewModel.assistant.showsExplanationProgressSheet  // 全文讲解流在弹出层
     }
 
     /// 新消息钉在底。
