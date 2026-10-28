@@ -47,23 +47,4 @@ final class ExplanationTargetLanguageTests: XCTestCase {
             .de
         )
     }
-
-    func testMenuShowsExistingContentWithoutUnchecking() {
-        XCTAssertEqual(
-            BundledLanguageSelection.effect(alreadySelected: true, hasContent: true),
-            .show
-        )
-        XCTAssertEqual(
-            BundledLanguageSelection.effect(alreadySelected: false, hasContent: true),
-            .toggle(thenShow: true)
-        )
-        XCTAssertEqual(
-            BundledLanguageSelection.effect(alreadySelected: true, hasContent: false),
-            .toggle(thenShow: false)
-        )
-        XCTAssertEqual(
-            BundledLanguageSelection.effect(alreadySelected: false, hasContent: false),
-            .toggle(thenShow: false)
-        )
-    }
 }

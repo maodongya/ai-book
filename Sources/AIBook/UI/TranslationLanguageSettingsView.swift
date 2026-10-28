@@ -12,15 +12,17 @@ struct TranslationLanguageSettingsView: View {
                 .font(BookTheme.captionFont)
 
             ForEach(TranslationTargetLanguage.selectableTargets) { language in
+                let selected = settings.translationTargetLanguages.contains(language)
                 Toggle(language.localizedName, isOn: Binding(
-                    get: { settings.translationTargetLanguages.contains(language) },
+                    get: { selected },
                     set: { isOn in
-                        let selected = settings.translationTargetLanguages.contains(language)
                         if isOn != selected {
                             settings.toggleTranslationTargetLanguage(language)
                         }
                     }
                 ))
+                .toggleStyle(CheckboxToggleStyle())
+                .disabled(selected && settings.translationTargetLanguages.count == 1)
             }
 
             Text(BookL10n.string("translation.target.multiHint"))

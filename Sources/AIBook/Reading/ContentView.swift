@@ -8,12 +8,14 @@ struct ContentView: View {
     @ObservedObject private var settings = AppSettings.shared  // 语言和模型标签
     @ObservedObject private var styleManager = BookStyleManager.shared  // 字体主题
     @State private var learningPaneFocus: LearningPaneFocus = .both  // 学习模式：双栏/左全屏/右全屏
+    @StateObject private var operationAssistant = OperationAssistantModel()  // 按住说话的操作助手
 
     private let learningSpineWidth: CGFloat = 34  // 和学习摊书脊同宽
 
     /// 书桌：左页原文、右页学习区、工具栏。
     var body: some View {
         let _ = settings.localizationRevision  // 语言变了整页重算文案
+        let _ = bindOperationTurn()  // 松开麦克风时用当前焦点和会话
         ZStack {
             BookTheme.deskGradient  // 桌面底
                 .ignoresSafeArea()  // 铺满
@@ -86,6 +88,16 @@ struct ContentView: View {
         .animation(.easeOut(duration: 0.2), value: learningPaneFocus)  // 切全屏栏
         .onAppear {
             viewModel.onAppear()  // 自动进化若需要就串
+            operationAssistant.installKeys()  // Option+空格按住说话
+        }
+        .onDisappear {
+            operationAssistant.removeKeys()  // 离开窗口不再听按键
+        }
+        .alert(BookL10n.string("operation.confirm.title"), isPresented: $operationAssistant.showsConfirm) {
+            Button(BookL10n.string("action.ok")) { operationAssistant.resolveConfirm(true) }  // 继续这一步
+            Button(BookL10n.string("action.close"), role: .cancel) { operationAssistant.resolveConfirm(false) }  // 停掉后面的步骤
+        } message: {
+            Text(operationAssistant.confirmMessage)  // 听到的话和操作名
         }
         .onChange(of: settings.appLanguage) { _ in
             viewModel.document.activateBundledLanguagesForCurrentSettings()
@@ -117,6 +129,35 @@ struct ContentView: View {
                     .zIndex(2)  // 盖过单栏 overlay
             }
         }
+        .overlay(alignment: .top) {
+            if viewModel.mode.experienceMode == .reading, operationAssistant.showsStatus {  // 阅读模式没有学习顶栏
+                OperationStatusLine(model: operationAssistant)  // 快捷键说话时仍能看见状态
+                    .padding(.top, 12)
+                    .zIndex(3)
+            }
+        }
+    }
+
+    /// 把当前窗口状态交给操作助手。每次刷新都换一份，避免焦点过期。
+    private func bindOperationTurn() -> Bool {
+        operationAssistant.makeTurn = {
+            OperationTurn(
+                snapshot: OperationSessionBridge.snapshot(viewModel: viewModel, paneFocus: learningPaneFocus),
+                state: OperationSessionBridge.runtimeState(viewModel: viewModel),
+                client: BookOperationClient(llmService: viewModel.llmService, cursorService: viewModel.cursorService),
+                perform: { action in
+                    OperationSessionBridge.perform(
+                        action,
+                        viewModel: viewModel,
+                        setPaneFocus: { learningPaneFocus = $0 },  // 双页/左全屏/右全屏在界面上
+                        toggleReadingMode: {
+                            viewModel.mode.toggleReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)
+                        }
+                    )
+                }
+            )
+        }
+        return true  // 给 body 里的 let _ 用，避免这句被当成没结果
     }
 
     /// 右页学习区展开（非全屏沉浸）时为 true。
@@ -243,6 +284,8 @@ struct ContentView: View {
                 BookStatusPill(title: BookL10n.string("status.unsaved"), icon: "circle.fill", tint: Color.orange.opacity(0.95))  // 橙点
                     .help(BookL10n.string("help.unsavedChanges"))  // 悬停说明
             }
+            OperationMicButton(model: operationAssistant)  // 按住说话
+            OperationStatusLine(model: operationAssistant)  // 听到的话和正在做的操作
         }
         .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
     }
@@ -602,15 +645,13 @@ struct ContentView: View {
 
         BookToolbarSubmenu(title: BookL10n.string("explanation.target.title")) {
             ForEach(TranslationTargetLanguage.selectableTargets) { language in
-                Button {
-                    viewModel.document.explanationBundle.handleMenuClick(language)
-                } label: {
-                    HStack {
-                        Text(language.localizedName)
-                        if settings.explanationTargetLanguages.contains(language) {
-                            Image(systemName: "checkmark")
-                        }
-                    }
+                let selected = settings.explanationTargetLanguages.contains(language)
+                BookToolbarMenuCheckbox(
+                    title: language.localizedName,
+                    isOn: selected,
+                    isEnabled: !selected || settings.explanationTargetLanguages.count > 1
+                ) {
+                    settings.toggleExplanationTargetLanguage(language)
                 }
             }
         }
@@ -716,15 +757,13 @@ struct ContentView: View {
 
         BookToolbarSubmenu(title: BookL10n.string("translation.target.title")) {
             ForEach(TranslationTargetLanguage.selectableTargets) { language in
-                Button {
-                    viewModel.document.handleTranslationLanguageMenuClick(language)
-                } label: {
-                    HStack {
-                        Text(language.localizedName)
-                        if settings.translationTargetLanguages.contains(language) {
-                            Image(systemName: "checkmark")
-                        }
-                    }
+                let selected = settings.translationTargetLanguages.contains(language)
+                BookToolbarMenuCheckbox(
+                    title: language.localizedName,
+                    isOn: selected,
+                    isEnabled: !selected || settings.translationTargetLanguages.count > 1
+                ) {
+                    settings.toggleTranslationTargetLanguage(language)
                 }
             }
         }

@@ -198,6 +198,41 @@ private struct BookToolbarSubmenuHeaderButton: View {
     }
 }
 
+/// 语言多选行。点选只改勾选，不关闭菜单，方便一次勾上或取消多种。
+struct BookToolbarMenuCheckbox: View {
+    let title: String
+    let isOn: Bool
+    var isEnabled: Bool = true
+    let action: () -> Void
+    @ObservedObject private var styleManager = BookStyleManager.shared
+    @State private var isHovering = false
+
+    var body: some View {
+        let colors = styleManager.tokens.colors
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: isOn ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(isOn ? colors.chromeAccent : colors.menuItemText.opacity(0.72))
+                Text(title)
+                    .font(styleManager.tokens.typography.captionFont.weight(.medium))
+                    .foregroundStyle(colors.menuItemText)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background {
+                BookMenuItemCapsuleBackground(isHovering: isHovering && isEnabled)
+            }
+        }
+        .buttonStyle(.plain) // 不用会关闭菜单的那套按钮样式
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.42)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.16), value: isHovering)
+    }
+}
+
 /// 菜单分组细线。
 struct BookToolbarMenuDivider: View {
     @ObservedObject private var styleManager = BookStyleManager.shared

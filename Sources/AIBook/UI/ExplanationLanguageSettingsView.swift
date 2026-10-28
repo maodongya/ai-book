@@ -12,15 +12,17 @@ struct ExplanationLanguageSettingsView: View {
                 .font(BookTheme.captionFont)
 
             ForEach(TranslationTargetLanguage.selectableTargets) { language in
+                let selected = settings.explanationTargetLanguages.contains(language)
                 Toggle(language.localizedName, isOn: Binding(
-                    get: { settings.explanationTargetLanguages.contains(language) },
+                    get: { selected },
                     set: { isOn in
-                        let selected = settings.explanationTargetLanguages.contains(language)
                         if isOn != selected {
                             settings.toggleExplanationTargetLanguage(language)
                         }
                     }
                 ))
+                .toggleStyle(CheckboxToggleStyle())
+                .disabled(selected && settings.explanationTargetLanguages.count == 1)
             }
 
             Text(BookL10n.string("explanation.target.multiHint"))

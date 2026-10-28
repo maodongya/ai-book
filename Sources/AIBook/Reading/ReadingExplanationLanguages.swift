@@ -1,20 +1,5 @@
 import Foundation
 
-/// 讲解菜单点一种语言后该做什么。勾选和「有没有讲解」共同决定。
-enum BundledLanguageSelectionEffect: Equatable {
-    case show // 只切换右页，不改勾选
-    case toggle(thenShow: Bool) // 改勾选；thenShow 表示勾上后顺带显示
-}
-
-/// 译文和讲解共用的菜单规则：有内容就显示，没内容才改勾选。
-enum BundledLanguageSelection {
-    /// 已勾选且有内容只显示；未勾选且有内容则勾上并显示；没内容只改勾选。
-    static func effect(alreadySelected: Bool, hasContent: Bool) -> BundledLanguageSelectionEffect {
-        if alreadySelected && hasContent { return .show } // 不取消勾选
-        return .toggle(thenShow: !alreadySelected && hasContent) // 没内容时 thenShow 为 false
-    }
-}
-
 @MainActor
 /// 右页讲解的多语言：勾选决定下次生成哪些，显示语言决定当前看哪一种。
 final class ReadingExplanationLanguages {
@@ -92,22 +77,6 @@ final class ReadingExplanationLanguages {
         )
         if AppSettings.shared.explanationTargetLanguage != language {
             AppSettings.shared.explanationTargetLanguage = language // 记住下次打开看这一种
-        }
-    }
-
-    /// 菜单点一种语言：有讲解就显示，否则切换是否参加下次讲解。
-    func handleMenuClick(_ language: TranslationTargetLanguage) {
-        let settings = AppSettings.shared
-        let selected = settings.explanationTargetLanguages.contains(language) // 勾选集合
-        let hasExplanation = document.bundledLanguages[language.rawValue]?.hasExplanation == true
-        switch BundledLanguageSelection.effect(alreadySelected: selected, hasContent: hasExplanation) {
-        case .show:
-            show(language) // 不取消勾选
-        case .toggle(let thenShow):
-            settings.toggleExplanationTargetLanguage(language) // 设置页同款，至少留一种
-            if thenShow, settings.explanationTargetLanguages.contains(language) {
-                show(language) // 刚勾上且已有讲解
-            }
         }
     }
 

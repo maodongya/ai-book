@@ -51,7 +51,6 @@ extension ReadingAssistantSession {
         beginExplanationProgress(title: displayText)
         host.errorMessage = nil
 
-        let llmMode = AIBookLLMPrompt.Mode.readingAssistant
         let starting = host.document.explanationBundle.displayed
         host.document.explanationBundle.preserveDisplayed()
         host.activeTask?.cancel()
@@ -77,7 +76,6 @@ extension ReadingAssistantSession {
                         source: source,
                         optionalContext: optionalContext,
                         settings: settings,
-                        llmMode: llmMode,
                         target: target,
                         scope: scope
                     )
@@ -132,7 +130,6 @@ extension ReadingAssistantSession {
         source: String,
         optionalContext: String?,
         settings: AppSettings,
-        llmMode: AIBookLLMPrompt.Mode,
         target: TranslationTargetLanguage,
         scope: String
     ) async throws -> String? {
@@ -174,7 +171,7 @@ extension ReadingAssistantSession {
                 prompt: prompt,
                 previewStart: previewStart,
                 settings: settings,
-                llmMode: llmMode
+                target: target
             )
             collected = ParagraphTranslationCoverage.merge(collected, with: incoming)
         }
@@ -201,7 +198,7 @@ extension ReadingAssistantSession {
                 prompt: prompt,
                 previewStart: previewStart,
                 settings: settings,
-                llmMode: llmMode
+                target: target
             )
             collected = ParagraphTranslationCoverage.merge(collected, with: incoming)
         }
@@ -214,8 +211,9 @@ extension ReadingAssistantSession {
         prompt: String,
         previewStart: Int,
         settings: AppSettings,
-        llmMode: AIBookLLMPrompt.Mode
+        target: TranslationTargetLanguage
     ) async throws -> [ParagraphTranslationItem] {
+        let llmMode = AIBookLLMPrompt.Mode.paragraphExplanation(target)
         let outcome = try await host.fetchAssistantReply(
             prompt: prompt,
             history: llmMode.apiHistory,

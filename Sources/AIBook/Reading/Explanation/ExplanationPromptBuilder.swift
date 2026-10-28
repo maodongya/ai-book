@@ -31,10 +31,12 @@ enum ExplanationPromptBuilder {
         {
           "mode": "paragraph",
           "translations": [
-            { "index": 0, "translationText": "第一段讲解", "notes": null }
+            { "index": 0, "translationText": "<explanation in the target language>", "notes": null }
           ]
         }
         要求：不要输出或修改 sourceText；只填 translationText（讲解正文）与可选 notes；index 必须覆盖本批每一段。
+        translationText 必须写成【目标语言】，不要照抄示例。
+        \(targetLanguage == .zhHans ? "" : "不要因为本提示是中文就用中文作答。")
         """
 
         let paragraphIndexJSON = paragraphIndexAttachment(for: source, indices: selectedIndices)
@@ -70,8 +72,26 @@ enum ExplanationPromptBuilder {
             requirements.append(
                 "输出现代简体中文；原文若为古文、文言文或古典汉语，讲解须用通顺的现代白话文。"
             )
+        } else {
+            requirements.append("不要因为指令是中文就改用中文。禁止输出中文讲解。")
         }
         return requirements.joined(separator: "\n")
+    }
+
+    /// 分批讲解的系统提示。不写死中文，避免目标语被系统提示盖掉。
+    static func systemPrompt(targetLanguage: TranslationTargetLanguage) -> String {
+        precondition(targetLanguage != .followAppLanguage)
+        var lines = [
+            "你是 \(AIBookProduct.displayName) 的读书讲解助手。每次请求都是独立的：只根据当前消息里的【左侧文章】讲解。",
+            "讲解正文和注释必须使用 \(targetLanguage.promptLanguageName)（\(targetLanguage.bcp47Identifier)）。不要改用其它语言。",
+            "若要求 JSON，则只输出 JSON；JSON 字段名保持英文，不要翻译字段名。",
+        ]
+        if targetLanguage == .zhHans {
+            lines.append("输出现代简体中文。原文若为古文，讲解用现代白话文。")
+        } else {
+            lines.append("禁止用中文写讲解正文。")
+        }
+        return lines.joined(separator: "\n")
     }
 
     private static func resolvedParagraphIndices(_ requested: [Int]?, count: Int) -> [Int] {

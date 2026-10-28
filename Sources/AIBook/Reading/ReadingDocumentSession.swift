@@ -738,22 +738,6 @@ final class ReadingDocumentSession: ObservableObject {
         }
     }
 
-    /// 菜单点一种语言：有译文就显示，否则切换是否参加下次翻译。
-    func handleTranslationLanguageMenuClick(_ language: TranslationTargetLanguage) {
-        let settings = AppSettings.shared
-        let selected = settings.translationTargetLanguages.contains(language)
-        let hasTranslation = bundledLanguages[language.rawValue]?.hasTranslation == true
-        switch BundledLanguageSelection.effect(alreadySelected: selected, hasContent: hasTranslation) {
-        case .show:
-            showTranslationLanguage(language) // 有译文就切右页，不取消勾选
-        case .toggle(let thenShow):
-            settings.toggleTranslationTargetLanguage(language) // 没译文才改勾选
-            if thenShow, settings.translationTargetLanguages.contains(language) {
-                showTranslationLanguage(language) // 刚勾上且包里已有译文
-            }
-        }
-    }
-
     /// 目标语言或界面语言变化时，换上包里对应的译文和讲解。
     func activateBundledLanguagesForCurrentSettings() {
         guard !bundledLanguages.isEmpty else { return }

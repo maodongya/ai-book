@@ -5,6 +5,7 @@ enum AIBookLLMPrompt {
     /// 读书助手 / 名著补充 / 翻译。各模式单独请求。
     enum Mode: Equatable {
         case readingAssistant
+        case paragraphExplanation(TranslationTargetLanguage)
         case classicLiteratureSupplement
         case translation
 
@@ -13,6 +14,8 @@ enum AIBookLLMPrompt {
             switch self {
             case .readingAssistant:
                 return ReadingAssistant.systemPrompt
+            case .paragraphExplanation(let language):
+                return ExplanationPromptBuilder.systemPrompt(targetLanguage: language)
             case .classicLiteratureSupplement:
                 return ClassicLiteratureSupplement.systemPrompt
             case .translation:
