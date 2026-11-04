@@ -35,10 +35,27 @@ enum OperationAction: Equatable {
     case save
     case saveAs
     case saveSelectionAs
-    case saveAsAIBook
+    case saveAsAIBook(String?) // 口述文件名（不含扩展名）；nil 用当前文档名
     case selectAllLeft
     case selectAllRight
     case supplementClassic
+    case newDocument
+    case newExplanation
+    case openExplanation
+    case saveExplanation
+    case clearExplanation
+    case selectAllExplanation
+    case openTranslation
+    case saveTranslation
+    case clearTranslation
+    case alignTranslation
+    case alignExplanation
+    case lockTranslation
+    case unlockTranslation
+    case lockExplanation
+    case unlockExplanation
+    case toggleExplanationTable
+    case toggleTranslationTable
     case startEvolution
     case analyzeOptimizations
 

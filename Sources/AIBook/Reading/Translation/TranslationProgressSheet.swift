@@ -4,6 +4,7 @@ import SwiftUI
 struct TranslationProgressSheet: View {
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var styleManager = BookStyleManager.shared
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画进度层
 
     /// 弹出层外框，不随流式文本长高。
     private let popupSize = CGSize(width: 560, height: 440)
@@ -11,6 +12,7 @@ struct TranslationProgressSheet: View {
     private let streamEndID = "translation-stream-end"
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(viewModel.translation.translationProgressTitle)  // 逐字/整段/当前批次

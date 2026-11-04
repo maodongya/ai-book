@@ -108,19 +108,67 @@ enum OperationSessionBridge {
             viewModel.document.saveAs()
         case .saveSelectionAs:
             viewModel.document.saveSelectionAs()
-        case .saveAsAIBook:
-            viewModel.document.saveAsAIBook()
+        case .saveAsAIBook(let suggestedStem):
+            viewModel.document.saveAsAIBook(suggestedStem: suggestedStem)
         case .selectAllLeft:
             viewModel.document.selectAllLeftPage()
         case .selectAllRight:
             viewModel.document.selectAllRightPage()
         case .supplementClassic:
             viewModel.assistant.supplementClassicLiterature()
+        case .newDocument:
+            viewModel.document.newDocument()
+        case .newExplanation:
+            viewModel.assistant.newExplanationDocument()
+        case .openExplanation:
+            viewModel.assistant.openExplanationDocument()
+        case .saveExplanation:
+            viewModel.assistant.saveExplanationDocument()
+        case .clearExplanation:
+            viewModel.assistant.clearExplanation()
+        case .selectAllExplanation:
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.assistant.selectReadingAssistantPanel(.explanation)
+            viewModel.assistant.selectAllExplanation()
+        case .openTranslation:
+            showTranslationPanel(viewModel)
+            viewModel.translation.openLessonPlanFile()
+        case .saveTranslation:
+            showTranslationPanel(viewModel)
+            viewModel.translation.saveLessonPlan()
+        case .clearTranslation:
+            showTranslationPanel(viewModel)
+            viewModel.translation.clearLessonPlan()
+        case .alignTranslation:
+            showTranslationPanel(viewModel)
+            viewModel.translation.alignTranslationWithSource()
+        case .alignExplanation:
+            viewModel.selectRightPageTab(.readingAssistant)
+            viewModel.assistant.selectReadingAssistantPanel(.explanation)
+            viewModel.assistant.alignExplanationWithSource()
+        case .lockTranslation:
+            viewModel.lockTranslationAlignment()
+        case .unlockTranslation:
+            viewModel.unlockTranslationAlignment()
+        case .lockExplanation:
+            viewModel.assistant.lockExplanationAlignment()
+        case .unlockExplanation:
+            viewModel.assistant.unlockExplanationAlignment()
+        case .toggleExplanationTable:
+            viewModel.explanationTableViewEnabled.toggle()
+        case .toggleTranslationTable:
+            viewModel.translationTableViewEnabled.toggle()
         case .startEvolution:
             viewModel.evolution.startEvolution()
         case .analyzeOptimizations:
             viewModel.evolution.analyzeOptimizations()
         }
+    }
+
+    /// 切到翻译栏，文件操作才作用在译文上。
+    private static func showTranslationPanel(_ viewModel: ReadingViewModel) {
+        viewModel.selectRightPageTab(.readingAssistant)
+        viewModel.assistant.selectReadingAssistantPanel(.translation)
     }
 
     /// 朗读三态。

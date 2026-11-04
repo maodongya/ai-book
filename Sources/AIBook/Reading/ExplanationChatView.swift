@@ -141,6 +141,7 @@ struct ExplanationChatView: View {
             }
             .pickerStyle(.segmented)  // 分段，不是菜单
             .labelsHidden()  // 标题只给无障碍
+            .id(settings.localizationRevision)  // 分段控件不跟文案刷新，语言一变就重建
 
             if let onLearningPaneFocusChange {  // 书桌才有全屏；sheet 没有
                 readingAssistantRightFullscreenButton(onChange: onLearningPaneFocusChange)  // 右页全屏
@@ -204,18 +205,6 @@ struct ExplanationChatView: View {
         VStack(spacing: 0) {
             if isReadingChromeVisible {
                 explanationToolbarWithTableControls
-            }
-            if viewModel.assistant.showsExplanationTableView,
-               let alignment = viewModel.assistant.explanationAlignment,
-               alignment.mode == .paragraph,
-               !alignment.strictParagraphValidated,
-               !alignment.isStale {
-                Text(BookL10n.string("translation.table.nonStrictHint"))
-                    .font(BookTheme.captionFont)
-                    .foregroundStyle(BookTheme.inkSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
             }
             if viewModel.assistant.showsExplanationTableView,
                let alignment = viewModel.assistant.explanationAlignment {
@@ -312,7 +301,7 @@ struct ExplanationChatView: View {
 
     /// 讲解工具条（含对照表）。
     private var explanationToolbarWithTableControls: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {  // 和翻译工具条同一间距
             if viewModel.assistant.explanationAlignment?.isStale == true {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(BookTheme.captionFont)
@@ -346,10 +335,11 @@ struct ExplanationChatView: View {
             ))
             .toggleStyle(.switch)
             .controlSize(.small)
-            .font(BookTheme.captionFont)
+            .labelsHidden()  // 只留开关，文案放悬停
+            .help(BookL10n.string("explanation.tableCompare"))
             .disabled(!viewModel.assistant.canUseExplanationTableView)
 
-            explanationToolbarButton(title: BookL10n.string("translation.alignSource")) {
+            explanationToolbarButton(title: BookL10n.string("explanation.alignSource")) {
                 viewModel.assistant.alignExplanationWithSource()
             }
             .disabled(
@@ -358,60 +348,39 @@ struct ExplanationChatView: View {
             )
 
             if viewModel.assistant.isExplanationAlignmentLocked {
-                explanationToolbarButton(title: BookL10n.string("translation.unlock")) {
+                explanationToolbarButton(title: BookL10n.string("explanation.unlock")) {
                     viewModel.assistant.unlockExplanationAlignment()
                 }
             } else if viewModel.assistant.canUseExplanationTableView {
-                explanationToolbarButton(title: BookL10n.string("translation.lock"), prominent: true) {
+                explanationToolbarButton(title: BookL10n.string("explanation.lock"), prominent: true) {
                     viewModel.assistant.lockExplanationAlignment()
                 }
             }
 
             Spacer(minLength: 8)
 
-            explanationToolbarButton(title: BookL10n.string("action.new")) {
-                viewModel.assistant.newExplanationDocument()
+            explanationToolbarButton(title: BookL10n.string("action.selectAllExplanation")) {
+                viewModel.assistant.selectAllExplanation()
             }
-            .disabled(viewModel.isRunning)
-
-            explanationToolbarButton(title: BookL10n.string("action.save")) {
-                viewModel.assistant.saveExplanationDocument()
-            }
-            .disabled(!viewModel.assistant.hasExplanationContent)
-
-            explanationToolbarButton(title: BookL10n.string("action.open")) {
-                viewModel.assistant.openExplanationDocument()
-            }
-            .disabled(viewModel.isRunning)
-
-            if !viewModel.assistant.showsExplanationTableView {
-                explanationToolbarButton(title: BookL10n.string("action.selectAll")) {
-                    viewModel.assistant.selectAllExplanation()
-                }
-                .disabled(!viewModel.assistant.hasExplanationContent || viewModel.isRunning)
-            }
+            .disabled(!viewModel.assistant.hasExplanationContent || viewModel.isRunning)
 
             if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {
                 explanationToolbarButton(
-                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")
+                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resumeExplanationSpeech") : BookL10n.string("action.pauseExplanationSpeech")
                 ) {
                     viewModel.assistant.toggleExplanationSpeechPause()
                 }
             }
 
             explanationToolbarButton(
-                title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")
+                title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stopExplanationSpeech") : BookL10n.string("action.readExplanation")
             ) {
                 viewModel.assistant.readExplanationAloud()
             }
             .disabled(viewModel.isRunning || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation))
-
-            explanationToolbarButton(title: BookL10n.string("action.clear")) {
-                viewModel.assistant.clearExplanation()
-            }
-            .disabled(viewModel.isRunning || !viewModel.assistant.hasExplanationContent)
         }
-        .padding(.horizontal, 14)
+        .font(BookTheme.captionFont)  // 和翻译工具条同一字号
+        .padding(.horizontal, 12)  // 和翻译工具条同一左右边
         .padding(.vertical, 6)
         .id(styleManager.revision)
         .onAppear {
@@ -425,13 +394,10 @@ struct ExplanationChatView: View {
         prominent: Bool = false,
         action: @escaping () -> Void  // 点按
     ) -> some View {
-        Button(action: action) {  // 工具条小按钮
+        Button(action: action) {  // 和翻译栏同一粒纯文字按钮
             Text(title)  // 按钮文案
-                .font(styleManager.tokens.typography.captionFont)  // 跟当前主题说明字
-                .foregroundStyle(prominent ? BookTheme.leather : styleManager.tokens.colors.ink)  // 强调用皮色
-                .padding(.horizontal, 10)  // 左右边距
-                .padding(.vertical, 6)  // 上下边距
-                .background { lessonPlanToolbarCapsule }  // 和教案工具同一粒
+                .lineLimit(1)  // 英文不折成高低不一的胶囊
+                .foregroundStyle(prominent ? BookTheme.leather : BookTheme.ink)  // 锁定用皮色强调
         }
         .buttonStyle(.plain)  // 不要系统默认凸起
     }
@@ -441,18 +407,6 @@ struct ExplanationChatView: View {
         VStack(spacing: 0) {  // 页内贴齐，分隔靠各段自己的 padding
             if isReadingChromeVisible {  // 沉浸时藏讲解工具
                 translationToolbar
-            }
-            if viewModel.translation.showsTranslationTableView,  // 对照表开着才可能出非严格提示
-               let alignment = viewModel.translation.translationAlignment,  // 没对齐就没有提示
-               alignment.mode == .paragraph,  // 只有段对齐才走严格门
-               !alignment.strictParagraphValidated,  // 启发式对齐要提示不是验收过的
-               !alignment.isStale {  // 过期对齐另有黄标，这里不叠
-                Text(BookL10n.string("translation.table.nonStrictHint"))  // 提醒这表还没过严格门
-                    .font(BookTheme.captionFont)  // 说明字号
-                    .foregroundStyle(BookTheme.inkSecondary)  // 次要墨
-                    .frame(maxWidth: .infinity, alignment: .leading)  // 撑满宽
-                    .padding(.horizontal, 12)  // 和表头左右对齐
-                    .padding(.vertical, 6)  // 上下边距
             }
             if viewModel.translation.showsTranslationTableView, let alignment = viewModel.translation.translationAlignment {  // 有对齐才画表头/表
                 TranslationTableColumnHeader(  // 和表体同一套列宽
@@ -556,12 +510,13 @@ struct ExplanationChatView: View {
                 get: { viewModel.translationTableViewEnabled },  // 偏好里的开关
                 set: { viewModel.translationTableViewEnabled = $0 }  // 写回，立刻切视图
             ))
-                .toggleStyle(.switch)  // 开关，不是勾选
-                .controlSize(.small)  // 塞进行高
-                .font(BookTheme.captionFont)  // 说明字号
-                .disabled(!viewModel.translation.canUseTranslationTableView)  // 没对齐块就别开表
+            .toggleStyle(.switch)  // 开关，不是勾选
+            .controlSize(.small)  // 塞进行高
+            .labelsHidden()  // 只留开关，文案放悬停
+            .help(BookL10n.string("translation.tableCompare"))
+            .disabled(!viewModel.translation.canUseTranslationTableView)  // 没对齐块就别开表
 
-            translationToolbarButton(title: BookL10n.string("translation.alignSource")) {  // 本地对齐
+            translationToolbarButton(title: BookL10n.string("translation.alignTranslation")) {  // 本地对齐
                 viewModel.translation.alignTranslationWithSource()  // 本地对齐，失败可弹
             }
             .disabled(!viewModel.translation.canAlignTranslationWithSource)  // 没译文或已锁定不能对齐
@@ -578,40 +533,38 @@ struct ExplanationChatView: View {
 
             Spacer(minLength: 8)  // 朗读钮靠右
 
-            if !viewModel.translation.showsTranslationTableView {  // 长文模式才有全选
-                translationToolbarButton(title: BookL10n.string("action.selectAll")) {  // 长文全选
-                    viewModel.translation.selectAllRightPage()  // 全选译文长文
-                }
-                .disabled(  // 不可用时灰掉，避免误操作
-                    viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty  // 空译文不能全选
-                        || viewModel.isRunning  // 跑着不让全选
-                )
-
-                if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {  // 朗读中才给暂停，跑任务时不给
-                    translationToolbarButton(  // 朗读译文
-                        title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")  // 朗读中才出现暂停
-                    ) {
-                        viewModel.assistant.toggleExplanationSpeechPause()  // 暂停/继续这条讲解
-                    }
-                }
-
-                translationToolbarButton(  // 朗读译文
-                    title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stop") : BookL10n.string("action.readAloud")  // 在读显示停
-                ) {
-                    if viewModel.assistant.isSpeakingExplanation {  // 已经在读就停，否则读教案/译文
-                        viewModel.assistant.stopExplanationSpeech()  // 停朗读
-                    } else {
-                        viewModel.assistant.readLessonPlanAloud()  // 读右页译文/教案
-                    }
-                }
-                .disabled(  // 不可用时灰掉，避免误操作
-                    viewModel.isRunning  // 跑着禁用
-                        || (  // 空译文且没在读才禁用朗读
-                            viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty  // 空译文不能全选
-                                && !viewModel.assistant.isSpeakingExplanation  // 正在读仍允许点停
-                        )
-                )
+            translationToolbarButton(title: BookL10n.string("action.selectAllTranslation")) {  // 长文全选
+                viewModel.translation.selectAllRightPage()  // 全选译文长文
             }
+            .disabled(  // 不可用时灰掉，避免误操作
+                viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty  // 空译文不能全选
+                    || viewModel.isRunning  // 跑着不让全选
+            )
+
+            if viewModel.assistant.isSpeakingExplanation && !viewModel.isRunning {  // 朗读中才给暂停，跑任务时不给
+                translationToolbarButton(  // 朗读译文
+                    title: viewModel.assistant.isExplanationSpeechPaused ? BookL10n.string("action.resumeTranslationSpeech") : BookL10n.string("action.pauseTranslationSpeech")  // 朗读中才出现暂停
+                ) {
+                    viewModel.assistant.toggleExplanationSpeechPause()  // 暂停/继续这条讲解
+                }
+            }
+
+            translationToolbarButton(  // 朗读译文
+                title: viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stopTranslationSpeech") : BookL10n.string("action.readTranslation")  // 在读显示停
+            ) {
+                if viewModel.assistant.isSpeakingExplanation {  // 已经在读就停，否则读教案/译文
+                    viewModel.assistant.stopExplanationSpeech()  // 停朗读
+                } else {
+                    viewModel.assistant.readLessonPlanAloud()  // 读右页译文/教案
+                }
+            }
+            .disabled(  // 不可用时灰掉，避免误操作
+                viewModel.isRunning  // 跑着禁用
+                    || (  // 空译文且没在读才禁用朗读
+                        viewModel.lessonPlanContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty  // 空译文不能全选
+                            && !viewModel.assistant.isSpeakingExplanation  // 正在读仍允许点停
+                    )
+            )
         }
         .font(BookTheme.captionFont)  // 说明字号
         .padding(.horizontal, 12)  // 和表头左右对齐

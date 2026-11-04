@@ -368,27 +368,27 @@ enum EvolutionToolLabels {
         return "\(base) · \(trimmed)"
     }
 
-    /// 已知工具译中文；mcp_ 前缀一律「MCP 工具」。
+    /// 已知工具走目录；mcp_ 前缀一律 MCP 工具。
     static func localizedToolName(_ name: String) -> String {
         switch name.lowercased() {
-        case "read", "read_file": return "读取文件"
-        case "write", "write_file": return "写入文件"
-        case "edit", "strreplace", "search_replace": return "编辑文件"
-        case "grep": return "搜索代码"
-        case "glob", "glob_file_search": return "查找文件"
-        case "shell", "run_terminal_cmd": return "运行命令"
-        case "semsearch", "semanticsearch", "codebase_search": return "语义搜索"
-        case "task": return "启动子任务"
-        case "update_todos", "todowrite": return "更新待办"
-        case "delete": return "删除文件"
-        case "read_lints": return "检查 Lint"
-        case "websearch", "web_search": return "网络搜索"
-        case "generateimage", "generate_image": return "生成图片"
-        case "switchmode", "switch_mode": return "切换模式"
-        case "mcp_call_tool", "mcp_get_tools", "mcp_fetch_resource", "mcp_auth": return "MCP 工具"
-        case "await": return "等待后台任务"
+        case "read", "read_file": return BookL10n.string("tool.read")
+        case "write", "write_file": return BookL10n.string("tool.write")
+        case "edit", "strreplace", "search_replace": return BookL10n.string("tool.edit")
+        case "grep": return BookL10n.string("tool.grep")
+        case "glob", "glob_file_search": return BookL10n.string("tool.glob")
+        case "shell", "run_terminal_cmd": return BookL10n.string("tool.shell")
+        case "semsearch", "semanticsearch", "codebase_search": return BookL10n.string("tool.search")
+        case "task": return BookL10n.string("tool.task")
+        case "update_todos", "todowrite": return BookL10n.string("tool.todos")
+        case "delete": return BookL10n.string("tool.delete")
+        case "read_lints": return BookL10n.string("tool.lints")
+        case "websearch", "web_search": return BookL10n.string("tool.web")
+        case "generateimage", "generate_image": return BookL10n.string("tool.image")
+        case "switchmode", "switch_mode": return BookL10n.string("tool.mode")
+        case "mcp_call_tool", "mcp_get_tools", "mcp_fetch_resource", "mcp_auth": return BookL10n.string("tool.mcp")
+        case "await": return BookL10n.string("tool.await")
         default:
-            if name.lowercased().hasPrefix("mcp_") { return "MCP 工具" }
+            if name.lowercased().hasPrefix("mcp_") { return BookL10n.string("tool.mcp") }
             return name
         }
     }

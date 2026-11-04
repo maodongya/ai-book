@@ -144,7 +144,7 @@ struct ContentView: View {
             OperationTurn(
                 snapshot: OperationSessionBridge.snapshot(viewModel: viewModel, paneFocus: learningPaneFocus),
                 state: OperationSessionBridge.runtimeState(viewModel: viewModel),
-                client: BookOperationClient(llmService: viewModel.llmService, cursorService: viewModel.cursorService),
+                client: BookOperationClient(llmService: viewModel.llmService),
                 perform: { action in
                     OperationSessionBridge.perform(
                         action,
@@ -182,7 +182,7 @@ struct ContentView: View {
                     .keyboardShortcut("3", modifiers: [.command, .option])  // 学习独有
             }
             if viewModel.mode.canEnterReadingMode, viewModel.mode.experienceMode == .learning {  // 有原文才能进阅读
-                Button(BookL10n.string("mode.reading")) {
+                Button(BookL10n.string("action.enterReading")) {
                     viewModel.mode.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)  // 先按默认尺寸分页
                 }
                 .keyboardShortcut(BookKeyboardShortcuts.readingMode)  // 再按退出
@@ -208,6 +208,7 @@ struct ContentView: View {
     private var bookHeader: some View {
         VStack(spacing: 8) {  // 品牌+动作
             brandBlock  // 名字、模型、文件
+            OperationStatusLine(model: operationAssistant)  // 独占一行，避免被标题行挤没
 
             Divider()  // 皮条内部分隔
                 .overlay(Color.white.opacity(0.12))  // 浅线
@@ -285,7 +286,6 @@ struct ContentView: View {
                     .help(BookL10n.string("help.unsavedChanges"))  // 悬停说明
             }
             OperationMicButton(model: operationAssistant)  // 按住说话
-            OperationStatusLine(model: operationAssistant)  // 听到的话和正在做的操作
         }
         .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
     }
@@ -466,7 +466,7 @@ struct ContentView: View {
     /// 进沉浸阅读。
     private var readingModeToolbarButton: some View {
         BookActionButton(  // 胶囊钮
-            title: BookL10n.string("mode.reading"),  // 「阅读」
+            title: BookL10n.string("action.enterReading"),  // 「阅读模式」
             isProminent: false,  // 不是当前模式
             isCompact: true  // 工具栏矮
         ) {
@@ -496,7 +496,7 @@ struct ContentView: View {
         Button {
             viewModel.document.newDocument()  // 空档，脏了先问
         } label: {
-            Text(BookL10n.string("action.new"))  // 新建
+            Text(BookL10n.string("action.newSource"))  // 新建原文
         }
         .bookMenuShortcut(BookKeyboardShortcuts.newDocument)  // 菜单快捷键
         .disabled(viewModel.isRunning)  // 跑着不清
@@ -504,7 +504,7 @@ struct ContentView: View {
         Button {
             viewModel.document.openFile()  // 单文件
         } label: {
-            Text(BookL10n.string("action.open"))  // 打开
+            Text(BookL10n.string("action.openSource"))  // 打开原文
         }
         .bookMenuShortcut(BookKeyboardShortcuts.openDocument)  // 开档
         .disabled(viewModel.isRunning)  // 跑着不清
@@ -516,20 +516,12 @@ struct ContentView: View {
         }
         .disabled(viewModel.isRunning)  // 跑着不清
 
-        Button {
-            viewModel.mode.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)  // 先按默认尺寸分页
-        } label: {
-            Text(BookL10n.string("mode.reading"))  // 进阅读
-        }
-        .bookMenuShortcut(BookKeyboardShortcuts.readingMode)  // 和顶栏同一键
-        .disabled(!viewModel.mode.canEnterReadingMode || viewModel.isRunning)  // 没原文或在跑
-
         BookToolbarMenuDivider()  // 和正式项隔开
 
         Button {
             viewModel.document.save()  // 有路径写文件，否则笔记
         } label: {
-            Text(BookL10n.string("action.save"))  // 存讲解
+            Text(BookL10n.string("action.saveSource"))  // 保存原文
         }
         .bookMenuShortcut(BookKeyboardShortcuts.save)  // 存
         .disabled(viewModel.fileContent.isEmpty && !viewModel.document.isDirty)  // 空且不脏
@@ -537,7 +529,7 @@ struct ContentView: View {
         Button {
             viewModel.document.saveAs()  // 另存面板
         } label: {
-            Text(BookL10n.string("action.saveAs"))  // 另存
+            Text(BookL10n.string("action.saveSourceAs"))  // 原文另存为
         }
         .bookMenuShortcut(BookKeyboardShortcuts.saveAs)  // 另存键
         .disabled(viewModel.fileContent.isEmpty)  // 空页
@@ -580,6 +572,14 @@ struct ContentView: View {
     /// 文档菜单装不下时进溢出。includeDocumentMenu 为假则只留空位。
     private func documentToolbarOverflowMenu(includeDocumentMenu: Bool) -> some View {
         BookToolbarOverflowMenu(help: BookL10n.string("help.toolbarDocOverflow")) {  // … 菜单
+            Button {
+                viewModel.mode.enterReadingMode(pageContentSize: ReadingSpreadView.defaultPageContentSize)  // 和顶栏同一入口
+            } label: {
+                Text(BookL10n.string("action.enterReading"))  // 阅读模式
+            }
+            .disabled(!viewModel.mode.canEnterReadingMode || viewModel.isRunning)  // 没原文或在跑
+            BookToolbarMenuDivider()  // 和后面的设置、文档隔开
+
             if isReadingToolbarContext {  // 进化页不塞讲解
                 Button {
                     viewModel.openBookSettings()  // 先切助手再 sheet
@@ -683,28 +683,28 @@ struct ContentView: View {
         Button {
             viewModel.assistant.newExplanationDocument()  // 只留欢迎
         } label: {
-            Text(BookL10n.string("action.new"))  // 新建
+            Text(BookL10n.string("action.newExplanation"))  // 新建讲解
         }
         .disabled(viewModel.isRunning)  // 跑着不清
 
         Button {
             viewModel.assistant.openExplanationDocument()  // 拆成对话
         } label: {
-            Text(BookL10n.string("action.open"))  // 打开
+            Text(BookL10n.string("action.openExplanation"))  // 打开讲解
         }
         .disabled(viewModel.isRunning)  // 跑着不清
 
         Button {
             viewModel.assistant.saveExplanationDocument()  // 带【助手】标记
         } label: {
-            Text(BookL10n.string("action.save"))  // 存讲解
+            Text(BookL10n.string("action.saveExplanation"))  // 保存讲解
         }
         .disabled(!viewModel.assistant.hasExplanationContent)  // 只有欢迎
 
         Button {
             viewModel.assistant.selectAllExplanation()  // 信号
         } label: {
-            Text(BookL10n.string("action.selectAll"))  // 全选讲解
+            Text(BookL10n.string("action.selectAllExplanation"))  // 全选讲解
         }
         .disabled(!viewModel.assistant.hasExplanationContent)  // 只有欢迎
 
@@ -720,7 +720,7 @@ struct ContentView: View {
         Button {
             viewModel.assistant.readExplanationAloud()  // 正在读则停
         } label: {
-            Text(viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readExplanation"))  // 同一项切换
+            Text(viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stopExplanationSpeech") : BookL10n.string("action.readExplanation"))  // 同一项切换
         }
         .disabled(viewModel.isRunning || (!viewModel.assistant.hasExplanationContent && !viewModel.assistant.isSpeakingExplanation))  // 没得读且没在读
     }
@@ -798,7 +798,7 @@ struct ContentView: View {
             viewModel.selectRightPageTab(.readingAssistant)  // 切 Tab，进化欢迎若需要会补
             viewModel.assistant.readLessonPlanAloud()  // 读译文，再点停
         } label: {
-            Text(viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.readExplanationStop") : BookL10n.string("action.readTranslation"))  // 同一项切换
+            Text(viewModel.assistant.isSpeakingExplanation ? BookL10n.string("action.stopTranslationSpeech") : BookL10n.string("action.readTranslation"))  // 同一项切换
         }
         .bookMenuShortcut(
             viewModel.assistant.isSpeakingExplanation ? nil : BookKeyboardShortcuts.readTranslationFull  // 在读时不绑快捷键，避免抢
@@ -833,7 +833,7 @@ struct ContentView: View {
             viewModel.assistant.selectReadingAssistantPanel(.translation)  // 先切栏再操作
             viewModel.translation.alignTranslationWithSource()  // 本地启发式，锁了会拒
         } label: {
-            Text(BookL10n.string("translation.alignSource"))  // 对齐原文
+            Text(BookL10n.string("translation.alignTranslation"))  // 对齐翻译
         }
         .disabled(!viewModel.translation.canAlignTranslationWithSource)  // 缺一边或锁了或在跑
 
@@ -1079,6 +1079,7 @@ struct ContentView: View {
                 .help(panel.toolbarHelp)  // 各栏帮助
             }
         }
+        .id(settings.localizationRevision)  // 讲解/翻译胶囊跟界面语言一起换字
     }
 
     /// 进化主操作完整按钮。
@@ -1639,7 +1640,7 @@ struct ContentView: View {
                 Label(BookL10n.format("footer.selected", viewModel.effectiveSelectedText.count), systemImage: "highlighter")  // 选了几个字
             }
             Spacer()  // 全屏钮推右
-            Button(BookL10n.string("action.selectAll")) {  // 脚上全选
+            Button(BookL10n.string("action.selectAllSource")) {  // 脚上全选原文
                 viewModel.document.selectAllLeftPage()  // 发全选信号
             }
             .buttonStyle(.plain)
@@ -1841,6 +1842,9 @@ struct ContentView: View {
             },
             onOpen: { url, target in  // 原文/译文/讲解
                 viewModel.document.openFileFromDirectory(at: url, target: target)  // 三种打开
+            },
+            onDelete: { sessionID, url in  // 确认后移到废纸篓
+                viewModel.document.deleteDirectoryItem(at: url, sessionID: sessionID)  // 刷新这棵树
             },
             onDismiss: {  // 关 sheet
                 viewModel.document.dismissDirectoryBrowser()  // 不卸 session

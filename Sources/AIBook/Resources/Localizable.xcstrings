@@ -1358,49 +1358,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开文本文件…"
+            "value": "原文打开…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Text File…"
+            "value": "Open source…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "テキストを開く…"
+            "value": "Open source…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Textdatei öffnen…"
+            "value": "Open source…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ouvrir un fichier texte…"
+            "value": "Open source…"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apri file di testo…"
+            "value": "Open source…"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aperi fasciculum textus…"
+            "value": "Open source…"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Άνοιγμα αρχείου κειμένου…"
+            "value": "Open source…"
           }
         }
       }
@@ -1410,49 +1410,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开目录…"
+            "value": "原文打开目录…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Folder…"
+            "value": "Open source folder…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フォルダを開く…"
+            "value": "Open source folder…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ordner öffnen…"
+            "value": "Open source folder…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ouvrir un dossier…"
+            "value": "Open source folder…"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apri cartella…"
+            "value": "Open source folder…"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aperi folder…"
+            "value": "Open source folder…"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Άνοιγμα φακέλου…"
+            "value": "Open source folder…"
           }
         }
       }
@@ -1566,49 +1566,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "导出选中为…"
+            "value": "原文导出选中…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Export Selection…"
+            "value": "Export source selection…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "選択範囲を書き出し…"
+            "value": "Export source selection…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auswahl exportieren…"
+            "value": "Export source selection…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exporter la sélection…"
+            "value": "Export source selection…"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esporta selezione…"
+            "value": "Export source selection…"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exporta selectum…"
+            "value": "Export source selection…"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Εξαγωγή επιλογής…"
+            "value": "Export source selection…"
           }
         }
       }
@@ -2138,49 +2138,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "名著补充"
+            "value": "原文补充"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Classic Supplement"
+            "value": "Classic supplement"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "名著補完"
+            "value": "Classic supplement"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Klassiker ergänzen"
+            "value": "Classic supplement"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compléter le classique"
+            "value": "Classic supplement"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Integra classico"
+            "value": "Classic supplement"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supple classicum"
+            "value": "Classic supplement"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Συμπλήρωση κλασικού"
+            "value": "Classic supplement"
           }
         }
       }
@@ -3126,49 +3126,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "表格对照"
+            "value": "翻译对照"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Translation table"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "対照表"
+            "value": "翻訳対照"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tabellenansicht"
+            "value": "Übersetzungsvergleich"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vue tableau"
+            "value": "Comparaison de traduction"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vista tabella"
+            "value": "Confronto traduzione"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tabula comparativa"
+            "value": "Comparatio translationis"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Πίνακας σύγκρισης"
+            "value": "Σύγκριση μετάφρασης"
           }
         }
       }
@@ -3230,49 +3230,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "锁定对照"
+            "value": "锁定翻译"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lock alignment"
+            "value": "Lock translation"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "対照を固定"
+            "value": "翻訳を固定"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ausrichtung sperren"
+            "value": "Übersetzung sperren"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verrouiller l’alignement"
+            "value": "Verrouiller la traduction"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Blocca allineamento"
+            "value": "Blocca traduzione"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude alignmentem"
+            "value": "Claude translationem"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Κλείδωμα ευθυγράμμισης"
+            "value": "Κλείδωμα μετάφρασης"
           }
         }
       }
@@ -3282,49 +3282,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "解锁对照"
+            "value": "解锁翻译"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock alignment"
+            "value": "Unlock translation"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "固定解除"
+            "value": "翻訳の固定を解除"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ausrichtung entsperren"
+            "value": "Übersetzung entsperren"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Déverrouiller"
+            "value": "Déverrouiller la traduction"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sblocca"
+            "value": "Sblocca traduzione"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reserare"
+            "value": "Resera translationem"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ξεκλείδωμα"
+            "value": "Ξεκλείδωμα μετάφρασης"
           }
         }
       }
@@ -3438,49 +3438,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读原文（选中/全文）"
+            "value": "原文朗读（选中/全文）"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Read Source (Selection/All)"
+            "value": "Read source (selection/all)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "原文を読み上げ（選択/全文）"
+            "value": "Read source (selection/all)"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Original vorlesen (Auswahl/Alles)"
+            "value": "Read source (selection/all)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lire l’original (sélection/tout)"
+            "value": "Read source (selection/all)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leggi originale (selezione/tutto)"
+            "value": "Read source (selection/all)"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lege originale (selectum/totum)"
+            "value": "Read source (selection/all)"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ανάγνωση πρωτοτύπου (επιλογή/όλο)"
+            "value": "Read source (selection/all)"
           }
         }
       }
@@ -3490,49 +3490,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读原文全文"
+            "value": "原文朗读全文"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Read All Source"
+            "value": "Read all source"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "原文全文を読み上げ"
+            "value": "Read all source"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ganzes Original vorlesen"
+            "value": "Read all source"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lire tout l’original"
+            "value": "Read all source"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leggi tutto l’originale"
+            "value": "Read all source"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lege totum originale"
+            "value": "Read all source"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ανάγνωση όλου του πρωτοτύπου"
+            "value": "Read all source"
           }
         }
       }
@@ -3542,49 +3542,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读原文选中"
+            "value": "原文朗读选中"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Read Source Selection"
+            "value": "Read source selection"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "選択した原文を読み上げ"
+            "value": "Read source selection"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auswahl im Original vorlesen"
+            "value": "Read source selection"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lire la sélection originale"
+            "value": "Read source selection"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leggi selezione originale"
+            "value": "Read source selection"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lege selectum originale"
+            "value": "Read source selection"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ανάγνωση επιλογής πρωτοτύπου"
+            "value": "Read source selection"
           }
         }
       }
@@ -3802,49 +3802,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "全选左页"
+            "value": "原文全选"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select All (Left Page)"
+            "value": "Select all source"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "左ページをすべて選択"
+            "value": "Select all source"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alles links auswählen"
+            "value": "Select all source"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tout sélectionner (page gauche)"
+            "value": "Select all source"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seleziona tutto (pagina sinistra)"
+            "value": "Select all source"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elige omnia pagina sinistra"
+            "value": "Select all source"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Επιλογή όλων (αριστερή σελίδα)"
+            "value": "Select all source"
           }
         }
       }
@@ -5674,49 +5674,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开目录"
+            "value": "原文打开目录"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Folder"
+            "value": "Open source folder"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フォルダを開く"
+            "value": "Open source folder"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ordner öffnen"
+            "value": "Open source folder"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ouvrir dossier"
+            "value": "Open source folder"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apri cartella"
+            "value": "Open source folder"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aperi folder"
+            "value": "Open source folder"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Άνοιγμα φακέλου"
+            "value": "Open source folder"
           }
         }
       }
@@ -6662,49 +6662,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "左全屏"
+            "value": "原文全屏"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Left Full Screen"
+            "value": "Source full screen"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "左全画面"
+            "value": "Source full screen"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Links Vollbild"
+            "value": "Source full screen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plein écran gauche"
+            "value": "Source full screen"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Schermo sinistro"
+            "value": "Source full screen"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sinistra plena"
+            "value": "Source full screen"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Αριστερά πλήρης"
+            "value": "Source full screen"
           }
         }
       }
@@ -20286,7 +20286,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "新建、打开、保存、另存为、全选与名著补充 · %@"
+            "value": "原文新建、打开、保存、另存为、全选与补充 · %@"
           }
         },
         "en": {
@@ -21789,6 +21789,994 @@
         }
       }
     },
+    "action.newSource": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文新建"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        }
+      }
+    },
+    "action.openSource": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文打开"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open source"
+          }
+        }
+      }
+    },
+    "action.saveSource": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文保存"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source"
+          }
+        }
+      }
+    },
+    "action.saveSourceAs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文另存为…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save source as…"
+          }
+        }
+      }
+    },
+    "action.enterReading": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阅读模式"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading mode"
+          }
+        }
+      }
+    },
+    "action.newExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        }
+      }
+    },
+    "action.openExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        }
+      }
+    },
+    "action.saveExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        }
+      }
+    },
+    "action.selectAllExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全选讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        }
+      }
+    },
+    "explanation.alignSource": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对齐讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説を揃える"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung ausrichten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligner l’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligna explicationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ευθυγράμμιση εξήγησης"
+          }
+        }
+      }
+    },
+    "explanation.lock": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "锁定讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説を固定"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung sperren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verrouiller l’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocca spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude explicationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κλείδωμα εξήγησης"
+          }
+        }
+      }
+    },
+    "explanation.unlock": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説の固定を解除"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung entsperren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déverrouiller l’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resera explicationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ξεκλείδωμα εξήγησης"
+          }
+        }
+      }
+    },
+    "translation.alignTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对齐翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳を揃える"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übersetzung ausrichten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligner la traduction"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea traduzione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligna translationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ευθυγράμμιση μετάφρασης"
+          }
+        }
+      }
+    },
+    "action.pauseExplanationSpeech": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停朗读讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause explanation"
+          }
+        }
+      }
+    },
+    "action.resumeExplanationSpeech": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续朗读讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume explanation"
+          }
+        }
+      }
+    },
+    "action.stopExplanationSpeech": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止朗读讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop explanation"
+          }
+        }
+      }
+    },
+    "action.pauseTranslationSpeech": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停朗读翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause translation"
+          }
+        }
+      }
+    },
+    "action.resumeTranslationSpeech": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续朗读翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume translation"
+          }
+        }
+      }
+    },
+    "action.stopTranslationSpeech": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止朗读翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop translation"
+          }
+        }
+      }
+    },
     "action.speechThisMessage": {
       "localizations": {
         "zh-Hans": {
@@ -22002,49 +22990,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "对齐已失效，点击「对齐原文」恢复"
+            "value": "对齐已失效，点击「对齐翻译」或「对齐讲解」恢复"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "Alignment stale; tap Align translation or Align explanation"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "整列が無効です。「翻訳を揃える」または「解説を揃える」をタップして復元"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "Ausrichtung veraltet. Tippen Sie auf „Übersetzung ausrichten“ oder „Erklärung ausrichten“."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "Alignement obsolète. Touchez « Aligner la traduction » ou « Aligner l’explication »."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "Allineamento non valido. Tocca «Allinea traduzione» o «Allinea spiegazione»."
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "Alignmentum obsoletum est. Tange «Aligna translationem» vel «Aligna explicationem»."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alignment stale; tap Align to source"
+            "value": "Η ευθυγράμμιση δεν ισχύει. Πατήστε «Ευθυγράμμιση μετάφρασης» ή «Ευθυγράμμιση εξήγησης»."
           }
         }
       }
@@ -26630,7 +27618,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显示译文"
+            "value": "显示翻译"
           }
         },
         "en": {
@@ -27046,49 +28034,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存为 AIBook…"
+            "value": "原文保存为 AIBook…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook…"
+            "value": "Save source as AIBook…"
           }
         }
       }
@@ -29386,49 +30374,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "表格对照"
+            "value": "讲解对照"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Explanation table"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "解説対照"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Erklärungsvergleich"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Comparaison d’explication"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Confronto spiegazione"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Comparatio explicationis"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Table view"
+            "value": "Σύγκριση εξήγησης"
           }
         }
       }
@@ -31622,7 +32610,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "名著补充"
+            "value": "原文补充"
           }
         },
         "en": {
@@ -31769,6 +32757,214 @@
           "stringUnit": {
             "state": "translated",
             "value": "Listening…"
+          }
+        }
+      }
+    },
+    "operation.listeningText": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在听… %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening… %@"
+          }
+        }
+      }
+    },
+    "operation.recognizing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在识别…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognizing…"
+          }
+        }
+      }
+    },
+    "operation.understanding": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "听到：「%@」正在理解…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard: “%@”. Understanding…"
+          }
+        }
+      }
+    },
+    "operation.stopped": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已停止"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
           }
         }
       }
@@ -32090,49 +33286,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关闭操作状态"
+            "value": "停止或关闭"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss operation status"
+            "value": "Stop or dismiss"
           }
         }
       }
@@ -32610,7 +33806,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读原文选区"
+            "value": "原文朗读选区"
           }
         },
         "en": {
@@ -32662,7 +33858,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读原文全文"
+            "value": "原文朗读全文"
           }
         },
         "en": {
@@ -32714,7 +33910,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读译文选区"
+            "value": "朗读翻译选区"
           }
         },
         "en": {
@@ -32766,7 +33962,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "朗读译文全文"
+            "value": "朗读翻译全文"
           }
         },
         "en": {
@@ -33390,7 +34586,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显示%@译文"
+            "value": "显示%@翻译"
           }
         },
         "en": {
@@ -33494,49 +34690,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开文件"
+            "value": "原文打开"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open file"
+            "value": "Open source"
           }
         }
       }
@@ -33546,49 +34742,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开目录"
+            "value": "原文打开目录"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open folder"
+            "value": "Open source folder"
           }
         }
       }
@@ -33598,49 +34794,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存"
+            "value": "原文保存"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Save source"
           }
         }
       }
@@ -33650,49 +34846,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "另存为"
+            "value": "原文另存为"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as"
+            "value": "Save source as"
           }
         }
       }
@@ -33702,49 +34898,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选区另存为"
+            "value": "原文导出选中"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save selection as"
+            "value": "Export source selection"
           }
         }
       }
@@ -33754,49 +34950,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "另存为 AIBook"
+            "value": "原文保存为 AIBook"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save as AIBook"
+            "value": "Save source as AIBook"
           }
         }
       }
@@ -33806,49 +35002,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "全选左页"
+            "value": "原文全选"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the left"
+            "value": "Select all source"
           }
         }
       }
@@ -33858,49 +35054,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "全选右页"
+            "value": "全选翻译"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select all on the right"
+            "value": "Select all translation"
           }
         }
       }
@@ -33910,7 +35106,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "名著补全"
+            "value": "原文补充"
           }
         },
         "en": {
@@ -33953,6 +35149,890 @@
           "stringUnit": {
             "state": "translated",
             "value": "Classic supplement"
+          }
+        }
+      }
+    },
+    "operation.action.newDocument": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文新建"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New source"
+          }
+        }
+      }
+    },
+    "operation.action.newExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New explanation"
+          }
+        }
+      }
+    },
+    "operation.action.openExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open explanation"
+          }
+        }
+      }
+    },
+    "operation.action.saveExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save explanation"
+          }
+        }
+      }
+    },
+    "operation.action.clearExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear explanation"
+          }
+        }
+      }
+    },
+    "operation.action.selectAllExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全选讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all explanation"
+          }
+        }
+      }
+    },
+    "operation.action.openTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open translation"
+          }
+        }
+      }
+    },
+    "operation.action.saveTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save translation"
+          }
+        }
+      }
+    },
+    "operation.action.clearTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear translation"
+          }
+        }
+      }
+    },
+    "operation.action.alignTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对齐翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳を揃える"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übersetzung ausrichten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligner la traduction"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea traduzione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligna translationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ευθυγράμμιση μετάφρασης"
+          }
+        }
+      }
+    },
+    "operation.action.alignExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对齐讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説を揃える"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung ausrichten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligner l’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aligna explicationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ευθυγράμμιση εξήγησης"
+          }
+        }
+      }
+    },
+    "operation.action.lockTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "锁定翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳を固定"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übersetzung sperren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verrouiller la traduction"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocca traduzione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude translationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κλείδωμα μετάφρασης"
+          }
+        }
+      }
+    },
+    "operation.action.unlockTranslation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁翻译"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock translation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳の固定を解除"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übersetzung entsperren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déverrouiller la traduction"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca traduzione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resera translationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ξεκλείδωμα μετάφρασης"
+          }
+        }
+      }
+    },
+    "operation.action.lockExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "锁定讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説を固定"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung sperren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verrouiller l’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocca spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude explicationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κλείδωμα εξήγησης"
+          }
+        }
+      }
+    },
+    "operation.action.unlockExplanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁讲解"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock explanation"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説の固定を解除"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärung entsperren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déverrouiller l’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resera explicationem"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ξεκλείδωμα εξήγησης"
+          }
+        }
+      }
+    },
+    "operation.action.toggleExplanationTable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讲解对照"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation table"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説対照"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erklärungsvergleich"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparaison d’explication"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confronto spiegazione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparatio explicationis"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σύγκριση εξήγησης"
+          }
+        }
+      }
+    },
+    "operation.action.toggleTranslationTable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译对照"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation table"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳対照"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übersetzungsvergleich"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparaison de traduction"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confronto traduzione"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparatio translationis"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σύγκριση μετάφρασης"
           }
         }
       }
@@ -34525,6 +36605,2294 @@
           "stringUnit": {
             "state": "translated",
             "value": "A generation is running"
+          }
+        }
+      }
+    },
+    "directory.help.delete": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        }
+      }
+    },
+    "directory.delete.file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确定删除「%@」？将移到废纸篓。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”? It will be moved to the Trash."
+          }
+        }
+      }
+    },
+    "directory.delete.folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确定删除文件夹「%@」及其内容？将移到废纸篓。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@” and its contents? They will be moved to the Trash."
+          }
+        }
+      }
+    },
+    "directory.delete.failed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法删除：%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete: %@"
+          }
+        }
+      }
+    },
+    "directory.open.original": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在左页原文区打开"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the source page"
+          }
+        }
+      }
+    },
+    "directory.open.translation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在右页翻译区打开"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the translation page"
+          }
+        }
+      }
+    },
+    "directory.open.explanation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在右页讲解区打开"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open on the explanation page"
+          }
+        }
+      }
+    },
+    "qwen.region.beijing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "华北2（北京）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China (Beijing)"
+          }
+        }
+      }
+    },
+    "qwen.region.singapore": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新加坡（国际）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore (International)"
+          }
+        }
+      }
+    },
+    "qwen.region.virginia": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美国（弗吉尼亚）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US (Virginia)"
+          }
+        }
+      }
+    },
+    "qwen.hint.beijing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在百炼控制台「华北2（北京）」创建 API Key，与下方 Base URL 地域一致。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Beijing console. It must match the Base URL region."
+          }
+        }
+      }
+    },
+    "qwen.hint.singapore": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在百炼控制台「国际（新加坡）」创建 API Key，勿与北京 Key 混用。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the Singapore console. Do not mix it with a Beijing key."
+          }
+        }
+      }
+    },
+    "qwen.hint.virginia": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在百炼控制台「美国（弗吉尼亚）」创建 API Key。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create the API key in the US (Virginia) console."
+          }
+        }
+      }
+    },
+    "speech.gender.female": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "女"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        }
+      }
+    },
+    "speech.gender.male": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "男"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        }
+      }
+    },
+    "speech.group.female": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "女声"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Female voices"
+          }
+        }
+      }
+    },
+    "speech.group.other": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他中文语音"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other Chinese voices"
+          }
+        }
+      }
+    },
+    "speech.systemVoiceSubtitle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统语音 · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice · %@"
+          }
+        }
+      }
+    },
+    "llm.key.qwen": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key（百炼 sk-）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (DashScope sk-)"
+          }
+        }
+      }
+    },
+    "llm.key.optional": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key（可选）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional)"
+          }
+        }
+      }
+    },
+    "llm.key.default": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        }
+      }
+    },
+    "llm.hint.openai": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenAI 官方 API，适合通用阅读讲解。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Official OpenAI API for general reading explanations."
+          }
+        }
+      }
+    },
+    "llm.hint.deepseek": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek 高性价比中文理解，适合长文阅读。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek for long Chinese reading."
+          }
+        }
+      }
+    },
+    "llm.hint.moonshot": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot（Kimi）长上下文，适合整章阅读。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moonshot (Kimi) long context for full chapters."
+          }
+        }
+      }
+    },
+    "llm.hint.qwen": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阿里云百炼通义千问（OpenAI 兼容）。默认北京地域 %@，Key 在百炼控制台 API 页创建。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Qwen (OpenAI-compatible). Default Beijing Base URL %@. Create the key in the Model Studio console."
+          }
+        }
+      }
+    },
+    "llm.hint.zhipu": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智谱 GLM 系列，适合中文书籍与笔记解析。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu GLM for Chinese books and notes."
+          }
+        }
+      }
+    },
+    "llm.hint.ollama": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机 Ollama，离线可用；设置页可自动扫描已安装模型并选择。支持 OLLAMA_HOST 环境变量与可选 API Key。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
+          }
+        }
+      }
+    },
+    "llm.hint.custom": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意 OpenAI 兼容接口，自行填写地址与模型。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI-compatible endpoint. Enter the URL and model yourself."
+          }
+        }
+      }
+    },
+    "tool.read": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取文件"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read file"
+          }
+        }
+      }
+    },
+    "tool.write": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写入文件"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write file"
+          }
+        }
+      }
+    },
+    "tool.edit": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑文件"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit file"
+          }
+        }
+      }
+    },
+    "tool.grep": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索代码"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search code"
+          }
+        }
+      }
+    },
+    "tool.glob": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查找文件"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find files"
+          }
+        }
+      }
+    },
+    "tool.shell": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行命令"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run command"
+          }
+        }
+      }
+    },
+    "tool.search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语义搜索"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semantic search"
+          }
+        }
+      }
+    },
+    "tool.task": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动子任务"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start subtask"
+          }
+        }
+      }
+    },
+    "tool.todos": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新待办"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update todos"
+          }
+        }
+      }
+    },
+    "tool.delete": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除文件"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        }
+      }
+    },
+    "tool.lints": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查 Lint"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check lints"
+          }
+        }
+      }
+    },
+    "tool.web": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络搜索"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search"
+          }
+        }
+      }
+    },
+    "tool.image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成图片"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate image"
+          }
+        }
+      }
+    },
+    "tool.mode": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换模式"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        }
+      }
+    },
+    "tool.mcp": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP 工具"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP tool"
+          }
+        }
+      }
+    },
+    "tool.await": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待后台任务"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for background task"
           }
         }
       }

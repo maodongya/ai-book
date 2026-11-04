@@ -12,6 +12,9 @@ enum OperationPlanner {
         snapshot: OperationContextSnapshot,
         client: OperationCompletionClient
     ) async throws -> OperationPlan {
+        if let local = OperationPhraseMatch.localPlan(for: utterance) {
+            return local // 常见口令直接映射，不请求模型
+        }
         let message = OperationPromptBuilder.userMessage(utterance: utterance, snapshot: snapshot) // 原话加短快照
         let tools = OperationCatalog.toolDefinitions() // 封闭目录
         let result = try await client.complete(userMessage: message, tools: tools) // 只请求一次

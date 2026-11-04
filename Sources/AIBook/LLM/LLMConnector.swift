@@ -97,11 +97,11 @@ enum LLMProvider: String, CaseIterable, Identifiable, Codable {
     var apiKeyFieldLabel: String {
         switch self {
         case .qwen:
-            return "API Key（百炼 sk-）"
+            return BookL10n.string("llm.key.qwen")
         case .ollama:
-            return "API Key（可选）"
+            return BookL10n.string("llm.key.optional")
         default:
-            return "API Key"
+            return BookL10n.string("llm.key.default")
         }
     }
 
@@ -109,19 +109,19 @@ enum LLMProvider: String, CaseIterable, Identifiable, Codable {
     var readingHint: String {
         switch self {
         case .openAI:
-            return "OpenAI 官方 API，适合通用阅读讲解。"
+            return BookL10n.string("llm.hint.openai")
         case .deepSeek:
-            return "DeepSeek 高性价比中文理解，适合长文阅读。"
+            return BookL10n.string("llm.hint.deepseek")
         case .moonshot:
-            return "Moonshot（Kimi）长上下文，适合整章阅读。"
+            return BookL10n.string("llm.hint.moonshot")
         case .qwen:
-            return "阿里云百炼通义千问（OpenAI 兼容）。默认北京地域 \(QwenBailianConfig.defaultBaseURL)，Key 在百炼控制台 API 页创建。"
+            return BookL10n.format("llm.hint.qwen", QwenBailianConfig.defaultBaseURL)
         case .zhipu:
-            return "智谱 GLM 系列，适合中文书籍与笔记解析。"
+            return BookL10n.string("llm.hint.zhipu")
         case .ollama:
-            return "本机 Ollama，离线可用；设置页可自动扫描已安装模型并选择。支持 OLLAMA_HOST 环境变量与可选 API Key。"
+            return BookL10n.string("llm.hint.ollama")
         case .custom:
-            return "任意 OpenAI 兼容接口，自行填写地址与模型。"
+            return BookL10n.string("llm.hint.custom")
         }
     }
 }

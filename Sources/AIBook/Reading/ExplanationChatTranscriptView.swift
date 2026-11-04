@@ -4,9 +4,11 @@ import SwiftUI
 /// 右页讲解 / 进化对话区：消息列表与流式输出，不含输入框。
 struct ExplanationChatTranscriptView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel  // 消息、流式、右页 tab 都从这读
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画对话区
 
     /// 只画消息列表，输入框在外。
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         chatList  // 只嵌列表，输入框在 ExplanationChatView
     }
 

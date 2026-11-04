@@ -3,6 +3,7 @@ import SwiftUI
 /// 沉浸阅读双页/单页 spread 主体：翻页动画、页内容与手势。
 struct ReadingSpreadSpreadBody: View {
     @EnvironmentObject private var viewModel: ReadingViewModel  // 分页和页文
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画页文案
 
     @Binding var pageContentSize: CGSize  // 给 paginator 的内容区
     @Binding var displayedSpreadIndex: Int  // 正在看的摊
@@ -22,6 +23,7 @@ struct ReadingSpreadSpreadBody: View {
 
     /// 摊的手势、3D 翻页和页内容。
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         GeometryReader { geometry in  // 量摊的宽高
             let spreadWidth = geometry.size.width  // 整摊
             let spreadHeight = geometry.size.height  // 页高

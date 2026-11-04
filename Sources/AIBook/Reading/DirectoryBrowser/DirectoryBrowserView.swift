@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 左页目录树。点文件才打开，点文件夹只展开。
 struct DirectoryBrowserView: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画目录窗
     let sessions: [DirectoryBrowserRootSession]  // 已打开的根，侧栏数据源
     let selectedSessionID: UUID?  // 当前高亮根；nil 时用第一个
     let onSelectSession: (UUID) -> Void  // 点侧栏行，宿主记下 id
@@ -9,11 +10,13 @@ struct DirectoryBrowserView: View {
     let onRemoveSession: (UUID) -> Void  // 去掉这个根，不删磁盘
     let onToggleExpanded: (UUID, String) -> Void  // 展开/收起树节点，键是路径
     let onOpen: (URL, DirectoryFileOpenTarget) -> Void  // 打开到原文/译文/讲解
+    let onDelete: (UUID, URL) -> Void  // 确认后把文件或文件夹移到废纸篓
     let onDismiss: () -> Void  // 关 sheet，不改选中文件
 
     @ObservedObject private var styleManager = BookStyleManager.shared  // 换字体整页重建
     @State private var selectedFileURL: URL?  // 树里高亮的文件；切根时 sync 会改
     @State private var openTarget: DirectoryFileOpenTarget = .original  // 打开到哪一栏，默认原文
+    @State private var pendingDelete: DirectoryTreeNode?  // 等用户确认的文件或文件夹
 
     /// 当前侧栏高亮的根；没选就用第一个。
     private var selectedSession: DirectoryBrowserRootSession? {
@@ -29,6 +32,7 @@ struct DirectoryBrowserView: View {
 
     /// 侧栏、树、打开到哪、底栏。
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         ZStack {
             BookTheme.deskGradient  // 书桌底
                 .ignoresSafeArea()  // 铺满 sheet
@@ -50,6 +54,14 @@ struct DirectoryBrowserView: View {
         }
         .onChange(of: selectedSession?.id) { _ in  // 换根就重同步，不跨树留旧 URL
             syncSelectionForCurrentSession()  // 切根时高亮落到该树里的文件
+        }
+        .alert(BookL10n.string("action.delete"), isPresented: deleteAlertPresented) {  // 删除前必须确认
+            Button(BookL10n.string("action.delete"), role: .destructive) {  // 移到废纸篓
+                commitPendingDelete()
+            }
+            Button(BookL10n.string("alert.cancel"), role: .cancel) {}  // 留下
+        } message: {
+            Text(pendingDeleteMessage)  // 文件或文件夹各一句
         }
         .id(styleManager.revision)  // 字体变整页重建
     }
@@ -256,56 +268,103 @@ struct DirectoryBrowserView: View {
         }
     }
 
+    /// 删除确认是否弹出。
+    private var deleteAlertPresented: Binding<Bool> {
+        Binding(  // 有待删节点才弹出
+            get: { pendingDelete != nil },  // 点垃圾桶才有值
+            set: { if !$0 { pendingDelete = nil } }  // 取消清掉
+        )
+    }
+
+    /// 文件和文件夹的确认文案不一样。
+    private var pendingDeleteMessage: String {
+        guard let pendingDelete else { return "" }  // 没待删时 alert 也不显示
+        let key = pendingDelete.isDirectory ? "directory.delete.folder" : "directory.delete.file"  // 文件夹带上内容
+        return BookL10n.format(key, pendingDelete.name)  // 名字放进问句
+    }
+
+    /// 用户点了删除。清掉高亮后交给宿主移到废纸篓。
+    private func commitPendingDelete() {
+        guard let node = pendingDelete, let sessionID = selectedSession?.id else { return }  // 根已经没了
+        if let selectedFileURL, DirectoryItemTrash.contains(path: selectedFileURL.path, deletedPath: node.url.path) {  // 删的是当前高亮或它的上级
+            self.selectedFileURL = nil  // 底栏不再指向已删文件
+        }
+        pendingDelete = nil  // 先关确认
+        onDelete(sessionID, node.url)  // 宿主移到废纸篓并刷新树
+    }
+
+    /// 行尾垃圾桶。点它只问删除，不展开、不选中。
+    private func deleteButton(_ node: DirectoryTreeNode) -> some View {
+        Button {  // 先问，不立刻删
+            pendingDelete = node  // 弹出确认
+        } label: {
+            Image(systemName: "trash")  // 删除
+                .font(.system(size: 12, weight: .semibold))  // 行内图标
+                .foregroundStyle(BookTheme.vermilion.opacity(0.85))  // 危险色
+                .padding(.horizontal, 8)  // 可点范围比图标宽
+                .padding(.vertical, 6)  // 可点范围比图标高
+                .contentShape(Rectangle())  // 整块可点，不只是图标
+        }
+        .buttonStyle(.plain)  // 不要系统默认凸起
+        .help(BookL10n.string("directory.help.delete"))  // 删除说明
+    }
+
     @ViewBuilder
-    /// 树节点。depth 缩进。
+    /// 树节点。depth 缩进。右边可删除。
     private func treeRow(_ node: DirectoryTreeNode, depth: Int, sessionID: UUID) -> some View {
         let indent = CGFloat(depth) * 16  // 一层 16pt，和 chevron 齐
-        if node.isDirectory {  // 点文件夹只展开，不打开
-            let isExpanded = selectedSession?.expandedPaths.contains(node.id) == true  // 路径在集合里才算张开
-            Button {
-                onToggleExpanded(sessionID, node.id)  // 宿主改 expandedPaths，树重铺
-            } label: {
-                HStack(spacing: 6) {  // 图标和名紧排
-                    Color.clear.frame(width: indent)  // 用透明占位缩进，避免 Spacer 吃掉
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")  // 张开朝下
-                        .font(.system(size: 10, weight: .semibold))  // 小三角
-                        .foregroundStyle(BookTheme.inkMuted.opacity(0.7))  // 空状态更弱
-                        .frame(width: 12)  // 有无 chevron 齐列
-                    Image(systemName: "folder.fill")  // 目录语义
-                        .foregroundStyle(BookTheme.gold.opacity(0.85))  // 文件夹金
-                    Text(node.name)  // 这一级名，不用全路径
-                        .font(BookTheme.captionFont)  // 次要操作
-                        .foregroundStyle(BookTheme.ink)  // 文件夹名主墨
-                        .lineLimit(1)  // 长名截断
-                    Spacer(minLength: 0)  // 把关闭推到右边
+        HStack(spacing: 0) {  // 行主体和删除分开，避免按钮套按钮
+            if node.isDirectory {  // 点文件夹只展开，不打开
+                let isExpanded = selectedSession?.expandedPaths.contains(node.id) == true  // 路径在集合里才算张开
+                Button {
+                    onToggleExpanded(sessionID, node.id)  // 宿主改 expandedPaths，树重铺
+                } label: {
+                    HStack(spacing: 6) {  // 图标和名紧排
+                        Color.clear.frame(width: indent)  // 用透明占位缩进，避免 Spacer 吃掉
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")  // 张开朝下
+                            .font(.system(size: 10, weight: .semibold))  // 小三角
+                            .foregroundStyle(BookTheme.inkMuted.opacity(0.7))  // 空状态更弱
+                            .frame(width: 12)  // 有无 chevron 齐列
+                        Image(systemName: "folder.fill")  // 目录语义
+                            .foregroundStyle(BookTheme.gold.opacity(0.85))  // 文件夹金
+                        Text(node.name)  // 这一级名，不用全路径
+                            .font(BookTheme.captionFont)  // 次要操作
+                            .foregroundStyle(BookTheme.ink)  // 文件夹名主墨
+                            .lineLimit(1)  // 长名截断
+                        Spacer(minLength: 0)  // 把删除推到右边
+                    }
+                    .padding(.horizontal, 4)  // 行左右
+                    .padding(.vertical, 3)  // 紧行高
+                    .contentShape(Rectangle())  // 整行可点
                 }
-                .padding(.horizontal, 4)  // 行左右
-                .padding(.vertical, 3)  // 紧行高
+                .buttonStyle(.plain)  // 不要系统默认凸起
+            } else {
+                let isSelected = selectedFileURL == node.url  // 和底栏打开用同一个 URL
+                Button {
+                    selectedFileURL = node.url  // 只改高亮，不立刻打开
+                } label: {
+                    HStack(spacing: 6) {  // 图标和名紧排
+                        Color.clear.frame(width: indent + 18)  // 对齐到文件夹名，避开 chevron 列
+                        Image(systemName: "doc.text")  // 文件，不是文件夹
+                            .foregroundStyle(isSelected ? BookTheme.gold : BookTheme.inkMuted)  // 选中金
+                        Text(node.name)  // 这一级名，不用全路径
+                            .font(BookTheme.captionFont)  // 次要操作
+                            .foregroundStyle(isSelected ? BookTheme.ink : BookTheme.inkSecondary)  // 选中主墨
+                            .lineLimit(1)  // 长名截断
+                        Spacer(minLength: 0)  // 把删除推到右边
+                    }
+                    .padding(.horizontal, 4)  // 行左右
+                    .padding(.vertical, 3)  // 紧行高
+                    .frame(maxWidth: .infinity, alignment: .leading)  // 选中底铺满行
+                    .background {  // 选中底或金胶囊
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)  // 文件行选中底
+                            .fill(isSelected ? BookTheme.selection.opacity(0.35) : Color.clear)  // 和侧栏同一套选中色
+                    }
+                    .contentShape(Rectangle())  // 整行可点
+                }
+                .buttonStyle(.plain)  // 不要系统默认凸起
             }
-            .buttonStyle(.plain)  // 不要系统默认凸起
-        } else {
-            let isSelected = selectedFileURL == node.url  // 和底栏打开用同一个 URL
-            Button {
-                selectedFileURL = node.url  // 只改高亮，不立刻打开
-            } label: {
-                HStack(spacing: 6) {  // 图标和名紧排
-                    Color.clear.frame(width: indent + 18)  // 对齐到文件夹名，避开 chevron 列
-                    Image(systemName: "doc.text")  // 文件，不是文件夹
-                        .foregroundStyle(isSelected ? BookTheme.gold : BookTheme.inkMuted)  // 选中金
-                    Text(node.name)  // 这一级名，不用全路径
-                        .font(BookTheme.captionFont)  // 次要操作
-                        .foregroundStyle(isSelected ? BookTheme.ink : BookTheme.inkSecondary)  // 选中主墨
-                        .lineLimit(1)  // 长名截断
-                    Spacer(minLength: 0)  // 把关闭推到右边
-                }
-                .padding(.horizontal, 4)  // 行左右
-                .padding(.vertical, 3)  // 紧行高
-                .background {  // 选中底或金胶囊
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)  // 文件行选中底
-                        .fill(isSelected ? BookTheme.selection.opacity(0.35) : Color.clear)  // 和侧栏同一套选中色
-                }
-            }
-            .buttonStyle(.plain)  // 不要系统默认凸起
+            deleteButton(node)  // 文件和文件夹都能删
         }
     }
 
@@ -372,25 +431,31 @@ struct DirectoryBrowserView: View {
 
             Spacer(minLength: 0)  // 把关闭推到右边
 
-            Button(BookL10n.string("action.close"), action: onDismiss)  // 关，不打开
-                .buttonStyle(.plain)  // 不要系统默认凸起
-                .font(BookTheme.captionFont)  // 次要操作
-                .foregroundStyle(BookTheme.inkMuted)  // 弱墨
-                .padding(.horizontal, 14)  // 关闭按钮宽
-                .padding(.vertical, 7)  // 胶囊高度
-
-            Button(BookL10n.string("action.open")) {  // 打开当前高亮文件
-                openSelectedFile()  // 有文件才回调宿主
+            Button(action: onDismiss) {  // 关，不打开
+                Text(BookL10n.string("action.close"))  // 关闭
+                    .font(BookTheme.captionFont)  // 次要操作
+                    .foregroundStyle(BookTheme.inkMuted)  // 弱墨
+                    .padding(.horizontal, 14)  // 关闭按钮宽，必须在按钮里面才算可点
+                    .padding(.vertical, 7)  // 胶囊高度
+                    .contentShape(Capsule())  // 整粒可点，不只是字
             }
             .buttonStyle(.plain)  // 不要系统默认凸起
-            .font(BookTheme.captionFont.weight(.semibold))  // 主操作加粗
-            .foregroundStyle(BookTheme.buttonProminentText)  // 金底反白
-            .padding(.horizontal, 18)  // 主按钮更宽
-            .padding(.vertical, 7)  // 胶囊高度
-            .background {  // 选中底或金胶囊
-                Capsule()  // 目标粒形状
-                    .fill(BookTheme.gold.opacity(selectedIsFile ? 0.92 : 0.35))  // 没选文件金底淡掉
+
+            Button {  // 打开当前高亮文件
+                openSelectedFile()  // 有文件才回调宿主
+            } label: {
+                Text(BookL10n.string("action.openSource"))  // 打开原文
+                    .font(BookTheme.captionFont.weight(.semibold))  // 主操作加粗
+                    .foregroundStyle(BookTheme.buttonProminentText)  // 金底反白
+                    .padding(.horizontal, 18)  // 主按钮更宽
+                    .padding(.vertical, 7)  // 胶囊高度
+                    .background {  // 金底也在按钮里面
+                        Capsule()  // 目标粒形状
+                            .fill(BookTheme.gold.opacity(selectedIsFile ? 0.92 : 0.35))  // 没选文件金底淡掉
+                    }
+                    .contentShape(Capsule())  // 整粒可点，不只是字
             }
+            .buttonStyle(.plain)  // 不要系统默认凸起
             .disabled(!selectedIsFile)  // 文件夹或空选点不了
         }
     }

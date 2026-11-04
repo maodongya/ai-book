@@ -4,6 +4,7 @@ import SwiftUI
 /// 右页对照表。单元格内联编辑。
 struct TranslationTableView: View {
     @ObservedObject private var styleManager = BookStyleManager.shared  // 换字体整页重建
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画表身
 
     let alignment: TranslationAlignment  // 当前对齐，行数据源
     var isEditable: Bool = true  // 跑着时宿主会关掉编辑
@@ -43,6 +44,7 @@ struct TranslationTableView: View {
 
     /// 表头 + 正文行 + summary。
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         GeometryReader { viewport in  // 量视口算列宽
             let layout = TranslationTableLayout.columnLayout(  // 按视口宽重算三列
                 totalWidth: max(viewport.size.width - 24, 1),  // 扣掉左右 padding，至少 1 防除零
@@ -142,6 +144,7 @@ struct TranslationTableView: View {
 
 /// 列表头。
 struct TranslationTableColumnHeader: View {
+    @ObservedObject private var settings = AppSettings.shared  // 界面语言变了重取列名
     let alignment: TranslationAlignment  // 当前对齐，行数据源
     var isEditable: Bool = true  // 跑着时宿主会关掉编辑
     var translationColumnTitleKey: String = "translation.header.translation"  // 第二列标题（译文/讲解）
@@ -153,6 +156,7 @@ struct TranslationTableColumnHeader: View {
 
     /// 表头 + 正文行 + summary。
     var body: some View {
+        let _ = settings.localizationRevision  // 列名不跟父视图自动刷新
         GeometryReader { viewport in  // 量视口算列宽
             let layout = TranslationTableLayout.columnLayout(  // 按视口宽重算三列
                 totalWidth: max(viewport.size.width - 24, 1),  // 扣掉左右 padding，至少 1 防除零
@@ -425,6 +429,7 @@ private struct TranslationTableEditableRow: View {
 
 /// 表底总结行。
 private struct TranslationTableSummaryRow: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画摘要标题
     let block: TranslationBlock  // 这一行对应的对齐块
     let isEditable: Bool  // 整表只读时三列都变 Text
     let onUpdate: (String) -> Void  // 摘要只回写译文
@@ -446,6 +451,7 @@ private struct TranslationTableSummaryRow: View {
 
     /// 表头 + 正文行 + summary。
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 6) {  // 摘要标题在上，正文在下
             Text(summaryTitle(for: block))  // 难点词语 vs 普通摘要
                 .font(BookTheme.captionFont.weight(.semibold))  // 说明字号

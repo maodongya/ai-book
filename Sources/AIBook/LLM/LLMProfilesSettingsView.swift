@@ -27,6 +27,7 @@ struct LLMProfilesSettingsView: View {
     }
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 14) {
             summaryRow
 
@@ -267,6 +268,7 @@ struct LLMProfilesSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .id(settings.localizationRevision)  // 分段控件不跟文案刷新，语言一变就重建
                 Text(region.consoleHint)
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.settingsSecondary)

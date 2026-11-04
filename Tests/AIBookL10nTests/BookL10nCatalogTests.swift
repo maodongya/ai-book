@@ -48,4 +48,132 @@ final class BookL10nCatalogTests: XCTestCase {
             }
         }
     }
+
+    /// 对齐/锁定按钮在八种界面语言里都是该语言，不能停在英文。
+    func testAlignAndLockLabelsUseEachInterfaceLanguage() {
+        let expected: [String: [BookAppLanguage: String]] = [
+            "translation.alignTranslation": [
+                .zhHans: "对齐翻译",
+                .en: "Align translation",
+                .ja: "翻訳を揃える",
+                .de: "Übersetzung ausrichten",
+                .fr: "Aligner la traduction",
+                .it: "Allinea traduzione",
+                .la: "Aligna translationem",
+                .el: "Ευθυγράμμιση μετάφρασης",
+            ],
+            "translation.lock": [
+                .zhHans: "锁定翻译",
+                .en: "Lock translation",
+                .ja: "翻訳を固定",
+                .de: "Übersetzung sperren",
+                .fr: "Verrouiller la traduction",
+                .it: "Blocca traduzione",
+                .la: "Claude translationem",
+                .el: "Κλείδωμα μετάφρασης",
+            ],
+            "translation.unlock": [
+                .zhHans: "解锁翻译",
+                .en: "Unlock translation",
+                .ja: "翻訳の固定を解除",
+                .de: "Übersetzung entsperren",
+                .fr: "Déverrouiller la traduction",
+                .it: "Sblocca traduzione",
+                .la: "Resera translationem",
+                .el: "Ξεκλείδωμα μετάφρασης",
+            ],
+            "explanation.alignSource": [
+                .zhHans: "对齐讲解",
+                .en: "Align explanation",
+                .ja: "解説を揃える",
+                .de: "Erklärung ausrichten",
+                .fr: "Aligner l’explication",
+                .it: "Allinea spiegazione",
+                .la: "Aligna explicationem",
+                .el: "Ευθυγράμμιση εξήγησης",
+            ],
+            "explanation.lock": [
+                .zhHans: "锁定讲解",
+                .en: "Lock explanation",
+                .ja: "解説を固定",
+                .de: "Erklärung sperren",
+                .fr: "Verrouiller l’explication",
+                .it: "Blocca spiegazione",
+                .la: "Claude explicationem",
+                .el: "Κλείδωμα εξήγησης",
+            ],
+            "explanation.unlock": [
+                .zhHans: "解锁讲解",
+                .en: "Unlock explanation",
+                .ja: "解説の固定を解除",
+                .de: "Erklärung entsperren",
+                .fr: "Déverrouiller l’explication",
+                .it: "Sblocca spiegazione",
+                .la: "Resera explicationem",
+                .el: "Ξεκλείδωμα εξήγησης",
+            ],
+            "translation.tableCompare": [
+                .zhHans: "翻译对照",
+                .en: "Translation table",
+                .ja: "翻訳対照",
+                .de: "Übersetzungsvergleich",
+                .fr: "Comparaison de traduction",
+                .it: "Confronto traduzione",
+                .la: "Comparatio translationis",
+                .el: "Σύγκριση μετάφρασης",
+            ],
+            "explanation.tableCompare": [
+                .zhHans: "讲解对照",
+                .en: "Explanation table",
+                .ja: "解説対照",
+                .de: "Erklärungsvergleich",
+                .fr: "Comparaison d’explication",
+                .it: "Confronto spiegazione",
+                .la: "Comparatio explicationis",
+                .el: "Σύγκριση εξήγησης",
+            ],
+        ]
+        let operationMirrors: [String: String] = [
+            "operation.action.alignTranslation": "translation.alignTranslation",
+            "operation.action.lockTranslation": "translation.lock",
+            "operation.action.unlockTranslation": "translation.unlock",
+            "operation.action.alignExplanation": "explanation.alignSource",
+            "operation.action.lockExplanation": "explanation.lock",
+            "operation.action.unlockExplanation": "explanation.unlock",
+            "operation.action.toggleTranslationTable": "translation.tableCompare",
+            "operation.action.toggleExplanationTable": "explanation.tableCompare",
+        ]
+        let defaults = UserDefaults.standard
+        let original = defaults.string(forKey: "aiBook.appLanguage")
+        defer {
+            if let original {
+                defaults.set(original, forKey: "aiBook.appLanguage")
+            } else {
+                defaults.removeObject(forKey: "aiBook.appLanguage")
+            }
+        }
+
+        for language in BookAppLanguage.allCases where language != .system {
+            defaults.set(language.rawValue, forKey: "aiBook.appLanguage")
+            for (key, byLanguage) in expected {
+                XCTAssertEqual(BookL10n.string(key), byLanguage[language], "\(language.rawValue): \(key)")
+            }
+            for (operationKey, sourceKey) in operationMirrors {
+                XCTAssertEqual(
+                    BookL10n.string(operationKey),
+                    BookL10n.string(sourceKey),
+                    "\(language.rawValue): \(operationKey)"
+                )
+            }
+            let hint = BookL10n.string("help.alignStale")
+            XCTAssertTrue(
+                hint.contains(expected["translation.alignTranslation"]![language]!),
+                "\(language.rawValue) hint missing align translation: \(hint)"
+            )
+            XCTAssertTrue(
+                hint.contains(expected["explanation.alignSource"]![language]!),
+                "\(language.rawValue) hint missing align explanation: \(hint)"
+            )
+        }
+    }
 }

@@ -66,6 +66,7 @@ final class ReadingDocumentSession: ObservableObject {
         guard confirmDiscardUnsavedIfNeeded() else { return }  // 脏了先问
 
         host.assistant.stopExplanationSpeech()  // 换档停朗读
+        host.clearReadingCompanionsForNewDocument()  // 译文、讲解和两边上下文一起清
         fileContent = ""  // 空文
         savedContent = ""  // 和空文对齐，不当脏
         fileName = ReadingViewModel.untitledMarker  // 未命名
@@ -80,9 +81,7 @@ final class ReadingDocumentSession: ObservableObject {
         lastCommittedSelectionText = ""  // 提交值也清
         lastCommittedSelectionRange = nil  // 没有可回钉的
         selectedTextRange = nil  // 长度变了，旧 range 作废
-        host.assistant.readingPromptMessages = [ReadingAssistantSession.defaultWelcomeMessage]  // 讲解回欢迎
-        host.syncDisplayedChatMessages()  // 气泡空
-        host.assistant.readingChatInput = ""  // 输入框
+        host.syncDisplayedChatMessages()  // 气泡跟当前页走
         clearBundledLanguages()
         host.errorMessage = nil  // 清错
         host.persistChatSession()  // 落盘空档
@@ -134,6 +133,29 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
 
+    /// 把树里的文件或文件夹移到废纸篓，然后刷新这棵树。
+    func deleteDirectoryItem(at url: URL, sessionID: UUID) {
+        let target = url.standardizedFileURL  // 和树节点同一套路径
+        do {
+            try DirectoryItemTrash.trash(target)  // 废纸篓，不直接抹掉
+        } catch {
+            host.errorMessage = BookL10n.format("directory.delete.failed", error.localizedDescription)  // 权限或占用
+            return  // 树保持原样
+        }
+        guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }  // 根可能已经卸了
+        let root = directoryBrowserSessions[index].rootURL.standardizedFileURL  // 删的如果是根，会话也去掉
+        if DirectoryItemTrash.contains(path: root.path, deletedPath: target.path)
+            || !FileManager.default.fileExists(atPath: root.path) {  // 根被移走
+            removeDirectorySession(sessionID)  // 书签一起删
+            return  // 不用再扫一棵不存在的树
+        }
+        directoryBrowserSessions[index].expandedPaths = directoryBrowserSessions[index].expandedPaths.filter { path in  // 丢掉已删目录的展开记录
+            !DirectoryItemTrash.contains(path: path, deletedPath: target.path)  // 子路径也丢掉
+        }
+        loadDirectoryTree(for: sessionID)  // 重新扫，树上不再出现它
+    }
+
+
     /// 去掉一个根，书签一起删。
     func removeDirectorySession(_ id: UUID) {
         directoryBrowserSessions.removeAll { $0.id == id }  // 根和展开一起丢
@@ -144,15 +166,17 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
 
-    /// 展开状态立刻落盘。
+    /// 展开时从硬盘重读这一层。收起只改展开状态。
     func toggleDirectoryNodeExpanded(sessionID: UUID, path: String) {
         guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }  // 可能已被删
         if directoryBrowserSessions[index].expandedPaths.contains(path) {  // 已展开则收
             directoryBrowserSessions[index].expandedPaths.remove(path)  // 收起
-        } else {  // 没选区整页替换
-            directoryBrowserSessions[index].expandedPaths.insert(path)  // 展开
+            persistDirectoryBrowserSessions()  // 书签立刻写
+            return  // 收起不读盘
         }
+        directoryBrowserSessions[index].expandedPaths.insert(path)  // 先展开，列表回来再填
         persistDirectoryBrowserSessions()  // 书签立刻写
+        reloadDirectoryLevel(sessionID: sessionID, path: path)  // 这一层按当前硬盘列
     }
 
 
@@ -246,11 +270,12 @@ final class ReadingDocumentSession: ObservableObject {
     private func loadDirectoryTree(for sessionID: UUID) {
         guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }  // 可能已被删
         let rootURL = directoryBrowserSessions[index].rootURL  // 扫之前抓出来，避免下标过期
+        let expandedPaths = directoryBrowserSessions[index].expandedPaths  // 已展开的层也要按现在的硬盘列
         directoryBrowserSessions[index].isLoading = true  // 转圈
         directoryBrowserSessions[index].loadError = nil  // 清上次错
 
         Task.detached(priority: .userInitiated) {  // 别堵主线程
-            let tree = DirectoryTreeScanner.scan(root: rootURL)  // 失败 nil
+            let tree = DirectoryTreeScanner.scan(root: rootURL, expandedPaths: expandedPaths)  // 失败 nil
             await MainActor.run { [weak self] in // 等待异步完成
                 guard let self,  // VM 已释放就丢结果
                       let currentIndex = self.directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else {  // 扫完根可能没了
@@ -268,6 +293,29 @@ final class ReadingDocumentSession: ObservableObject {
                     self.directoryBrowserSessions[currentIndex].loadError = BookL10n.string("vm.error.readDirectory")  // 红字
                 }
                 self.persistDirectoryBrowserSessions()  // 展开状态可能刚补了根
+            }
+        }
+    }
+
+
+    /// 展开的那一层重新列目录。已经展开的子目录也跟着重读。
+    private func reloadDirectoryLevel(sessionID: UUID, path: String) {
+        let url = URL(fileURLWithPath: path, isDirectory: true)  // 节点 id 就是绝对路径
+        Task.detached(priority: .userInitiated) {  // 列目录不堵界面
+            let children = DirectoryTreeScanner.children(in: url)  // 只这一层
+            await MainActor.run { [weak self] in  // 树写在主线程
+                guard let self, let children else { return }  // 读失败就留着旧列表
+                guard let index = self.directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }),
+                      self.directoryBrowserSessions[index].expandedPaths.contains(path),
+                      var tree = self.directoryBrowserSessions[index].tree else {  // 已经收起或根没了
+                    return  // 不把过期列表写回去
+                }
+                tree = tree.replacingChildren(at: path, with: children)  // 只换这一层
+                self.directoryBrowserSessions[index].tree = tree  // 界面跟着变
+                let expanded = self.directoryBrowserSessions[index].expandedPaths  // 子目录若也是展开的，继续读
+                for child in children where child.isDirectory && expanded.contains(child.id) {  // 刚列出来且仍展开
+                    self.reloadDirectoryLevel(sessionID: sessionID, path: child.id)  // 再读下一层
+                }
             }
         }
     }
@@ -672,7 +720,7 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
     /// 另存为 `.aibook`。已打开的包里其它语言会保留。
-    func saveAsAIBook() {
+    func saveAsAIBook(suggestedStem: String? = nil) {
         guard !host.isRunning else { return }
         guard !fileContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             host.errorMessage = BookL10n.string("vm.error.aibookEmpty")
@@ -680,7 +728,7 @@ final class ReadingDocumentSession: ObservableObject {
         }
         let directory = DocumentExporter.defaultDirectory(currentFileURL: currentFileURL)
         guard let destination = runAIBookSavePanel(
-            suggestedName: aibookSuggestedName(),
+            suggestedName: aibookSuggestedName(overrideStem: suggestedStem),
             directory: directory
         ) else { return }
         writeAIBook(to: destination)
@@ -917,7 +965,13 @@ final class ReadingDocumentSession: ObservableObject {
         bundledExplanationLanguageID = nil
     }
 
-    private func aibookSuggestedName() -> String {
+    private func aibookSuggestedName(overrideStem: String? = nil) -> String {
+        if let trimmed = overrideStem?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+            let base = (trimmed as NSString).deletingPathExtension
+            if !base.isEmpty {
+                return "\(base).aibook"
+            }
+        }
         let stem = ((currentFileURL?.deletingPathExtension().lastPathComponent) ?? fileName)
         let base = (stem as NSString).deletingPathExtension
         let name = base.isEmpty || base == ReadingViewModel.untitledMarker

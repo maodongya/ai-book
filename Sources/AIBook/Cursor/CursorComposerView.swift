@@ -55,6 +55,7 @@ struct CursorComposerView: View {
     }
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         VStack(spacing: 8) {
             compactControls
             inputBox

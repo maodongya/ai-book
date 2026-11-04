@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:ai-book}",
+            "name": "Debug AIBook",
+            "target": "AIBook",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug AIBook"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:ai-book}",
+            "name": "Release AIBook",
+            "target": "AIBook",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release AIBook"
+        }
+    ]
+}

@@ -22,6 +22,7 @@ struct EvolutionUtilityTabsPanel: View {
     let onRestore: (UUID) -> Void
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 0) {
             compactControlBar
                 .padding(.horizontal, 12)
@@ -128,6 +129,7 @@ struct EvolutionCursorModelRow: View {
     @ObservedObject private var catalog = CursorModelCatalog.shared // 列表来自桥 list-models
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         HStack(spacing: 8) {
             Image(systemName: "cursorarrow.rays")
                 .font(.system(size: 11, weight: .semibold))
@@ -174,6 +176,7 @@ struct EvolutionCursorModelRow: View {
 
 /// AI 进化页顶栏：优化队列与源码路径摘要。
 struct EvolutionCommandQueuePanel: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画队列
     let items: [OptimizationItem]
     let projectPath: String
     let isRunning: Bool
@@ -204,6 +207,7 @@ struct EvolutionCommandQueuePanel: View {
     }
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 8) {
             if embeddedInTabs, !items.isEmpty {
                 HStack {
@@ -395,6 +399,7 @@ struct EvolutionCommandQueuePanel: View {
 
 /// Cursor Agent 风格：单条回复内可折叠的「思考 + 工具时间线」整体执行轨迹。
 struct AssistantExecutionTraceCard: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画轨迹卡
     let thinking: String?
     let toolSteps: [ExecutionStep]?
     var isLive: Bool = false
@@ -437,6 +442,7 @@ struct AssistantExecutionTraceCard: View {
     }
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         if hasTrace {
             VStack(alignment: .leading, spacing: 8) {
                 Button {
@@ -541,9 +547,11 @@ private struct EvolutionPanelChromeModifier: ViewModifier {
 
 /// 打包安装进度条（进化完成后 build-and-install）。
 struct EvolutionRebuildBanner: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画升级条
     let status: String
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         HStack(spacing: 10) {
             ProgressView().controlSize(.small)
             VStack(alignment: .leading, spacing: 2) {
@@ -571,6 +579,7 @@ struct EvolutionRebuildBanner: View {
 
 /// Cursor 风格工具调用时间线。
 struct ExecutionStepsTimeline: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画时间线
     let steps: [ExecutionStep]
     var isLive: Bool = false
     var nestedInTrace: Bool = false
@@ -586,6 +595,7 @@ struct ExecutionStepsTimeline: View {
     }
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         if nestedInTrace {
             stepsList
         } else {
@@ -660,11 +670,13 @@ struct ExecutionStepsTimeline: View {
 
 /// 时间线一行。可展开输入/结果，可拷贝、可在 Finder 显示。
 private struct ExecutionStepRow: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画这一行
     let step: ExecutionStep
     let isLast: Bool
     @State private var showsDetail = false // 默认收，失败也不自动开
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         HStack(alignment: .top, spacing: 10) {
             VStack(spacing: 0) {
                 stepStatusIcon(step.status)
@@ -869,6 +881,7 @@ private struct ExecutionStepRow: View {
 
 /// 可折叠的思考过程块（Cursor reasoning 风格）。
 struct CollapsibleThinkingBlock: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画思考块
     let text: String
     var isLive: Bool = false
     @State private var isExpanded: Bool
@@ -881,6 +894,7 @@ struct CollapsibleThinkingBlock: View {
     }
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 6) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {

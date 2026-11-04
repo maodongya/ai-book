@@ -4,11 +4,13 @@ import SwiftUI
 struct BookUserManualView: View {
     @ObservedObject private var styleManager = BookStyleManager.shared
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画说明书窗
 
     /// 打开时读一次，切风格只重绘不重读文件。
     private let markdown = BookUserManual.loadMarkdown()
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         ZStack {
             BookTheme.deskGradient
                 .ignoresSafeArea()

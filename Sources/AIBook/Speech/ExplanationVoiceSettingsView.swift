@@ -7,6 +7,7 @@ struct ExplanationVoiceSettingsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 12) {
             Label(BookL10n.string("speech.systemVoiceHint"), systemImage: "speaker.wave.2")
                 .font(BookTheme.captionFont)
@@ -20,6 +21,7 @@ struct ExplanationVoiceSettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .id(settings.localizationRevision)  // 分段控件不跟文案刷新，语言一变就重建
 
                 Text(engineModeDescription)
                     .font(BookTheme.captionFont)
@@ -34,6 +36,7 @@ struct ExplanationVoiceSettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .id(settings.localizationRevision)  // 分段控件不跟文案刷新，语言一变就重建
 
                 Text(languageModeDescription)
                     .font(BookTheme.captionFont)
@@ -58,7 +61,7 @@ struct ExplanationVoiceSettingsView: View {
                         Label(selected.displayName, systemImage: "speaker.wave.2")
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.settingsPrimary)
-                        Text(selected.genderLabel)
+                        Text(selected.localizedGender)
                             .font(BookTheme.captionFont)
                             .foregroundStyle(BookTheme.settingsSecondary)
                     }

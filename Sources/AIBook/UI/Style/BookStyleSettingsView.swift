@@ -3,8 +3,10 @@ import SwiftUI
 /// 设置页：风格预设网格、纹样开关、阅读字体/字号。只改 BookStyleManager。
 struct BookStyleSettingsView: View {
     @ObservedObject private var styleManager = BookStyleManager.shared
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画风格页
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 16) {
             LazyVGrid(
                 columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4),
@@ -116,11 +118,13 @@ struct BookStyleSettingsView: View {
 
 /// 预设缩略：书脊+双页色块，选中描金并标「当前」。
 struct BookStylePreviewCard: View {
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画「当前」
     let preset: BookStylePresetID
     var isSelected: Bool
     let action: () -> Void
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         let tokens = BookStyleCatalog.baseTokens(for: preset) // 预览用预设原色，不受用户纹样覆盖
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {

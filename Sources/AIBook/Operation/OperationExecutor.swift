@@ -3,6 +3,8 @@ import Foundation
 /// 按目录执行计划：先挡未启用语言，再检查前提，确认后才调用原功能。
 enum OperationExecutor {
     /// confirm 返回 false 时，当前步和后面的步骤都不调用。
+    /// 必须在主线程执行：保存、打开面板只能在主线程创建。
+    @MainActor
     static func execute(
         plan: OperationPlan,
         state: OperationRuntimeState,

@@ -6,6 +6,7 @@ struct OllamaSettingsFields: View {
     var onRefreshAddress: (() -> Void)? // 地址规范化后通知外层刷新
 
     @ObservedObject private var catalog = OllamaModelCatalog.shared
+    @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画本区
     @State private var useCustomModel = false // 打开后允许手填不在列表里的模型名
 
     private var modelBinding: Binding<String> {
@@ -16,6 +17,7 @@ struct OllamaSettingsFields: View {
     }
 
     var body: some View {
+        let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 12) {
             profileField(BookL10n.string("ollama.openAICompat"), text: baseURLBinding) // OpenAI 兼容基址，写入时会规范化
 

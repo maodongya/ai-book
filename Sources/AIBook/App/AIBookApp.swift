@@ -24,7 +24,7 @@ struct AIBookApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button(BookL10n.string("action.new")) {
+                Button(BookL10n.string("action.newSource")) {
                     viewModel.document.newDocument() // 清空左页，不关窗
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.newDocument)
@@ -41,12 +41,12 @@ struct AIBookApp: App {
             }
 
             CommandGroup(after: .saveItem) {
-                Button(BookL10n.string("action.save")) {
+                Button(BookL10n.string("action.saveSource")) {
                     viewModel.document.save()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.save)
 
-                Button(BookL10n.string("action.saveAs")) {
+                Button(BookL10n.string("action.saveSourceAs")) {
                     viewModel.document.saveAs()
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.saveAs)

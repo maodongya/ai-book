@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         ZStack {
             BookTheme.deskGradient
                 .ignoresSafeArea()

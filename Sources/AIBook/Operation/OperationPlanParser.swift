@@ -75,10 +75,30 @@ enum OperationPlanParser {
         case "save": return .save
         case "saveAs": return .saveAs
         case "saveSelectionAs": return .saveSelectionAs
-        case "saveAsAIBook": return .saveAsAIBook
+        case "saveAsAIBook":
+            let stem = (arguments["suggestedStem"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return .saveAsAIBook(stem?.isEmpty == true ? nil : stem)
         case "selectAllLeft": return .selectAllLeft
         case "selectAllRight": return .selectAllRight
         case "supplementClassic": return .supplementClassic
+        case "newDocument": return .newDocument
+        case "newExplanation": return .newExplanation
+        case "openExplanation": return .openExplanation
+        case "saveExplanation": return .saveExplanation
+        case "clearExplanation": return .clearExplanation
+        case "selectAllExplanation": return .selectAllExplanation
+        case "openTranslation": return .openTranslation
+        case "saveTranslation": return .saveTranslation
+        case "clearTranslation": return .clearTranslation
+        case "alignTranslation": return .alignTranslation
+        case "alignExplanation": return .alignExplanation
+        case "lockTranslation": return .lockTranslation
+        case "unlockTranslation": return .unlockTranslation
+        case "lockExplanation": return .lockExplanation
+        case "unlockExplanation": return .unlockExplanation
+        case "toggleExplanationTable": return .toggleExplanationTable
+        case "toggleTranslationTable": return .toggleTranslationTable
         case "startEvolution": return .startEvolution
         case "analyzeOptimizations": return .analyzeOptimizations
         default:

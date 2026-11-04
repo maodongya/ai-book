@@ -1,6 +1,135 @@
 import XCTest
 @testable import AIBook
 
+final class OperationPhraseMatchTests: XCTestCase {
+    func testExplainFullTextFromASRHomophones() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "升腾全文讲解")?.actions, [.explainFullText])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "生成全文讲解")?.actions, [.explainFullText])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "全文讲解")?.actions, [.explainFullText])
+    }
+
+    func testExplainSelectionWithoutFullKeyword() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "讲解选区")?.actions, [.explainSelection])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "选择讲解")?.actions, [.explainSelection])
+    }
+
+    func testReadExplanationFullIsNotExplainFullText() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "朗读讲解全文")?.actions, [.readExplanationFull])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "朗读讲解选区")?.actions, [.readExplanationSelection])
+    }
+
+    func testButtonTitlesMapToActions() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文新建")?.actions, [.newDocument])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "新建原文")?.actions, [.newDocument])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文打开目录")?.actions, [.openDirectoryPanel])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "打开原文目录")?.actions, [.openDirectoryPanel])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文打开")?.actions, [.openFilePanel])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "打开原文")?.actions, [.openFilePanel])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文保存")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存原文")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文另存为")?.actions, [.saveAs])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文全选")?.actions, [.selectAllLeft])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "全选原文")?.actions, [.selectAllLeft])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文补充")?.actions, [.supplementClassic])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文名著补充")?.actions, [.supplementClassic])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "阅读模式")?.actions, [.toggleReadingMode])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文阅读")?.actions, [.toggleReadingMode])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "阅读原文")?.actions, [.toggleReadingMode])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文朗读全文")?.actions, [.readOriginalFull])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "新建讲解")?.actions, [.newExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存讲解")?.actions, [.saveExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "清空讲解")?.actions, [.clearExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "全选讲解")?.actions, [.selectAllExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "对齐讲解")?.actions, [.alignExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "逐字翻译")?.actions, [.translateWordByWord])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "整段翻译")?.actions, [.translateParagraph])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存翻译")?.actions, [.saveTranslation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "对齐翻译")?.actions, [.alignTranslation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "全选翻译")?.actions, [.selectAllRight])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "朗读原文全文")?.actions, [.readOriginalFull])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "朗读翻译全文")?.actions, [.readTranslationFull])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "停止朗读讲解")?.actions, [.stopSpeech])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "停止讲解")?.actions, [.stopCurrentRun])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文全屏")?.actions, [.setPaneFocus("leading")])
+    }
+
+    func testEnglishButtonsAndChinesePhrasesBothMatch() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Reading mode", language: .en)?.actions, [.toggleReadingMode])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "阅读模式", language: .en)?.actions, [.toggleReadingMode])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Save source", language: .en)?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文保存", language: .en)?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "包存", language: .en)?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Save source as", language: .en)?.actions, [.saveAs])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Save source as AIBook", language: .en)?.actions, [.saveAsAIBook(nil)])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Open source folder", language: .en)?.actions, [.openDirectoryPanel])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Open source", language: .en)?.actions, [.openFilePanel])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Save explanation", language: .en)?.actions, [.saveExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Explain Selection", language: .en)?.actions, [.explainSelection])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Explain All", language: .en)?.actions, [.explainFullText])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Word-by-Word", language: .en)?.actions, [.translateWordByWord])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Read source selection", language: .en)?.actions, [.readOriginalSelection])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Read all source", language: .en)?.actions, [.readOriginalFull])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Stop explanation", language: .en)?.actions, [.stopSpeech])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "停止讲解", language: .en)?.actions, [.stopCurrentRun])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "Unlock explanation", language: .en)?.actions, [.unlockExplanation])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "読書モード", language: .ja)?.actions, [.toggleReadingMode])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "原文新建", language: .ja)?.actions, [.newDocument])
+    }
+
+    func testSaveAsAIBookFromTruncatedASR() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存为 AI boo")?.actions, [.saveAsAIBook(nil)])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "另存为 aibook")?.actions, [.saveAsAIBook(nil)])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存为AI Book1")?.actions, [.saveAsAIBook("AI Book1")])
+    }
+
+    func testSavePhrasesWithoutLLM() {
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保\u{200b}存")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保·存")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存一下")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "存盘")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "存一下")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "包存")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "报存")?.actions, [.save])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "另存为")?.actions, [.saveAs])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存为备份")?.actions, [.saveAs])
+        XCTAssertEqual(OperationPhraseMatch.localPlan(for: "保存选区")?.actions, [.saveSelectionAs])
+    }
+
+    func testPlannerUsesLocalMatchWithoutCallingClient() async throws {
+        let client = FakeOperationClient(result: LLMCompletionResult(
+            content: "",
+            reasoning: nil,
+            toolCalls: [],
+            usage: .zero
+        ))
+        let plan = try await OperationPlanner.plan(
+            utterance: "升腾全文讲解",
+            snapshot: OperationContextSnapshot.make(
+                fileName: "a.txt",
+                hasDocumentPath: false,
+                isDirty: false,
+                selection: "一句",
+                experienceMode: .learning,
+                paneFocus: .both,
+                rightPage: .readingAssistant,
+                assistantPanel: .explanation,
+                explanationLanguage: .zhHans,
+                translationLanguage: .zhHans,
+                enabledExplanationLanguages: [.zhHans],
+                enabledTranslationLanguages: [.zhHans],
+                speech: .idle,
+                isRunning: false,
+                libraryFileNames: []
+            ),
+            client: client
+        )
+
+        XCTAssertEqual(plan.actions, [.explainFullText])
+        XCTAssertEqual(client.callCount, 0)
+    }
+}
+
 final class OperationPlanParserTests: XCTestCase {
     func testParsesToolCallsInOrderAndDropsUnknownNames() {
         let plan = OperationPlanParser.parse(toolCalls: [
@@ -191,7 +320,7 @@ final class OperationPlannerTests: XCTestCase {
             usage: .zero
         ))
         let plan = try await OperationPlanner.plan(
-            utterance: "讲解选区",
+            utterance: "打开文件", // 不走本地口令，才能验到工具调用
             snapshot: OperationContextSnapshot.make(
                 fileName: "a.txt",
                 hasDocumentPath: false,
@@ -215,6 +344,143 @@ final class OperationPlannerTests: XCTestCase {
         XCTAssertEqual(plan.actions, [.explainSelection])
         XCTAssertEqual(client.callCount, 1)
         XCTAssertFalse(client.lastUserMessage.contains("全文正文"))
+    }
+}
+
+@MainActor
+final class OperationAssistantModelTests: XCTestCase {
+    func testDismissDuringUnderstandingCancelsAndAllowsAnotherHold() async {
+        let speech = ScriptedOperationSpeech(transcript: "打开文件")
+        let client = HangingOperationClient()
+        let model = OperationAssistantModel(speech: speech)
+        model.makeTurn = {
+            OperationTurn(
+                snapshot: OperationContextSnapshot.make(
+                    fileName: "a.txt",
+                    hasDocumentPath: false,
+                    isDirty: false,
+                    selection: "",
+                    experienceMode: .learning,
+                    paneFocus: .both,
+                    rightPage: .readingAssistant,
+                    assistantPanel: .explanation,
+                    explanationLanguage: .zhHans,
+                    translationLanguage: .zhHans,
+                    enabledExplanationLanguages: [.zhHans],
+                    enabledTranslationLanguages: [.zhHans],
+                    speech: .idle,
+                    isRunning: false,
+                    libraryFileNames: []
+                ),
+                state: OperationRuntimeState(),
+                client: client,
+                perform: { _ in }
+            )
+        }
+
+        model.beginHold()
+        let task = Task { await model.endHold() }
+        defer { task.cancel() }
+
+        let ready = Date().addingTimeInterval(2)
+        let understanding = BookL10n.format("operation.understanding", "打开文件")
+        while model.statusText != understanding, Date() < ready {
+            await Task.yield()
+        }
+        XCTAssertEqual(model.statusText, understanding)
+
+        model.dismissStatus() // 理解中关掉应取消这一轮，而不是被忽略
+        XCTAssertEqual(model.statusText, BookL10n.string("operation.stopped"))
+        model.beginHold()
+        XCTAssertTrue(model.isListening)
+
+        let cancelDeadline = Date().addingTimeInterval(2)
+        while !client.wasCancelled, Date() < cancelDeadline {
+            await Task.yield()
+        }
+        XCTAssertTrue(client.wasCancelled)
+        await task.value
+    }
+}
+
+@MainActor
+private final class ScriptedOperationSpeech: OperationSpeechCapturing {
+    var transcript: String
+
+    init(transcript: String) {
+        self.transcript = transcript
+    }
+
+    func start() throws {}
+
+    func stop() async -> String { transcript }
+
+    func setPartialHandler(_ handler: @escaping (String) -> Void) {}
+}
+
+final class OperationSpeechLocaleTests: XCTestCase {
+    func testUsesInterfaceLanguageBeforeChinese() {
+        let locales = [
+            Locale(identifier: "en-US"),
+            Locale(identifier: "zh-CN"),
+            Locale(identifier: "ja-JP"),
+        ]
+        let picked = OperationSpeechLocale.resolve(uiIdentifier: "en", supported: locales) { _ in true }
+        XCTAssertEqual(picked?.identifier, "en-US")
+    }
+
+    func testLatinFallsBackToSimplifiedChinese() {
+        let locales = [
+            Locale(identifier: "en-US"),
+            Locale(identifier: "zh-TW"),
+            Locale(identifier: "zh-CN"),
+        ]
+        let picked = OperationSpeechLocale.resolve(uiIdentifier: "la", supported: locales) { _ in true }
+        XCTAssertEqual(picked?.identifier, "zh-CN")
+    }
+
+    func testSkipsUnavailableThenUsesSystem() {
+        let locales = [
+            Locale(identifier: "el-GR"),
+            Locale(identifier: "fr-FR"),
+        ]
+        let picked = OperationSpeechLocale.resolve(
+            uiIdentifier: "de",
+            supported: locales,
+            currentIdentifier: "fr-FR"
+        ) { locale in
+            locale.identifier == "fr-FR" // 德文和简体都没有，才用本机法文
+        }
+        XCTAssertEqual(picked?.identifier, "fr-FR")
+    }
+}
+
+private final class HangingOperationClient: OperationCompletionClient, @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    var wasCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
+    }
+
+    private func markCancelled() {
+        lock.lock()
+        cancelled = true
+        lock.unlock()
+    }
+
+    func complete(userMessage: String, tools: [[String: Any]]) async throws -> LLMCompletionResult {
+        _ = userMessage
+        _ = tools
+        do {
+            try await Task.sleep(nanoseconds: 5_000_000_000) // 不取消就会一直占着「正在理解」
+        } catch {
+            markCancelled()
+            throw error
+        }
+        throw CancellationError()
     }
 }
 

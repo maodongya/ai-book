@@ -10,6 +10,7 @@ struct LLMConfigPanel: View {
     @State private var testSucceeded = false
 
     var body: some View {
+        let _ = settings.localizationRevision  // 界面语言变了重取文案
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "cpu")

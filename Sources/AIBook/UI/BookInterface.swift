@@ -197,8 +197,10 @@ enum BookInterface {
     /// 空页欢迎：翻开的书与引导文案。
     struct EmptyPageWelcome: View {
         let onOpen: () -> Void
+        @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画欢迎页
 
         var body: some View {
+            let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案
             VStack(spacing: 22) {
                 ZStack {
                     Image(systemName: "book.closed.fill")

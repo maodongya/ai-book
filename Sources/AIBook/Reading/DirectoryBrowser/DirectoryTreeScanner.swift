@@ -1,6 +1,6 @@
 import Foundation
 
-/// 目录树节点。id 用绝对路径，同一文件只出现一次。
+/// 目录树节点。id 用绝对路径，同一文件只出现一次。子目录 children 为 nil 表示这一层还没从硬盘读。
 struct DirectoryTreeNode: Identifiable, Hashable {
     let url: URL // standardized 后的绝对路径
     let name: String // lastPathComponent，侧栏直接显示
@@ -9,6 +9,37 @@ struct DirectoryTreeNode: Identifiable, Hashable {
 
     /// 和 expandedPaths 用同一套路径键。
     var id: String { url.path } // 和 expandedPaths 用同一套路径
+
+    /// 这个目录已经在树上，但还没列过孩子。
+    func directoryNeedsLoad(_ path: String) -> Bool {
+        guard let node = find(path) else { return false }
+        return node.isDirectory && node.children == nil
+    }
+
+    /// 把某一层换成刚从硬盘读到的列表。其它层不动。
+    func replacingChildren(at path: String, with newChildren: [DirectoryTreeNode]) -> DirectoryTreeNode {
+        if id == path {
+            var copy = self
+            copy.children = newChildren
+            return copy
+        }
+        guard var kids = children else { return self }
+        for index in kids.indices {
+            kids[index] = kids[index].replacingChildren(at: path, with: newChildren)
+        }
+        var copy = self
+        copy.children = kids
+        return copy
+    }
+
+    /// 按绝对路径找节点。还没展开到的子目录找不到。
+    private func find(_ path: String) -> DirectoryTreeNode? {
+        if id == path { return self }
+        for child in children ?? [] {
+            if let found = child.find(path) { return found }
+        }
+        return nil
+    }
 }
 
 /// 从目录点开文件时落到哪一栏。
@@ -23,9 +54,9 @@ enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
     /// 打开目标的短标题。
     var displayName: String {
         switch self {
-        case .original: return "原文"
-        case .translation: return "翻译"
-        case .explanation: return "讲解"
+        case .original: return BookL10n.string("page.source")
+        case .translation: return BookL10n.string("panel.translation")
+        case .explanation: return BookL10n.string("panel.explanation")
         }
     }
 
@@ -41,14 +72,14 @@ enum DirectoryFileOpenTarget: String, CaseIterable, Identifiable {
     /// 打开目标的悬停说明。
     var help: String {
         switch self {
-        case .original: return "在左页原文区打开"
-        case .translation: return "在右页翻译区打开"
-        case .explanation: return "在右页讲解区打开"
+        case .original: return BookL10n.string("directory.open.original")
+        case .translation: return BookL10n.string("directory.open.translation")
+        case .explanation: return BookL10n.string("directory.open.explanation")
         }
     }
 }
 
-/// 扫一层孩子。跳过隐藏项。非根空目录丢掉。
+/// 只列展开的那一层。跳过隐藏项。子目录等下次展开再读硬盘。
 enum DirectoryTreeScanner {
     private static let textExtensions: Set<String> = [
         "txt", "text", "md", "markdown", "rtf", "aibook", // 只收这些；无扩展名当文本
@@ -58,14 +89,48 @@ enum DirectoryTreeScanner {
         ".DS_Store", ".git", ".svn", "Thumbs.db",
     ]
 
-    /// 根必须是存在的目录。文件路径回 nil。
+    /// 根必须是存在的目录。只列这一层，子目录要等展开再读硬盘。
     static func scan(root: URL) -> DirectoryTreeNode? {
         var isDirectory = ObjCBool(false)
         guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
+              isDirectory.boolValue,
+              let children = children(in: root) else {
             return nil
         }
-        return scanEntry(at: root, isRoot: true)
+        return DirectoryTreeNode(url: root, name: root.lastPathComponent, isDirectory: true, children: children)
+    }
+
+    /// 根这一层立刻列出，已经展开的子目录也按当前硬盘再列一层。
+    static func scan(root: URL, expandedPaths: Set<String>) -> DirectoryTreeNode? {
+        guard var tree = scan(root: root) else { return nil }
+        var safety = 0 // 每一轮补当前已经出现在树上的一层
+        while safety < 64 {
+            safety += 1
+            let pending = expandedPaths
+                .filter { tree.directoryNeedsLoad($0) }
+                .sorted { $0.count < $1.count } // 先补浅的，深的才找得到
+            guard !pending.isEmpty else { break }
+            for path in pending {
+                let listed = children(in: URL(fileURLWithPath: path, isDirectory: true)) ?? [] // 读失败当这一层是空的
+                tree = tree.replacingChildren(at: path, with: listed)
+            }
+        }
+        return tree
+    }
+
+    /// 只列这一层。子目录的 children 保持 nil，展开时再读。
+    static func children(in directory: URL) -> [DirectoryTreeNode]? {
+        let manager = FileManager.default
+        guard let urls = try? manager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return nil
+        }
+        return urls
+            .compactMap { makeChild(at: $0) }
+            .sorted(by: sortNodes)
     }
 
     /// 无扩展名当文本（很多古文是无后缀）。隐藏文件和跳过名单除外。
@@ -79,47 +144,20 @@ enum DirectoryTreeScanner {
         return textExtensions.contains(ext)
     }
 
-    /// isRoot 为真时不因名字点开头丢掉，否则用户打不开隐藏工程根。
-    private static func scanEntry(at url: URL, isRoot: Bool) -> DirectoryTreeNode? {
+    /// 子目录先不往下读。空文件夹也留着，里面以后可能有新文件。
+    private static func makeChild(at url: URL) -> DirectoryTreeNode? {
         let name = url.lastPathComponent
-        if !isRoot {
-            if name.hasPrefix(".") || skippedNames.contains(name) { return nil }
-        }
+        if name.hasPrefix(".") || skippedNames.contains(name) { return nil }
 
         var isDirectory = ObjCBool(false)
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
             return nil
         }
-
         if isDirectory.boolValue {
-            let children = listChildren(in: url)
-            if !isRoot, children.isEmpty { return nil } // 空子目录不占行，根空目录仍显示
-            return DirectoryTreeNode(
-                url: url,
-                name: isRoot ? name : name,
-                isDirectory: true,
-                children: children
-            )
+            return DirectoryTreeNode(url: url, name: name, isDirectory: true, children: nil)
         }
-
         guard isTextFile(url) else { return nil }
         return DirectoryTreeNode(url: url, name: name, isDirectory: false, children: nil)
-    }
-
-    /// 列目录失败当空，不把整棵树判死。
-    private static func listChildren(in directory: URL) -> [DirectoryTreeNode] {
-        let manager = FileManager.default
-        guard let urls = try? manager.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return []
-        }
-
-        return urls
-            .compactMap { scanEntry(at: $0, isRoot: false) }
-            .sorted(by: sortNodes)
     }
 
     /// 目录在前，再按本地化名字。

@@ -288,6 +288,29 @@ final class ReadingViewModel: ObservableObject {
     }
 
 
+    /// 原文新建时，翻译和讲解的正文、对照表、选区和追问上下文一起清掉。不切页，不动进化。
+    func clearReadingCompanionsForNewDocument() {
+        translation.clearLessonPlan()  // 译文和对齐，和「清空翻译」同一套
+        translation.translationTableViewEnabled = false  // 对照开关回到关
+        translation.translationTableScrollTargetID = nil  // 不留旧行
+        translation.translationTableHighlightedBlockID = nil  // 不留高亮
+        translation.translationTableFocusTranslationBlockID = nil  // 不留焦点
+        translation.lessonPlanSelectedText = ""  // 译文选区
+        translation.translationStreamPreview = ""  // 弹出层残字
+        translation.showsTranslationProgressSheet = false  // 弹出层
+        document.lastCommittedLessonPlanSelectedText = ""  // 提交过的译文选区
+
+        assistant.readingPromptMessages = [ReadingAssistantSession.defaultWelcomeMessage]  // 讲解追问上下文
+        assistant.readingChatInput = ""  // 输入框里的追问
+        assistant.explanationSelectionText = ""  // 讲解全文选区
+        assistant.explanationPanelSelectedText = ""  // 讲解即时选区
+        document.lastCommittedExplanationPanelSelectedText = ""  // 提交过的讲解选区
+        assistant.clearExplanationTableState()  // 讲解对照表，和「清空讲解」同一套
+        assistant.endExplanationProgress()  // 讲解弹出层
+        assistant.readingAssistantActiveTask = nil  // 不再标翻译中/讲解中
+    }
+
+
     /// 清阅读上下文，不关文件。
     func clearReadingContext() {
         guard !isRunning else { return }  // 跑着不清，避免历史被拆

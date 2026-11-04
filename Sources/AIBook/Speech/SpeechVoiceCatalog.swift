@@ -6,7 +6,16 @@ struct SpeechVoiceOption: Identifiable, Codable, Equatable, Hashable {
     let id: String // AVSpeechSynthesisVoice.identifier
     let displayName: String
     let subtitle: String
-    let genderLabel: String // 「女」/「男」/「—」，分组用
+    let genderLabel: String // 「女」/「男」/「—」，分组仍比这个，界面用 localizedGender
+
+    /// 设置页上的性别短标，分组键仍是中文 genderLabel。
+    var localizedGender: String {
+        switch genderLabel {
+        case "女": return BookL10n.string("speech.gender.female")
+        case "男": return BookL10n.string("speech.gender.male")
+        default: return genderLabel
+        }
+    }
 }
 
 /// 本机中文系统语音目录。在线音色不再出现。
@@ -32,7 +41,7 @@ enum SpeechVoiceCatalog {
                 SpeechVoiceOption(
                     id: voice.identifier,
                     displayName: voice.name,
-                    subtitle: "系统语音 · \(voice.language)",
+                    subtitle: BookL10n.format("speech.systemVoiceSubtitle", voice.language),
                     genderLabel: genderLabel(for: voice)
                 )
             }
@@ -45,12 +54,12 @@ enum SpeechVoiceCatalog {
 
         let females = systemChineseVoices().filter { $0.genderLabel == "女" }
         if !females.isEmpty {
-            groups.append(("女声", females))
+            groups.append((BookL10n.string("speech.group.female"), females))
         }
 
         let others = systemChineseVoices().filter { $0.genderLabel != "女" }
         if !others.isEmpty {
-            groups.append(("其他中文语音", others))
+            groups.append((BookL10n.string("speech.group.other"), others))
         }
 
         return groups

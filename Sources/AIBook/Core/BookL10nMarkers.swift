@@ -5,6 +5,7 @@ enum BookL10nMarkers {
     /// 是否为名著补充能力说明头。中英/旧文案都要认，否则旧会话会漏滤。
     static func isClassicSupplementIntro(_ content: String) -> Bool {
         content.hasPrefix(ClassicLiteratureSupplement.capabilityLabel) // 现行能力标签，改文案时新旧会话仍要能识别
+            || content.hasPrefix("原文名著补充") // 按钮改成「原文补充」之前的文案
             || content.hasPrefix("名著补充") // 历史中文前缀，旧落盘记录没有走目录
     }
 

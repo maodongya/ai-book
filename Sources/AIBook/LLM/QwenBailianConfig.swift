@@ -13,9 +13,9 @@ enum QwenBailianRegion: String, CaseIterable, Identifiable, Codable, Hashable {
     /// 设置页展示名，带地域以免和 Key 对不上。
     var label: String {
         switch self {
-        case .beijing: return "华北2（北京）"
-        case .singapore: return "新加坡（国际）"
-        case .virginia: return "美国（弗吉尼亚）"
+        case .beijing: return BookL10n.string("qwen.region.beijing")
+        case .singapore: return BookL10n.string("qwen.region.singapore")
+        case .virginia: return BookL10n.string("qwen.region.virginia")
         }
     }
 
@@ -34,12 +34,9 @@ enum QwenBailianRegion: String, CaseIterable, Identifiable, Codable, Hashable {
     /// 403/地域错时拼进错误文案。
     var consoleHint: String {
         switch self {
-        case .beijing:
-            return "在百炼控制台「华北2（北京）」创建 API Key，与下方 Base URL 地域一致。"
-        case .singapore:
-            return "在百炼控制台「国际（新加坡）」创建 API Key，勿与北京 Key 混用。"
-        case .virginia:
-            return "在百炼控制台「美国（弗吉尼亚）」创建 API Key。"
+        case .beijing: return BookL10n.string("qwen.hint.beijing")
+        case .singapore: return BookL10n.string("qwen.hint.singapore")
+        case .virginia: return BookL10n.string("qwen.hint.virginia")
         }
     }
 
