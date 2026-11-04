@@ -3,9 +3,11 @@ import SwiftUI
 /// 设置页：应用界面语言。点选写 BookAppLanguage，不在这里解析成具体语言。
 struct BookLanguageSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var styleManager = BookStyleManager.shared // 切预设时墨色跟着变，不必拆掉外层滚动
 
     var body: some View {
         let _ = settings.localizationRevision // 切语言后重绘 Picker 文案
+        let _ = styleManager.revision
         VStack(alignment: .leading, spacing: 12) {
             LabeledContent(BookL10n.string("settings.language")) {
                 Picker("", selection: $settings.appLanguage) {

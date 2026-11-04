@@ -20,45 +20,77 @@ enum BookUserManual {
         return bundles
     }
 
-    /// 说明书文件 URL：先搜各 bundle，开发态再回退到仓库路径。
+    /// 当前界面语言的说明书。简体中文仍是 `功能说明书.md`，其它语言是 `功能说明书-en.md` 这类文件。
     static var bundleURL: URL? {
+        resolvedURL(languageCode: BookL10n.catalogLanguageCode)
+    }
+
+    /// 先找该语言文件，没有再回退简体中文，避免切到希腊语仍打开中文稿。
+    static func resourceNames(for languageCode: String) -> [String] {
+        var names: [String] = []
+        if languageCode != "zh-Hans" && !languageCode.isEmpty {
+            names.append("\(resourceName)-\(languageCode)")
+        }
+        names.append(resourceName) // 中文是正文，也是缺译文时的回退
+        return names
+    }
+
+    /// 按语言找说明书：每种文件名先搜 bundle，再搜仓库，命中就停。
+    static func resolvedURL(languageCode: String) -> URL? {
+        for name in resourceNames(for: languageCode) {
+            if let url = bundledManualURL(named: name) {
+                return url
+            }
+            if let url = developmentManualURL(named: name) {
+                return url // 该语言还没打进包时，开发机仍能读仓库稿
+            }
+        }
+        return nil
+    }
+
+    /// 已安装包和 SPM 模块包里的一份说明书。
+    private static func bundledManualURL(named name: String) -> URL? {
         for bundle in resourceBundles {
-            if let url = bundle.url(forResource: resourceName, withExtension: resourceExtension) {
+            if let url = bundle.url(forResource: name, withExtension: resourceExtension) {
                 return url // 根目录下的 md
             }
             if let url = bundle.url(
-                forResource: resourceName,
+                forResource: name,
                 withExtension: resourceExtension,
                 subdirectory: "Resources"
             ) {
                 return url // 有的布局放在 Resources 子目录
             }
         }
-        return developmentManualURL // 打包资源缺失时读仓库，方便 `swift run`
+        return nil
     }
 
     /// 开发机上的仓库副本，优先 docs/产品（正文），其次 Sources 里给打包的那份。
-    private static var developmentManualURL: URL? {
+    private static func developmentManualURL(named name: String) -> URL? {
         guard let project = CursorService.defaultProjectDirectory() else { return nil } // 找不到项目根就放弃，避免乱扫磁盘
-        let candidates = [ // 开发态优先仓库 docs/产品，与 Resources 副本对齐
-            project.appendingPathComponent("docs/产品/功能说明书.md"), // 仓库正文，改文档看这里
-            project.appendingPathComponent("Sources/AIBook/Resources/功能说明书.md"), // 打包副本，应与上一份同步
+        let fileName = "\(name).\(resourceExtension)"
+        let candidates = [
+            project.appendingPathComponent("docs/产品/\(fileName)"), // 仓库正文，改文档看这里
+            project.appendingPathComponent("Sources/AIBook/Resources/\(fileName)"), // 打包副本，应与上一份同步
         ]
-        return candidates.first { FileManager.default.fileExists(atPath: $0.path) } // 谁在用谁
+        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    /// 读说明书全文；找不到文件时返回带定位提示的兜底 Markdown，关于页仍能打开。
+    /// 读当前界面语言的说明书。
     static func loadMarkdown() -> String {
-        guard let url = bundleURL,
+        loadMarkdown(languageCode: BookL10n.catalogLanguageCode)
+    }
+
+    /// 读指定语言的说明书；该语言文件缺失时回退中文，两处都没有才用短提示。
+    static func loadMarkdown(languageCode: String) -> String {
+        guard let url = resolvedURL(languageCode: languageCode),
               let text = try? String(contentsOf: url, encoding: .utf8),
               !text.isEmpty else {
             return """
-            # AIBook 功能说明书
+            # \(BookL10n.string("help.manual"))
 
-            未找到内置说明书文件。请从项目仓库打开 `docs/产品/功能说明书.md`，或重新安装应用。
-
-            \(AIBookProduct.positioning)
-            """ // 兜底仍带产品定位，避免空白窗
+            \(BookL10n.string("manual.missingBody"))
+            """ // 找不到文件时仍给当前语言的一句说明，避免空白窗
         }
         return text
     }

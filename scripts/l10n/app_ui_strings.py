@@ -399,6 +399,16 @@ APP_UI_STRINGS: dict[str, dict[str, str]] = {
     "tool.mode": _e("切换模式", "Switch mode"),
     "tool.mcp": _e("MCP 工具", "MCP tool"),
     "tool.await": _e("等待后台任务", "Wait for background task"),
+    "manual.missingBody": _e(
+        "未找到内置说明书文件。请从项目仓库打开 `docs/产品/功能说明书.md`，或重新安装应用。",
+        "The built-in manual file was not found. Open `docs/产品/功能说明书.md` in the project, or reinstall the app.",
+        "内蔵の説明書ファイルが見つかりません。プロジェクトの `docs/产品/功能说明书.md` を開くか、アプリを再インストールしてください。",
+        "Die eingebaute Handbuchdatei wurde nicht gefunden. Öffnen Sie `docs/产品/功能说明书.md` im Projekt, oder installieren Sie die App erneut.",
+        "Le fichier du manuel intégré est introuvable. Ouvrez `docs/产品/功能说明书.md` dans le projet, ou réinstallez l’application.",
+        "Il file del manuale integrato non è stato trovato. Apri `docs/产品/功能说明书.md` nel progetto, oppure reinstalla l’app.",
+        "Manuale insitum non inventum est. Aperi `docs/产品/功能说明书.md` in repositorio, aut applicationem denuo institue.",
+        "Το ενσωματωμένο αρχείο εγχειριδίου δεν βρέθηκε. Ανοίξτε το `docs/产品/功能说明书.md` στο έργο, ή επανεγκαταστήστε την εφαρμογή.",
+    ),
 }
 
 _LANGS = ("ja", "de", "fr", "it", "la", "el")

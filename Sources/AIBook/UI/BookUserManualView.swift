@@ -6,8 +6,11 @@ struct BookUserManualView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var localizationSettings = AppSettings.shared  // 语言变了重画说明书窗
 
-    /// 打开时读一次，切风格只重绘不重读文件。
-    private let markdown = BookUserManual.loadMarkdown()
+    /// 语言一变就重读对应语言的说明书；不能在 init 里读死。
+    private var markdown: String {
+        let _ = localizationSettings.localizationRevision
+        return BookUserManual.loadMarkdown()
+    }
 
     var body: some View {
         let _ = localizationSettings.localizationRevision  // 界面语言变了重取文案

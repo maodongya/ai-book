@@ -15,6 +15,11 @@ enum BookL10n {
         Locale(identifier: languageCode(for: currentLanguage)) // 用内部 BCP-47，不是系统 Locale 原串
     }
 
+    /// 说明书等按文件分语言的资源用这一串：zh-Hans、en、ja、de、fr、it、la、el。
+    static var catalogLanguageCode: String {
+        languageCode(for: currentLanguage) // 与目录同一套码，禁止再从 Locale.identifier 反推
+    }
+
     /// 按当前界面语言取目录条目。缺 key 时目录层决定回退，这里不写死中文。
     static func string(_ key: String) -> String {
         BookL10nCatalog.string(forKey: key, language: currentLanguage) // 单一入口，View 禁止直接碰 Catalog

@@ -70,6 +70,7 @@ struct BookStyleSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                     .tint(BookTheme.settingsPrimary)
+                    .id(localizationSettings.localizationRevision)  // 菜单不跟文案刷新，语言一变就重建
                 }
 
                 HStack {
@@ -86,6 +87,7 @@ struct BookStyleSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                     .tint(BookTheme.settingsPrimary)
+                    .id(localizationSettings.localizationRevision)  // 「跟随主题」同样要随界面语言重建
                 }
             }
         }

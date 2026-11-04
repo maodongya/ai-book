@@ -38896,6 +38896,58 @@
           }
         }
       }
+    },
+    "manual.missingBody": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到内置说明书文件。请从项目仓库打开 `docs/产品/功能说明书.md`，或重新安装应用。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The built-in manual file was not found. Open `docs/产品/功能说明书.md` in the project, or reinstall the app."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵の説明書ファイルが見つかりません。プロジェクトの `docs/产品/功能说明书.md` を開くか、アプリを再インストールしてください。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die eingebaute Handbuchdatei wurde nicht gefunden. Öffnen Sie `docs/产品/功能说明书.md` im Projekt, oder installieren Sie die App erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le fichier du manuel intégré est introuvable. Ouvrez `docs/产品/功能说明书.md` dans le projet, ou réinstallez l’application."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il file del manuale integrato non è stato trovato. Apri `docs/产品/功能说明书.md` nel progetto, oppure reinstalla l’app."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manuale insitum non inventum est. Aperi `docs/产品/功能说明书.md` in repositorio, aut applicationem denuo institue."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το ενσωματωμένο αρχείο εγχειριδίου δεν βρέθηκε. Ανοίξτε το `docs/产品/功能说明书.md` στο έργο, ή επανεγκαταστήστε την εφαρμογή."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

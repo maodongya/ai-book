@@ -38,6 +38,7 @@ struct BookSettingsView: View {
 
     var body: some View {
         let _ = settings.localizationRevision  // 界面语言变了重取文案
+        let _ = styleManager.revision  // 切预设时重绘配色，滚动视图本身保持原位
         ZStack {
             BookTheme.deskGradient
                 .ignoresSafeArea()
@@ -75,7 +76,7 @@ struct BookSettingsView: View {
             .padding(24)
         }
         .frame(width: BookSettingsWindowMetrics.width, height: BookSettingsWindowMetrics.height)
-        .id(styleManager.revision)
+        // 不按 revision 重建整窗。ScrollView 换身份会回到顶部，切预设或纹样时滚动条会自己滑。
     }
 
     /// 顶栏：当前栏图标 + 说明书 + 完成。
