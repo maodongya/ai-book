@@ -176,4 +176,46 @@ final class BookL10nCatalogTests: XCTestCase {
             )
         }
     }
+
+    /// 中英不同的文案，日德法意拉希不能再整句等于英文。同形的外来词在允许表里。
+    func testOtherLocalesAreNotCopiesOfEnglish() {
+        let cognates: Set<String> = [
+            "action.ok|ja", "action.ok|de", "action.ok|fr", "action.ok|it", "action.ok|la", "action.ok|el",
+            "action.stop|it",
+            "language.la|fr",
+            "action.pause|de", "action.pause|fr",
+            "menu.document|fr",
+            "context.label.chat|de", "context.label.chat|it",
+            "context.label.input|it",
+            "label.provider|it",
+            "label.note|fr",
+            "evolution.detail.input|it",
+            "evolution.detail.error|la",
+            "file.articleStem|fr",
+        ]
+        let languages: [BookAppLanguage] = [.ja, .de, .fr, .it, .la, .el]
+        let defaults = UserDefaults.standard
+        let original = defaults.string(forKey: "aiBook.appLanguage")
+        defer {
+            if let original {
+                defaults.set(original, forKey: "aiBook.appLanguage")
+            } else {
+                defaults.removeObject(forKey: "aiBook.appLanguage")
+            }
+        }
+
+        defaults.set(BookAppLanguage.zhHans.rawValue, forKey: "aiBook.appLanguage")
+        let chinese = Dictionary(uniqueKeysWithValues: BookL10nCatalog.testingKeys().map { ($0, BookL10n.string($0)) })
+        defaults.set(BookAppLanguage.en.rawValue, forKey: "aiBook.appLanguage")
+        let english = Dictionary(uniqueKeysWithValues: chinese.keys.map { ($0, BookL10n.string($0)) })
+
+        for language in languages {
+            defaults.set(language.rawValue, forKey: "aiBook.appLanguage")
+            for key in chinese.keys where chinese[key] != english[key] {
+                let token = "\(key)|\(language.rawValue)"
+                if cognates.contains(token) { continue }
+                XCTAssertNotEqual(BookL10n.string(key), english[key], token)
+            }
+        }
+    }
 }

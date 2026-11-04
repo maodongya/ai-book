@@ -9,6 +9,12 @@ enum BookL10nCatalog {
     /// 是否已经尝试加载；失败也标 true，避免每次取文案都打磁盘。
     private static var isLoaded = false
 
+    /// 测试用来遍历目录，确认没有语言整段抄了英文。
+    static func testingKeys() -> [String] {
+        loadIfNeeded()
+        return table.keys.sorted()
+    }
+
     /// 按界面语言取条目：当前语言 → en → zh-Hans → key 本身。空字符串当缺失。
     static func string(forKey key: String, language: BookAppLanguage) -> String {
         loadIfNeeded() // 第一次才读磁盘

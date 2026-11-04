@@ -1,5 +1,5 @@
 """Additional UI strings (toolbar help, panels, ViewModel messages)."""
-from string_table_extended import _e
+from string_table_extended import EXTENDED, _e
 
 APP_UI_STRINGS: dict[str, dict[str, str]] = {
     # ContentView / toolbar
@@ -400,3 +400,52 @@ APP_UI_STRINGS: dict[str, dict[str, str]] = {
     "tool.mcp": _e("MCP 工具", "MCP tool"),
     "tool.await": _e("等待后台任务", "Wait for background task"),
 }
+
+_LANGS = ("ja", "de", "fr", "it", "la", "el")
+
+
+def _complete(locs: dict[str, str]) -> bool:
+    return all(locs[lang] != locs["en"] for lang in _LANGS)
+
+
+from viewmodel_l10n import VIEWMODEL_STRINGS  # noqa: E402
+
+_by_zh: dict[str, dict[str, str]] = {}
+for _table in (EXTENDED, VIEWMODEL_STRINGS):
+    for _locs in _table.values():
+        if _locs["zh-Hans"] != _locs["en"] and _complete(_locs):
+            _by_zh.setdefault(_locs["zh-Hans"], _locs)
+
+for _key, _locs in APP_UI_STRINGS.items():
+    _donor = _by_zh.get(_locs["zh-Hans"])
+    if _donor and not _complete(_locs):
+        for _lang in _LANGS:
+            _locs[_lang] = _donor[_lang]
+
+from app_ui_locales import LOCALES  # noqa: E402
+import re
+
+_placeholders = re.compile(r"%@|%lld")
+_missing: list[str] = []
+for _key, _locs in APP_UI_STRINGS.items():
+    if _locs["zh-Hans"] == _locs["en"]:
+        continue
+    if _key not in LOCALES:
+        if not _complete(_locs):
+            _missing.append(_key)
+        continue
+    for _lang, _value in zip(_LANGS, LOCALES[_key]):
+        _locs[_lang] = _value
+    _base = _placeholders.findall(_locs["en"])
+    for _lang in _LANGS:
+        if _locs[_lang] == _locs["en"]:
+            raise SystemExit(f"{_key} {_lang} equals English")
+        _found = _placeholders.findall(_locs[_lang])
+        if _found != _base:
+            raise SystemExit(f"{_key} {_lang} placeholders {_found} != {_base}")
+
+_unknown = sorted(set(LOCALES) - set(APP_UI_STRINGS))
+if _unknown:
+    raise SystemExit("unknown locale keys: " + ", ".join(_unknown))
+if _missing:
+    raise SystemExit("missing locales: " + ", ".join(_missing))
