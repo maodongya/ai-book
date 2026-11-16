@@ -1,6 +1,6 @@
 # AIBook User Manual
 
-> **AIBook** (project id `ai-book`) is a native macOS reading assistant: the **left page** reads and edits local text, and the **right page** uses AI for explanation, translation, reading aloud, and (optionally) upgrading the app itself.  
+> **AIBook** (project id `ai-book`) is a native macOS reading assistant: the **left page** reads and edits local text, and the **right page** uses AI for explanation, translation, and reading aloud.  
 > **System**: macOS 13 or later.  
 > **Purpose**: help you understand wording, context, and a translation beside the source, and read without distraction. It does not replace a full ebook reader.
 
@@ -13,7 +13,7 @@ The in-app manual follows the interface language. This file is the English editi
 - Menu bar **Help → AIBook User Manual** (an in-app window; you can select and copy the text)
 - **Help → Reveal Manual in Finder** (selects the manual file for the current language)
 - **Open in Default App** in the manual window’s title bar
-- The **Manual** button in the title bar of **Book Settings** and **Evolution Settings**
+- The **Manual** button in the title bar of **Book Settings**
 
 ---
 
@@ -26,7 +26,6 @@ The in-app manual follows the interface language. This file is the English editi
 - Translate word by word or paragraph by paragraph, and view a source–translation table.
 - Read the source, the translation, or an explanation aloud.
 - Enter reading mode and turn pages as a two-page book.
-- Optionally use AI evolution to analyze the project and apply a queued change, then rebuild the app.
 
 ### 1.2 The desk
 
@@ -45,7 +44,7 @@ Switch from the title bar: **Reading Mode** (⌘⇧P) and **Study mode**.
 
 ## 2. Main window (study mode)
 
-The title bar holds document actions, explanation, translation, speech, layout, and settings. The left page is the source. The right page is the reading assistant, or **AI evolution** when that tab is selected.
+The title bar holds document actions, explanation, translation, speech, layout, and settings. The left page is the source. The right page is the reading assistant.
 
 ### 2.1 Layout
 
@@ -132,16 +131,7 @@ The animation curls **one sheet**. The spine does not bend.
 | **Select all source** | ⌘⌃A | The menu item is **Select all source** |
 | **Classic supplement** | ⌘⇧C | See section 9 |
 
-When no external file is open, the left page loads the **command notes** (see 4.3).
-
-### 4.3 Command notes (default left page)
-
-- On first launch, or when no file is open, the left page shows command notes for your own remarks or older evolution text.
-- Saved at `~/Library/Application Support/AIBook/readme-notes.txt`.
-- If there is no local copy, the app falls back to the built-in or project `readme.txt` template.
-- **⌘S** saves the command notes into Application Support.
-
-> The **optimization queue** is now `optimization-queue.json`. Command notes are no longer the command source for evolution, but they remain a personal scratch pad.
+When no external file is open, the left page is a blank document. **Save source as…** writes it to a file.
 
 ### 4.4 Folder browser (library)
 
@@ -161,16 +151,15 @@ Added folders and their expanded state are **saved** and return at the next laun
 
 ## 5. AI backends and settings
 
-Explanation, translation, and classic supplement share the book model in **Book Settings**. AI evolution always uses Cursor, configured in **Evolution Settings**. There is no title-bar switch between them.
+Explanation, translation, classic supplement, and voice control share the book model in **Book Settings**.
 
-### 5.1 Book model for reading, Cursor for evolution
+### 5.1 Book model
 
 | Use | Control |
 |-----|---------|
-| Explain, translate, classic supplement | **Book Settings** → **AI Models** → **Active provider** |
-| Analyze and evolve | **Cursor model** in **Evolution Settings**, plus the Cursor API key and cursor-bridge |
+| Explain, translate, classic supplement, voice | **Book Settings** → **AI Models** → **Active provider** |
 
-The title-bar pill shows the file name and **Unsaved**. If the book model is missing, it says **Book LLM not set**. If Cursor is not ready, it says **Cursor not ready**.
+If the book model is missing, the title-bar pill says **Book LLM not set**, and the related buttons ask you to open **Book Settings**.
 
 ### 5.2 Book Settings
 
@@ -183,20 +172,15 @@ The title-bar pill shows the file name and **Unsaved**. If the book model is mis
 
 | Provider | Typical use |
 |----------|-------------|
-| OpenAI | Cloud GPT models |
+| OpenAI | Cloud GPT. Default **gpt-6.1-sol**; also gpt-6-astra and gpt-6-luna |
+| Anthropic | Claude. Default **claude-sonnet-5-5** |
+| Gemini | Google. Default **gemini-4-hydrogen** |
+| xAI | Grok. Default **grok-4.7** |
 | DeepSeek | Lower-cost Chinese |
-| Ollama | **Free on this Mac** (recommended for daily reading) |
 | Moonshot / Qwen / Zhipu | Cloud models in China |
 | Custom | Any OpenAI-compatible endpoint |
 
-**Ollama quick start**:
-
-```bash
-ollama serve
-ollama pull llama3.2
-```
-
-Choose Ollama in Book Settings, then **scan models installed on this Mac**. If Ollama requires an API key, enter it there.
+In Book Settings, pick a provider and enter that provider’s API key. The model can be changed from the list.
 
 - **Translation languages** and **explanation languages**: you can select more than one of Simplified Chinese, English, Japanese, German, French, Italian, Latin, or Greek. The next run produces them in the checked order. Existing results stay on the right page and can be switched. Saving an `.aibook` file keeps all of them.
 - **Source excerpt ratio**: how much of the left-page source is sent with each request, so the prompt stays inside the model window.
@@ -208,26 +192,6 @@ See section 8.
 #### Appearance
 
 See section 11.
-
-### 5.3 Evolution Settings
-
-**Entry**: menu **AIBook → Settings** (the evolution tab).
-
-| Setting | Meaning |
-|---------|---------|
-| Cursor API key | Or the environment variable `CURSOR_API_KEY` |
-| Cursor model | For example a Composer model |
-| cursor-bridge path | The `cursor-bridge` directory in the project |
-| **Auto Upgrade** | After you click **Evolve**, remaining queue items can run one after another (see section 10) |
-
-**Local Cursor dependency**:
-
-```bash
-cd ai-book/cursor-bridge
-npm install
-```
-
-**Node.js 18+** is required.
 
 ---
 
@@ -363,7 +327,7 @@ Before playback, Markdown and similar markup are **cleaned and split into senten
 
 ### 8.6 Voice commands
 
-Hold the title-bar microphone, speak, and release to run. In reading mode, where that button is hidden, **hold Option+Space** while the app is in front. The app turns speech into text, then uses the same book model as translation and explanation to map the sentence onto an existing action: explain, translate, read aloud, change layout, open, save, export, and similar actions run immediately. Starting evolution or analyzing optimizations asks for confirmation first. If the phrase was unclear or matches no action, nothing runs; the app only shows the text it heard.
+Hold the title-bar microphone, speak, and release to run. In reading mode, where that button is hidden, **hold Option+Space** while the app is in front. The app turns speech into text, then uses the same book model as translation and explanation to map the sentence onto an existing action: explain, translate, read aloud, change layout, open, save, export, and similar actions run immediately. If the phrase was unclear or matches no action, nothing runs; the app only shows the text it heard.
 
 ---
 
@@ -380,38 +344,9 @@ This is for restoring context around a textbook excerpt or a fragment. Do not us
 
 ---
 
-## 10. AI evolution (advanced)
+## 10. Evolution mode
 
-> **Warning**: evolution edits the AIBook source and reinstalls the app. Use it only if you understand Git and backups. Do not turn on the auto-upgrade chain on a machine you cannot afford to change.
-
-### 10.1 What it does
-
-- **Analyze**: the model **reads** the project and writes suggestions into the **optimization queue**. It does not edit code.
-- **Evolve**: takes one **pending** item, **edits the code**, builds and installs, then **restarts the app**.
-
-### 10.2 A typical run
-
-1. Open the **AI evolution** tab on the right.
-2. Click **Analyze** and wait for suggestions to enter the queue.
-3. Read the queue (title, number, status).
-4. Click **Evolve** (⌘E) to run the **next pending** item.
-5. Watch the **reasoning** and the **tool steps**.
-6. The app may restart when the item finishes. If the **auto-upgrade chain** is on and you already started evolution in this session, later pending items may **run in sequence**.
-
-### 10.3 Commands and the queue file
-
-- Queue file: `~/Library/Application Support/AIBook/optimization-queue.json`
-- Inside the evolution tab you can **save and open** an evolution-command document (UTF-8).
-- Analysis **drops duplicates** by a normalized title. One analysis suggests a limited number of items (about 8).
-
-### 10.4 Channel
-
-**Analyze** and **Evolve** both use the local Cursor agent. There is no switch that falls back to the book model. Analysis only reads the project. **Evolve** edits code, builds, and installs. If Cursor is not ready, the buttons stay disabled and the pill says **Cursor not ready**.
-
-### 10.5 Tokens and status
-
-- Evolution and long conversations stay inside a **token budget**. The interface shows usage and refuses to send when the budget is spent.
-- The title-bar capsule can show the **pending count** and the number of the next item.
+This version does not include evolution mode. The right page is only the reading assistant. The app no longer analyzes its own source, edits code, or upgrades itself.
 
 ---
 
@@ -453,7 +388,6 @@ Besides the title-bar buttons, the **File / Edit** menus collect the same shortc
 | **Read source (selection/all)** | ⌘⌥R |
 | **Read All Translation** | ⌘⌥T |
 | **Classic supplement** | ⌘⇧C |
-| **Self Evolution** (menu) / **Evolve** (title bar) | ⌘E |
 | **Reading mode** | ⌘⇧P |
 | Voice command | Hold Option+Space |
 | Reading: **Previous Page** / **Next Page** | ← / → |
@@ -475,18 +409,16 @@ Root: `~/Library/Application Support/AIBook/`
 
 | What | Path |
 |------|------|
-| Command notes | `readme-notes.txt` |
-| Optimization queue | `optimization-queue.json` |
 | Conversations | Cached by book path |
 | Folder browser | Open roots and expanded state |
 | Online voice samples | `voices/` |
-| Auto-upgrade chain | `auto-evolution-active` and related files |
 
 ### 14.2 Network and keys
 
-- **Model / Cursor** requests go to the API or Cursor service you configured. Keys stay in local preferences. Do not share the machine.
+- **Model** requests go to the provider you configured. The explanation menu, the translation menu, and the line above the input name the company and host before source text is sent. Keys stay in local preferences. Do not share the machine.
 - **Edge TTS** needs a network. System voices work offline.
-- **Voice commands** use the microphone and system speech recognition. When the system language supports on-device recognition, the audio stays on this Mac. The recognized text is sent to the same book model used for translation and explanation.
+- **Voice commands** use the microphone and system speech recognition. When the system language supports on-device recognition, the audio stays on this Mac. Recognized text that runs explanation or translation goes to the same recipient named above.
+- The Help menu and Book Settings open the **privacy notice**. The public address used for the App Store still has to be published and entered in App Store Connect.
 
 ---
 
@@ -545,19 +477,13 @@ swift run
 ## 17. Questions
 
 **The explanation button says the model is not configured.**  
-Open **Book Settings → model**, pick a provider, and enter an API key. Ollama is the usual choice on this Mac.
-
-**Cursor local is unavailable.**  
-Check Node.js, `npm install` inside cursor-bridge, the Cursor API key, and the path in Evolution Settings.
+Open **Book Settings → model**, pick OpenAI, Claude, Gemini, Grok, or another provider, and enter an API key.
 
 **The translation table is disabled.**  
 Finish a word-by-word or paragraph translation first, and the JSON must contain valid alignment blocks. If alignment is stale, use **Align translation**.
 
 **Page numbers changed in reading mode.**  
 Changing the type size or the window repaginates. That is expected. The spread index is restored when it can be.
-
-**The app behaves differently after evolution.**  
-Evolution changes the local installed copy of AIBook. Keep the source in Git, and use the auto-upgrade chain only when you mean to.
 
 **This manual and the interface disagree.**  
 Trust the **AIBook build you installed**. Hover a button for the current hint.
@@ -567,8 +493,8 @@ Trust the **AIBook build you installed**. Hover a button for the current hint.
 ## 18. Version and documents
 
 - This manual is shipped inside the app and opens from the **Help** menu.
-- The repository also has design notes (reading mode, visual style, evolution) for development.
-- The project README has the short Ollama and Cursor setup.
+- The repository also has design notes (reading mode, visual style) for development.
+- The project README has the short model setup.
 
 ---
 

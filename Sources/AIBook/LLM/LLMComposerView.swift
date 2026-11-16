@@ -1,54 +1,38 @@
 import SwiftUI
 
-/// 读书/进化共用输入条：模型、上下文条、发送。不负责真正请求。
+/// 读书输入条：上下文、发送。不负责真正请求。
 struct LLMComposerView: View {
-    var mode: RightPageTab = .readingAssistant
     var onCollapse: (() -> Void)? = nil
 
     @EnvironmentObject private var viewModel: ReadingViewModel
     @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var ollamaCatalog = OllamaModelCatalog.shared
     @State private var showingAdvancedControls = false // 默认收起模型/上下文，省高度
 
     /// 有字且没在跑。空回车不发。
     private var canSend: Bool {
         let hasText = !activeChatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        if mode == .aiEvolution {
-            return hasText && !viewModel.isRunning && viewModel.canRunEvolution
-        }
         return hasText && !viewModel.isRunning
     }
 
-    /// 进化「分析」：有正文或选区才亮。
-    private var canAnalyze: Bool {
-        mode == .aiEvolution
-            && !viewModel.isRunning
-            && !viewModel.evolution.isEvolutionRebuilding
-            && viewModel.canRunEvolution
-    }
-
-    /// 读书和进化各有一份输入，避免串稿。
     private var activeChatInput: String {
-        mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput
+        viewModel.assistant.readingChatInput
     }
 
-    /// 写回对应那份。
     private var activeChatInputBinding: Binding<String> {
         Binding(
-            get: { mode == .readingAssistant ? viewModel.assistant.readingChatInput : viewModel.evolution.evolutionChatInput },
-            set: { newValue in
-                if mode == .readingAssistant {
-                    viewModel.assistant.readingChatInput = newValue
-                } else {
-                    viewModel.evolution.evolutionChatInput = newValue
-                }
-            }
+            get: { viewModel.assistant.readingChatInput },
+            set: { viewModel.assistant.readingChatInput = $0 }
         )
     }
 
     var body: some View {
         let _ = settings.localizationRevision  // 界面语言变了重取文案
         VStack(spacing: 8) {
+            Text(OutboundNotice.reading(settings: settings))
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.inkMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             compactControls
             inputBox
             actionRow
@@ -77,17 +61,7 @@ struct LLMComposerView: View {
 
     /// 收起态：一行摘要 + 展开。
     private var compactControls: some View {
-        Group {
-            if mode == .aiEvolution {
-                evolutionComposerSummary
-            } else {
-                bookComposerSummary
-            }
-        }
-        .task(id: settings.bookProvider) {
-            guard mode == .readingAssistant, settings.bookProvider == .ollama else { return }
-            await ollamaCatalog.refresh(baseURL: settings.bookBaseURL, apiKey: settings.bookApiKey)
-        }
+        bookComposerSummary
     }
 
     /// 读书：提供商·模型·上下文%。
@@ -117,52 +91,6 @@ struct LLMComposerView: View {
             }
         }
         .font(BookTheme.captionFont)
-    }
-
-    /// 进化：token 预算摘要。
-    private var evolutionComposerSummary: some View {
-        HStack(spacing: 8) {
-            Spacer(minLength: 8)
-            compactUsageMeter
-        }
-        .font(BookTheme.captionFont)
-    }
-
-    /// 本机模型列表，刷新走 Catalog。
-    private var ollamaModelControls: some View {
-        HStack(spacing: 6) {
-            if ollamaCatalog.models.isEmpty && !ollamaCatalog.isLoading {
-                TextField("model", text: $settings.model)
-                    .textFieldStyle(.plain)
-                    .font(BookTheme.captionFont)
-                    .frame(maxWidth: 120)
-            } else {
-                Picker(BookL10n.string("label.model"), selection: $settings.model) {
-                    ForEach(ollamaCatalog.modelNamesIncluding(settings.model), id: \.self) { name in
-                        Text(name).tag(name)
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: 150)
-            }
-
-            Button {
-                Task {
-                    await ollamaCatalog.refresh(
-                        baseURL: settings.baseURL,
-                        apiKey: settings.apiKey,
-                        force: true
-                    )
-                }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(BookTheme.leather)
-            .disabled(ollamaCatalog.isLoading)
-            .help(BookL10n.string("composer.rescanOllama"))
-        }
     }
 
     /// 展开后的提供商/模型行。
@@ -207,16 +135,14 @@ struct LLMComposerView: View {
                 Text(BookL10n.string("label.model"))
                     .font(BookTheme.captionFont)
                     .foregroundStyle(BookTheme.inkMuted)
-                if settings.provider == .qwen {
+                if !settings.provider.suggestedModels.isEmpty {
                     Picker(BookL10n.string("label.model"), selection: $settings.model) {
-                        ForEach(QwenBailianConfig.suggestedModels, id: \.self) { name in
+                        ForEach(settings.provider.modelChoices(including: settings.model), id: \.self) { name in
                             Text(name).tag(name)
                         }
                     }
                     .labelsHidden()
-                    .frame(maxWidth: 160)
-                } else if settings.provider == .ollama {
-                    ollamaModelControls
+                    .frame(maxWidth: 180)
                 } else {
                     TextField("model", text: $settings.model)
                         .textFieldStyle(.plain)
@@ -255,7 +181,7 @@ struct LLMComposerView: View {
 
     /// 按当前正文+历史+输入估占用。
     private var contextUsage: CursorContextUsage {
-        mode == .readingAssistant ? viewModel.llmContextUsage : viewModel.evolutionContextUsage
+        viewModel.llmContextUsage
     }
 
     /// 上下文百分比滑条 + 占用说明。
@@ -320,73 +246,21 @@ struct LLMComposerView: View {
 
     /// 收起态小条，满了变红。
     private var compactUsageMeter: some View {
-        Group {
-            if mode == .aiEvolution {
-                evolutionTokenCompactMeter
-            } else {
-                HStack(spacing: 6) {
-                    Text(BookL10n.format("context.usage.percent", Int(contextUsage.percentage)))
-                        .foregroundStyle(contextColor)
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(BookTheme.pageEdge.opacity(0.5))
-                            Capsule()
-                                .fill(contextGradient)
-                                .frame(width: geometry.size.width * contextUsage.percentage / 100.0)
-                        }
-                    }
-                    .frame(width: 58, height: 5)
-                }
-                .font(BookTheme.captionFont)
-            }
-        }
-    }
-
-    /// 当前进化模型的上下文窗。
-    private var evolutionTokenBudget: ModelTokenBudget {
-        viewModel.evolutionTokenBudget
-    }
-
-    /// 进化 token 小条。
-    private var evolutionTokenCompactMeter: some View {
         HStack(spacing: 6) {
-            Text("Token \(evolutionTokenBudget.formattedUsed)/\(evolutionTokenBudget.formattedLimit)")
-                .foregroundStyle(evolutionTokenMeterColor)
-            Text(BookL10n.format("token.remaining", evolutionTokenBudget.formattedRemaining))
-                .foregroundStyle(BookTheme.inkMuted)
+            Text(BookL10n.format("context.usage.percent", Int(contextUsage.percentage)))
+                .foregroundStyle(contextColor)
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(BookTheme.pageEdge.opacity(0.5))
                     Capsule()
-                        .fill(evolutionTokenMeterGradient)
-                        .frame(width: geometry.size.width * evolutionTokenBudget.progressPercentage / 100.0)
+                        .fill(contextGradient)
+                        .frame(width: geometry.size.width * contextUsage.percentage / 100.0)
                 }
             }
             .frame(width: 58, height: 5)
         }
         .font(BookTheme.captionFont)
-    }
-
-    /// 超 85% 警告色。
-    private var evolutionTokenMeterColor: Color {
-        if evolutionTokenBudget.isOverLimit { return BookTheme.vermilion }
-        if evolutionTokenBudget.isNearLimit { return .orange }
-        return BookTheme.inkSecondary
-    }
-
-    private var evolutionTokenMeterGradient: LinearGradient {
-        let value = evolutionTokenBudget.percentage
-        let colors: [Color]
-        if value >= 100 || evolutionTokenBudget.isOverLimit {
-            colors = [BookTheme.vermilion.opacity(0.85), .orange.opacity(0.85)]
-        } else if value >= 90 {
-            colors = [.orange.opacity(0.85), BookTheme.gold]
-        } else {
-            colors = [BookTheme.gold, BookTheme.goldSoft]
-        }
-        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
     /// 多行输入。回车发送，Shift 换行看平台。
@@ -424,17 +298,6 @@ struct LLMComposerView: View {
     /// 发送/停止/分析。在跑显示状态字。
     private var actionRow: some View {
         HStack(spacing: 8) {
-            if mode == .aiEvolution {
-                BookPageActionButton(
-                    title: BookL10n.string("action.analyze"),
-                    icon: "magnifyingglass",
-                    isProminent: canAnalyze,
-                    isDisabled: !canAnalyze
-                ) {
-                    viewModel.evolution.analyzeOptimizations()
-                }
-            }
-
             BookPageActionButton(
                 title: BookL10n.string("action.send"),
                 icon: "paperplane.fill",
@@ -478,14 +341,6 @@ struct LLMComposerView: View {
                 viewModel.clearReadingContext()
             }
 
-            BookPageActionButton(
-                title: BookL10n.string("action.clearAIContext"),
-                icon: "cpu",
-                isDisabled: viewModel.isRunning || !viewModel.canClearAIContext
-            ) {
-                viewModel.clearAIContext()
-            }
-
             Spacer()
 
             Text(BookL10n.string("composer.sendHint"))
@@ -514,33 +369,22 @@ struct LLMComposerView: View {
 
     /// 进行中文案，空表示可发送。
     private var runningStatusText: String {
-        let text = viewModel.runningStatusText(for: mode)
+        let text = viewModel.runningStatusText(for: .readingAssistant)
         return text.isEmpty ? BookL10n.string("llm.generating") : text
     }
 
     /// 占位：读书问讲解，进化问改代码。
     private var composerPlaceholder: String {
-        switch mode {
-        case .readingAssistant:
-            switch viewModel.assistant.readingAssistantPanel {
-            case .explanation:
-                return BookL10n.string("placeholder.explanation")
-            case .translation:
-                return BookL10n.string("placeholder.translation")
-            }
-        case .aiEvolution:
-            return BookL10n.string("placeholder.evolution")
+        switch viewModel.assistant.readingAssistantPanel {
+        case .explanation:
+            return BookL10n.string("placeholder.explanation")
+        case .translation:
+            return BookL10n.string("placeholder.translation")
         }
     }
 
-    /// 交给 ViewModel。空串已在 canSend 挡住。
     private func sendActiveChatInput() {
-        switch mode {
-        case .readingAssistant:
-            viewModel.sendChatInput()
-        case .aiEvolution:
-            viewModel.sendEvolutionChatInput()
-        }
+        viewModel.sendChatInput()
     }
 
     /// 占用条颜色，跟百分比挂钩。

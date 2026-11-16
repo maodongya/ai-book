@@ -9,25 +9,14 @@ let package = Package(
     ],
     products: [
         .executable(name: "AIBook", targets: ["AIBook"]),
-        .library(name: "AIBookEvolution", targets: ["AIBookEvolution"]),
     ],
     targets: [
-        .target(
-            name: "com.mdy2010life.aibook",
-            path: "Sources/AIBookEvolution"
-        ),
         .executableTarget(
             name: "AIBook",
-            dependencies: ["AIBookEvolution"],
             path: "Sources/AIBook",
             resources: [
                 .process("Resources"),
             ]
-        ),
-        .testTarget(
-            name: "AIBookEvolutionTests",
-            dependencies: ["AIBookEvolution"],
-            path: "Tests/AIBookEvolutionTests"
         ),
         .testTarget(
             name: "AIBookL10nTests",

@@ -327,7 +327,7 @@ struct ExecutionStep: Identifiable, Equatable, Codable {
             return FileManager.default.fileExists(atPath: expanded) ? expanded : expanded
         }
 
-        if let root = SelfEvolution.sourceProjectDirectory() {
+        if let root = ProjectRoots.sourceDirectory() {
             let resolved = root.appendingPathComponent(trimmed).standardizedFileURL.path
             if FileManager.default.fileExists(atPath: resolved) {
                 return resolved

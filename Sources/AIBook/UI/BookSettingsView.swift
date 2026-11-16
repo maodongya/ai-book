@@ -97,6 +97,13 @@ struct BookSettingsView: View {
 
             Spacer()
 
+            BookActionButton(title: BookL10n.string("privacy.policy.title"), icon: "hand.raised") {
+                dismiss()
+                DispatchQueue.main.async {
+                    viewModel.openPrivacyPolicy()
+                }
+            }
+
             BookActionButton(title: BookL10n.string("action.manual"), icon: "book.pages") {
                 dismiss()
                 DispatchQueue.main.async {

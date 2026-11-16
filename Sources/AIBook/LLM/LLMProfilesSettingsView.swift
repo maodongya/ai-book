@@ -10,7 +10,7 @@ struct LLMProfilesSettingsView: View {
     @State private var testingProvider: LLMProvider? // 正在测连接的那一家，禁重复点
     @State private var testResults: [LLMProvider: (success: Bool, message: String)] = [:] // 测完留在卡片上
 
-    /// 已填 Key 或 Ollama 有地址的，摘要行用。
+    /// 已填 Key 的，摘要行用。
     private var configuredProviders: [LLMProvider] {
         switch scope {
         case .book: return settings.configuredBookProviders
@@ -169,11 +169,13 @@ struct LLMProfilesSettingsView: View {
 
                     if provider == .qwen {
                         qwenBailianFields(provider: provider, draft: draft)
-                    } else if provider == .ollama {
-                        OllamaSettingsFields(profile: profileBinding(for: provider))
                     } else {
                         profileField(BookL10n.string("llm.apiAddress"), text: binding(for: provider, keyPath: \.baseURL))
-                        profileField(BookL10n.string("qwen.modelName"), text: binding(for: provider, keyPath: \.model))
+                        if provider.suggestedModels.isEmpty {
+                            profileField(BookL10n.string("qwen.modelName"), text: binding(for: provider, keyPath: \.model))
+                        } else {
+                            suggestedModelFields(provider: provider, draft: draft)
+                        }
                     }
 
                     if provider.showsAPIKeyField {
@@ -181,11 +183,6 @@ struct LLMProfilesSettingsView: View {
                             provider.apiKeyFieldLabel,
                             text: binding(for: provider, keyPath: \.apiKey)
                         )
-                        if provider == .ollama {
-                            Text(BookL10n.string("ollama.localHint"))
-                                .font(BookTheme.captionFont)
-                                .foregroundStyle(BookTheme.settingsSecondary)
-                        }
                     }
 
                     if provider == .qwen {
@@ -246,6 +243,36 @@ struct LLMProfilesSettingsView: View {
                             isActive ? BookTheme.gold.opacity(0.5) : BookTheme.pageEdge.opacity(0.6),
                             lineWidth: 1
                         )
+                }
+        }
+    }
+
+    /// 有建议名单的提供商：下拉选常用模型，文本框仍可手改。
+    private func suggestedModelFields(provider: LLMProvider, draft: LLMProfile) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(BookL10n.string("qwen.modelName"))
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
+            Picker(BookL10n.string("label.model"), selection: binding(for: provider, keyPath: \.model)) {
+                ForEach(provider.modelChoices(including: draft.model), id: \.self) { name in
+                    Text(name).tag(name)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(BookTheme.settingsPrimary)
+            TextField(BookL10n.string("llm.manualModelID"), text: binding(for: provider, keyPath: \.model))
+                .textFieldStyle(.plain)
+                .font(BookTheme.bodyFont)
+                .foregroundStyle(BookTheme.settingsPrimary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(BookTheme.menuItemFill)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(BookTheme.menuItemBorder, lineWidth: 1)
+                        }
                 }
         }
     }
@@ -442,7 +469,7 @@ struct LLMProfilesSettingsView: View {
         drafts = loaded
     }
 
-    /// 草稿写入 Store。Ollama 会规范化地址。
+    /// 草稿写入 Store。
     private func saveProfile(for provider: LLMProvider) {
         let profile = drafts[provider] ?? storedProfile(for: provider)
         LLMProfileStore.save(profile, for: provider, scope: scope)

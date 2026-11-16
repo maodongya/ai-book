@@ -15,7 +15,7 @@ Swift 实现的 macOS 辅助读书应用：左侧显示本地 `.txt` 原文，�
 - 打开本地 `.txt` 文本文件（⌘O 或工具栏）
 - 左右分栏：左原文、右讲解
 - 选中左侧文字后，点击「讲解选中内容」获取 AI 解读
-- 支持 OpenAI 兼容接口：OpenAI、DeepSeek、Ollama、自定义端点
+- 支持 OpenAI 兼容接口：OpenAI、Anthropic、Gemini、xAI、DeepSeek、自定义端点
 
 ## 安装到「应用程序」
 
@@ -48,7 +48,7 @@ swift build -c release
 
 | 模式 | 说明 |
 |------|------|
-| 大模型 API | OpenAI 兼容接口（OpenAI / DeepSeek / Ollama 等） |
+| 大模型 API | OpenAI 兼容接口（OpenAI / Claude / Gemini / Grok / DeepSeek 等） |
 | Cursor 本地 | 调用本机 Cursor Agent 进行内容解析与对话 |
 
 ### Cursor 本地模式配置
@@ -70,19 +70,14 @@ npm install
 
 | 提供商 | 默认 API 地址 | 默认模型 |
 |--------|---------------|----------|
-| OpenAI | https://api.openai.com/v1 | gpt-4o-mini |
+| OpenAI | https://api.openai.com/v1 | gpt-6.1-sol |
+| Anthropic | https://api.anthropic.com/v1 | claude-sonnet-5-5 |
+| Gemini | https://generativelanguage.googleapis.com/v1beta/openai | gemini-4-hydrogen |
+| xAI | https://api.x.ai/v1 | grok-4.7 |
 | DeepSeek | https://api.deepseek.com/v1 | deepseek-chat |
-| Ollama | http://127.0.0.1:11434/v1 | llama3.2 |
 | 自定义 | 自行填写 | 自行填写 |
 
-Ollama 本地运行示例：
-
-```bash
-ollama serve
-ollama pull llama3.2
-```
-
-若 Ollama 启用了 `OLLAMA_API_KEY` 或使用需鉴权的远程地址，请在 **设置 → AI模型设置 → Ollama** 填写可选 API Key。
+在 **设置 → AI模型设置** 选择提供商并填写 API Key。OpenAI 还可改 gpt-6-astra、gpt-6-luna；Claude 还可改 claude-opus-5-5、claude-haiku-5-5、claude-fable-5-2；Grok 还可改 grok-4.6、grok-4.3。
 
 ## 示例文件
 

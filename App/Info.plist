@@ -4,12 +4,23 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hans</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hans</string>
+		<string>en</string>
+		<string>ja</string>
+		<string>de</string>
+		<string>fr</string>
+		<string>it</string>
+		<string>la</string>
+		<string>el</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>AIBook</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.aibook.reader</string>
+	<string>com.mdy2010life.aibook</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

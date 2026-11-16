@@ -66,7 +66,7 @@ enum OperationCatalog {
             ToolSpec(name: "toggleReadingMode", description: "在学习模式和阅读模式之间切换", parameters: emptyParameters),
             ToolSpec(name: "setPaneFocus", description: "双页、左全屏或右全屏", parameters: stringParameter("focus", values: ["both", "leading", "trailing"])),
             ToolSpec(name: "showAssistantPanel", description: "显示讲解或翻译子栏", parameters: stringParameter("panel", values: ["explanation", "translation"])),
-            ToolSpec(name: "showRightPage", description: "切换读书助手或进化页，不开始进化", parameters: stringParameter("page", values: ["assistant", "evolution"])),
+            ToolSpec(name: "showRightPage", description: "回到读书助手页", parameters: stringParameter("page", values: ["assistant"])),
             ToolSpec(name: "showExplanationLanguage", description: "切换已生成的讲解语言", parameters: stringParameter("language", values: languageValues)),
             ToolSpec(name: "showTranslationLanguage", description: "切换已生成的翻译语言", parameters: stringParameter("language", values: languageValues)),
             ToolSpec(name: "openLibraryFile", description: "打开书库里唯一对上的文件", parameters: [
@@ -105,8 +105,6 @@ enum OperationCatalog {
             ToolSpec(name: "unlockExplanation", description: "解锁讲解", parameters: emptyParameters),
             ToolSpec(name: "toggleExplanationTable", description: "讲解对照", parameters: emptyParameters),
             ToolSpec(name: "toggleTranslationTable", description: "翻译对照", parameters: emptyParameters),
-            ToolSpec(name: "startEvolution", description: "开始进化，必须由软件再确认", parameters: emptyParameters),
-            ToolSpec(name: "analyzeOptimizations", description: "分析优化，必须由软件再确认", parameters: emptyParameters),
         ]
     }
 }

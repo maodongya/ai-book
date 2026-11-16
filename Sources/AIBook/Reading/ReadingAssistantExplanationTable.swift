@@ -376,6 +376,10 @@ extension ReadingAssistantSession {
     }
 
     func saveExplanationAlignmentSidecar(near txtURL: URL) {
+        if UserFolderGrants.isSandboxed,
+           !host.document.folderGrants.covers(txtURL.deletingLastPathComponent()) {
+            return  // 只有文件授权时，沙盒里不能在旁边新建 sidecar
+        }
         guard let alignment = explanationAlignment, !alignment.isStale else { return }
         guard alignment.mode == .paragraph else { return }
         ExplanationAlignmentSidecar.write(alignment, near: txtURL)

@@ -13,7 +13,7 @@ Le manuel dans l’application suit la langue de l’interface. Ce fichier est l
 - Barre des menus **Aide → Manuel AIBook** (fenêtre dans l’application ; le texte peut être sélectionné et copié)
 - **Aide → Afficher le manuel dans le Finder** (sélectionne le fichier du manuel de la langue actuelle)
 - **Ouvrir avec l’app par défaut** dans la barre de titre de la fenêtre du manuel
-- Le bouton **Manuel** dans la barre de titre des **Réglages book** et des **Réglages évolution**
+- Le bouton **Manuel** dans la barre de titre des **Réglages book**
 
 ---
 
@@ -26,7 +26,6 @@ Le manuel dans l’application suit la langue de l’interface. Ce fichier est l
 - Traduire mot à mot ou paragraphe par paragraphe, et voir un tableau texte–traduction.
 - Faire lire le texte, la traduction ou une explication.
 - Entrer en mode lecture et tourner les pages comme dans un livre ouvert.
-- Utiliser, si vous le voulez, l’évolution par IA : analyser le projet, appliquer une entrée de la file, puis reconstruire l’application.
 
 ### 1.2 Le bureau
 
@@ -45,7 +44,7 @@ Bascule dans la barre de titre : **Mode lecture** (⌘⇧P) et **Mode étude**.
 
 ## 2. Fenêtre principale (mode étude)
 
-La barre de titre réunit le document, l’explication, la traduction, la lecture, la disposition et les réglages. La page de gauche est le texte. La page de droite est l’assistant de lecture, ou **évolution par IA** lorsque cet onglet est choisi.
+La barre de titre réunit le document, l’explication, la traduction, la lecture, la disposition et les réglages. La page de gauche est le texte. La page de droite est l’assistant de lecture.
 
 ### 2.1 Disposition
 
@@ -132,16 +131,7 @@ L’animation courbe **une feuille**. Le dos ne se déforme pas.
 | **Tout sélectionner (original)** | ⌘⌃A | |
 | **Compléter l’original** | ⌘⇧C | Voir la section 9 |
 
-Sans fichier externe, la page de gauche charge les **notes de commandes** (voir 4.3).
-
-### 4.3 Notes de commandes (page de gauche par défaut)
-
-- Au premier lancement, ou sans fichier ouvert, la page de gauche montre des notes pour vos remarques ou un ancien texte d’évolution.
-- Enregistrées dans `~/Library/Application Support/AIBook/readme-notes.txt`.
-- Sans copie locale, l’application revient au modèle intégré ou au `readme.txt` du projet.
-- **⌘S** enregistre les notes dans Application Support.
-
-> La **file d’optimisation** est désormais `optimization-queue.json`. Les notes ne sont plus la source des commandes d’évolution, mais elles restent un brouillon personnel.
+Sans fichier externe, la page de gauche est un document vide. **Enregistrer l’original sous…** l’écrit dans un fichier.
 
 ### 4.4 Navigateur de dossiers (bibliothèque)
 
@@ -161,16 +151,15 @@ Les dossiers ajoutés et leur état déplié sont **conservés**. Cela sert à p
 
 ## 5. Moteurs d’IA et réglages
 
-L’explication, la traduction et **Compléter l’original** utilisent le modèle de lecture dans **Réglages book**. L’évolution par IA utilise toujours Cursor, dans **Réglages évolution**. La barre de titre ne propose pas de bascule.
+L’explication, la traduction, **Compléter l’original** et les commandes vocales utilisent le modèle de lecture dans **Réglages book**.
 
-### 5.1 Modèle de lecture, Cursor pour l’évolution
+### 5.1 Modèle de lecture
 
 | Usage | Commande |
 |-------|----------|
-| Expliquer, traduire, compléter l’original | **Réglages book** → **Modèles IA** → **Fournisseur actif** |
-| **Analyser** et **Évoluer** | **Modèle Cursor** dans **Réglages évolution** |
+| Expliquer, traduire, compléter l’original, commande vocale | **Réglages book** → **Modèles IA** → **Fournisseur actif** |
 
-La pastille de la barre de titre montre le nom du fichier et **Non enregistré**. Sans modèle de lecture, elle dit **LLM book non configuré**. Si Cursor n’est pas prêt : **Cursor non prêt**.
+Sans modèle de lecture, la pastille dit **LLM book non configuré**. Les boutons concernés demandent d’ouvrir d’abord **Réglages book**.
 
 ### 5.2 Réglages book
 
@@ -185,18 +174,12 @@ La pastille de la barre de titre montre le nom du fichier et **Non enregistré**
 |-------------|---------------|
 | OpenAI | Modèles GPT dans le nuage |
 | DeepSeek | Chinois à moindre coût |
-| Ollama | **Gratuit sur ce Mac** (recommandé pour la lecture quotidienne) |
+| Anthropic | claude-sonnet-5-5 |
+| Gemini | gemini-4-hydrogen |
+| xAI | grok-4.7 |
 | Moonshot / Qwen / Zhipu | Modèles dans le nuage en Chine |
 | Personnalisé | Tout point d’accès compatible OpenAI |
 
-**Démarrage rapide d’Ollama** :
-
-```bash
-ollama serve
-ollama pull llama3.2
-```
-
-Choisissez Ollama dans les Réglages book, puis **cherchez les modèles installés sur ce Mac**. Si Ollama exige une clé API, saisissez-la là.
 
 - **Langues de traduction** et **langues d’explication** : vous pouvez en choisir plusieurs parmi le chinois simplifié, l’anglais, le japonais, l’allemand, le français, l’italien, le latin et le grec. La prochaine génération les produit dans l’ordre coché. Les résultats déjà présents restent sur la page de droite et se changent. Un fichier `.aibook` les conserve tous.
 - **Part d’extrait (page gauche)** : quelle portion du texte de gauche accompagne chaque demande, pour rester dans la fenêtre du modèle.
@@ -208,26 +191,6 @@ Voir la section 8.
 #### Apparence
 
 Voir la section 11.
-
-### 5.3 Réglages évolution
-
-**Entrée** : menu **AIBook → Réglages** (onglet évolution).
-
-| Réglage | Sens |
-|---------|------|
-| Clé API Cursor | Ou la variable d’environnement `CURSOR_API_KEY` |
-| Modèle Cursor | Par exemple un modèle Composer |
-| Chemin de cursor-bridge | Le dossier `cursor-bridge` du projet |
-| **Mise à niveau auto** | Après un clic sur **Évoluer**, les entrées restantes peuvent s’enchaîner (voir la section 10) |
-
-**Dépendance Cursor locale** :
-
-```bash
-cd ai-book/cursor-bridge
-npm install
-```
-
-**Node.js 18 ou plus** est requis.
 
 ---
 
@@ -359,7 +322,7 @@ Avant la lecture, le Markdown et les balises semblables sont **nettoyés et coup
 
 ### 8.6 Commandes vocales
 
-Maintenez le microphone de la barre de titre, parlez, puis relâchez pour exécuter. En mode lecture, où ce bouton est absent, **maintenez Option+espace** tant que l’application est au premier plan. L’application transforme la parole en texte, puis utilise le même modèle de lecture que la traduction et l’explication pour rattacher la phrase à une action existante. Expliquer, traduire, lire, changer la disposition, ouvrir, enregistrer et exporter s’exécutent tout de suite. Lancer l’évolution ou analyser les optimisations demande d’abord une confirmation. Si la phrase est peu claire ou ne correspond à aucune action, rien ne s’exécute ; l’application montre seulement le texte entendu.
+Maintenez le microphone de la barre de titre, parlez, puis relâchez pour exécuter. En mode lecture, où ce bouton est absent, **maintenez Option+espace** tant que l’application est au premier plan. L’application transforme la parole en texte, puis utilise le même modèle de lecture que la traduction et l’explication pour rattacher la phrase à une action existante. Expliquer, traduire, lire, changer la disposition, ouvrir, enregistrer et exporter s’exécutent tout de suite. Si la phrase est peu claire ou ne correspond à aucune action, rien ne s’exécute ; l’application montre seulement le texte entendu.
 
 ---
 
@@ -376,38 +339,9 @@ Cela sert à retrouver le contexte d’un extrait de manuel ou d’un fragment. 
 
 ---
 
-## 10. Évolution par IA (avancé)
+## 10. Mode évolution
 
-> **Avertissement** : l’évolution modifie le code source d’AIBook et réinstalle l’application. Ne l’utilisez que si vous connaissez Git et les sauvegardes. N’activez pas la **Mise à niveau auto** sur une machine que vous ne pouvez pas modifier.
-
-### 10.1 Ce qu’elle fait
-
-- **Analyser** : le modèle **lit** le projet et écrit des suggestions dans la **file d’optimisation**. Il ne modifie pas le code.
-- **Évoluer** : prend une entrée **en attente**, **modifie le code**, construit et installe, puis **relance l’application**.
-
-### 10.2 Un parcours typique
-
-1. Ouvrez l’onglet **Évolution par IA** à droite.
-2. Cliquez **Analyser** et attendez que les suggestions entrent dans la file.
-3. Lisez les entrées (titre, numéro, état).
-4. Cliquez **Évoluer** (⌘E) pour exécuter la **prochaine entrée en attente**.
-5. Suivez le **raisonnement** et les **étapes d’outils**.
-6. L’application peut redémarrer à la fin. Si la **Mise à niveau auto** est active et que vous avez déjà lancé une évolution à la main dans cette session, les entrées suivantes peuvent **s’enchaîner**.
-
-### 10.3 Commandes et fichier de file
-
-- Fichier : `~/Library/Application Support/AIBook/optimization-queue.json`
-- Dans l’onglet évolution, vous pouvez **enregistrer et ouvrir** un document de commandes (UTF-8).
-- L’analyse **retire les doublons** selon un titre normalisé. Une analyse propose un nombre limité d’entrées (environ 8).
-
-### 10.4 Canal
-
-**Analyser** et **Évoluer** passent tous deux par l’agent Cursor local. Il n’y a pas de repli vers le modèle de lecture. L’analyse ne fait que lire. **Évoluer** modifie le code, construit et installe. Si Cursor n’est pas prêt, les boutons restent inactifs et la pastille dit **Cursor non prêt**.
-
-### 10.5 Jetons et état
-
-- L’évolution et les longues conversations restent dans un **budget de jetons**. L’interface montre l’usage et refuse l’envoi lorsque le budget est épuisé.
-- La capsule de la barre de titre peut montrer le **nombre d’entrées en attente** et le numéro de la suivante.
+Cette version n’a pas de mode évolution. La page de droite est seulement l’assistant de lecture. L’application n’analyse plus son code, ne le modifie pas et ne se met plus à jour toute seule.
 
 ---
 
@@ -428,7 +362,6 @@ Cela sert à retrouver le contexte d’un extrait de manuel ou d’un fragment. 
 Outre les boutons de la barre de titre, les menus **Fichier / Édition** réunissent les mêmes raccourcis que les actions du texte et de l’explication.  
 **Aide** ouvre ce manuel et le montre dans le Finder.
 
-**AIBook → Réglages** concerne l’évolution.  
 **Réglages book** dans la barre de titre concerne la lecture, la traduction, la voix et l’apparence.
 
 ---
@@ -447,7 +380,6 @@ Outre les boutons de la barre de titre, les menus **Fichier / Édition** réunis
 | Lire le texte (sélection ou tout, selon le menu) | ⌘⌥R |
 | Lire toute la traduction | ⌘⌥T |
 | Compléter le texte | ⌘⇧C |
-| **Auto-évolution** (menu) / **Évoluer** (barre de titre) | ⌘E |
 | Entrer en mode lecture | ⌘⇧P |
 | Commande vocale | Maintenir Option+espace |
 | Lecture : **Page précédente** / **Page suivante** | ← / → |
@@ -468,16 +400,13 @@ Racine : `~/Library/Application Support/AIBook/`
 
 | Quoi | Chemin |
 |------|--------|
-| Notes de commandes | `readme-notes.txt` |
-| File d’optimisation | `optimization-queue.json` |
 | Conversations | Cache selon le chemin du livre |
 | Navigateur de dossiers | Racines ouvertes et état déplié |
 | Échantillons de voix en ligne | `voices/` |
-| **Mise à niveau auto** | `auto-evolution-active` et fichiers liés |
 
 ### 14.2 Réseau et clés
 
-- Les demandes **modèle / Cursor** partent vers l’API ou le service Cursor que vous avez configuré. Les clés restent dans les préférences locales. Ne partagez pas la machine.
+- Les demandes au **modèle** partent vers le fournisseur que vous avez configuré. Les clés restent dans les préférences locales. Ne partagez pas la machine.
 - **Edge TTS** a besoin du réseau. Les voix système fonctionnent hors ligne.
 - Les **commandes vocales** utilisent le microphone et la reconnaissance vocale du système. Lorsque la langue du système permet la reconnaissance sur l’appareil, l’audio reste sur ce Mac. Le texte reconnu est envoyé au même modèle de lecture que la traduction et l’explication.
 
@@ -538,19 +467,13 @@ swift run
 ## 17. Questions
 
 **Le bouton d’explication dit que le modèle n’est pas configuré.**  
-Ouvrez **Réglages book → modèle**, choisissez un fournisseur et saisissez une clé API. Sur ce Mac, Ollama est le choix habituel.
-
-**Cursor local n’est pas disponible.**  
-Vérifiez Node.js, `npm install` dans cursor-bridge, la clé API Cursor et le chemin dans les Réglages évolution.
+Ouvrez **Réglages book → modèle**, choisissez un fournisseur et saisissez une clé API. Le choix courant est OpenAI, Claude, Gemini ou Grok.
 
 **Le tableau de traduction est grisé.**  
 Terminez d’abord une traduction mot à mot ou par paragraphe, et le JSON doit contenir des blocs d’alignement valides. Si l’alignement est périmé, utilisez **Aligner la traduction**.
 
 **Les numéros de page ont changé en mode lecture.**  
 Changer le corps ou la fenêtre repagine. C’est attendu. L’index de double page est rétabli lorsque c’est possible.
-
-**L’application se comporte autrement après une évolution.**  
-L’évolution modifie la copie locale installée d’AIBook. Gardez les sources dans Git, et n’utilisez la **Mise à niveau auto** que si vous le voulez vraiment.
 
 **Ce manuel et l’interface ne concordent pas.**  
 Fiez-vous à la **version d’AIBook installée**. Survolez un bouton pour l’indication actuelle.
@@ -560,8 +483,8 @@ Fiez-vous à la **version d’AIBook installée**. Survolez un bouton pour l’i
 ## 18. Version et documents
 
 - Ce manuel est livré dans l’application et s’ouvre depuis le menu **Aide**.
-- Le dépôt contient aussi des notes de conception (mode lecture, apparence, évolution) pour le développement.
-- Le README du projet donne la courte installation d’Ollama et de Cursor.
+- Le dépôt contient aussi des notes de conception (mode lecture, apparence) pour le développement.
+- Le README du projet donne la courte installation des modèles.
 
 ---
 

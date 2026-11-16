@@ -13,6 +13,13 @@ struct ExplanationVoiceSettingsView: View {
                 .font(BookTheme.captionFont)
                 .foregroundStyle(BookTheme.settingsPrimary)
 
+            Text(BookL10n.string("privacy.mic.purpose"))
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.settingsSecondary)
+            Text(BookL10n.string("privacy.speech.purpose"))
+                .font(BookTheme.captionFont)
+                .foregroundStyle(BookTheme.settingsSecondary)
+
             settingsCard(title: BookL10n.string("speech.pace"), icon: "waveform") {
                 Picker(BookL10n.string("speech.pace"), selection: $settings.speechEngineMode) {
                     ForEach(SpeechEngineMode.allCases) { mode in
@@ -72,7 +79,7 @@ struct ExplanationVoiceSettingsView: View {
                 } label: {
                     Label(BookL10n.string("action.previewVoice"), systemImage: "play.circle.fill")
                 }
-                .settingsPillButton(prominent: true)
+                .bookPageButton(prominent: true)
             }
 
             if let statusMessage {

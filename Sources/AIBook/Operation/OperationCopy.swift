@@ -52,8 +52,6 @@ enum OperationCopy {
         case .unlockExplanation: return BookL10n.string("operation.action.unlockExplanation")
         case .toggleExplanationTable: return BookL10n.string("operation.action.toggleExplanationTable")
         case .toggleTranslationTable: return BookL10n.string("operation.action.toggleTranslationTable")
-        case .startEvolution: return BookL10n.string("operation.action.startEvolution")
-        case .analyzeOptimizations: return BookL10n.string("operation.action.analyzeOptimizations")
         }
     }
 
@@ -93,7 +91,7 @@ enum OperationCopy {
     }
 
     private static func pageTitle(_ page: String) -> String {
-        page == "evolution" ? BookL10n.string("tab.aiEvolution") : BookL10n.string("tab.readingAssistant")
+        page == "assistant" ? BookL10n.string("tab.readingAssistant") : BookL10n.string("tab.readingAssistant")
     }
 
     private static func languageTitle(_ raw: String) -> String {

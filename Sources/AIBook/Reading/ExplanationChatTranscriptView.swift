@@ -38,25 +38,14 @@ struct ExplanationChatTranscriptView: View {
                 .padding(.horizontal, 36)  // 和书页左右边距对齐
                 .padding(.vertical, 32)  // 顶底留白，避免贴工具条
             }
-            .onChange(of: displayedChatMessages.count) { _ in  // 条数变了吸底，不跟正文编辑
-                scrollToBottom(proxy: proxy)  // 流式钉 loading，否则钉最后一条
+            .onChange(of: displayedChatMessages.count) { _ in
+                scrollToBottom(proxy: proxy)
             }
-            .onChange(of: viewModel.evolution.showsExecutionTrace) { _ in  // 过程卡展开会变高，再吸一次
-                scrollToBottom(proxy: proxy)  // 流式钉 loading，否则钉最后一条
+            .onChange(of: viewModel.streamingResponse) { _ in
+                scrollToBottom(proxy: proxy)
             }
-            .onChange(of: viewModel.streamingThinking) { _ in  // 思考流式变长要跟滚
-                guard viewModel.evolution.showsExecutionTrace else { return }  // 没开过程卡就别跟思考/工具步
-                scrollToBottom(proxy: proxy)  // 流式钉 loading，否则钉最后一条
-            }
-            .onChange(of: viewModel.streamingResponse) { _ in  // 正文 token 往下长
-                scrollToBottom(proxy: proxy)  // 流式钉 loading，否则钉最后一条
-            }
-            .onChange(of: viewModel.streamingToolSteps.count) { _ in  // 新工具步会加高过程卡
-                guard viewModel.evolution.showsExecutionTrace else { return }  // 没开过程卡就别跟思考/工具步
-                scrollToBottom(proxy: proxy)  // 流式钉 loading，否则钉最后一条
-            }
-            .onChange(of: viewModel.isLoading) { _ in  // 开始/结束时切 loading 锚点
-                scrollToBottom(proxy: proxy)  // 流式钉 loading，否则钉最后一条
+            .onChange(of: viewModel.isLoading) { _ in
+                scrollToBottom(proxy: proxy)
             }
         }
     }
@@ -66,14 +55,7 @@ struct ExplanationChatTranscriptView: View {
         Group {
             if message.role == .assistant {  // 助手左、带过程卡和编辑
                 VStack(alignment: .leading, spacing: 10) {  // 过程卡在上，正文在下
-                    if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {  // 过程卡只在进化页可单独复制
-                        AssistantExecutionTraceCard(  // 已落盘或直播的思考/工具步
-                            thinking: message.thinking,  // 已落盘的思考，不是流式
-                            toolSteps: message.toolSteps,  // 已落盘的工具步
-                            defaultExpanded: viewModel.rightPageTab == .aiEvolution  // 进化页默认展开，讲解页没有这卡
-                        )
-                    }
-                    if !message.content.isEmpty {  // 空正文只留过程卡
+                    if !message.content.isEmpty {
                         assistantContent(message)  // 能改就 TextEditor，否则只读
                     }
                 }
@@ -116,17 +98,9 @@ struct ExplanationChatTranscriptView: View {
         } label: {
             Label(BookL10n.string("action.copyContent"), systemImage: "doc.on.doc")  // 复制正文
         }
-        .disabled(message.content.isEmpty)  // 空串不进剪贴板
+        .disabled(message.content.isEmpty)
 
-        if message.hasExecutionTrace, viewModel.rightPageTab == .aiEvolution {  // 过程卡只在进化页可单独复制
-            Button {
-                copyToPasteboard(message.executionTraceText)  // 思考+工具步拼成一段
-            } label: {
-                Label(BookL10n.string("action.copyTrace"), systemImage: "timeline.selection")  // 复制过程
-            }
-        }
-
-        Button(role: .destructive) {  // 删消息，至少留欢迎
+        Button(role: .destructive) {
             viewModel.assistant.deleteChatMessage(id: message.id)  // 删这条；至少留欢迎
         } label: {
             Label(BookL10n.string("action.deleteAIMessage"), systemImage: "trash")  // 删助手消息
@@ -192,46 +166,8 @@ struct ExplanationChatTranscriptView: View {
 
     /// 进行中的一条：过程卡或生成中。
     private var streamingBubble: some View {
-        VStack(alignment: .leading, spacing: 10) {  // 过程卡在上，正文在下
-            if viewModel.evolution.showsExecutionTrace {  // 开了过程就走 Cursor 流式卡
-                cursorStreamingContent  // 思考/工具/正文分开展
-            } else {
-                llmStreamingContent  // 书内 LLM 只有正文流
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)  // 撑满宽，左对齐
-    }
-
-    @ViewBuilder
-    /// 进化过程卡 + 流式正文；没内容就转圈。
-    private var cursorStreamingContent: some View {
-        if !viewModel.streamingThinking.isEmpty || !viewModel.streamingToolSteps.isEmpty {  // 有思考或工具步才上过程卡
-            AssistantExecutionTraceCard(  // 已落盘或直播的思考/工具步
-                thinking: viewModel.streamingThinking.isEmpty ? nil : viewModel.streamingThinking,  // 空串当 nil，避免空卡
-                toolSteps: viewModel.streamingToolSteps.isEmpty ? nil : viewModel.streamingToolSteps,  // 还没工具步就别占位
-                isLive: true,  // 未落盘，标题走进行中
-                defaultExpanded: true  // 直播过程默认展开
-            )
-        } else if !viewModel.streamingToolStatus.isEmpty {  // 还没步、只有状态字
-            HStack(spacing: 8) {  // 转圈 + 状态
-                ProgressView().controlSize(.small)  // 小转圈，不抢正文
-                Text(viewModel.streamingToolStatus)  // 当前工具一句话
-                    .font(BookTheme.captionFont)  // 状态用说明字号
-                    .foregroundStyle(BookTheme.inkSecondary)  // 次要墨，别压正文
-            }
-        }
-        if !viewModel.streamingResponse.isEmpty {  // 已有流式正文就画出来
-            bubbleContent(viewModel.streamingResponse, isUser: false)  // 未落盘正文，样式同助手
-        } else if viewModel.streamingThinking.isEmpty  // 三空才出等待行，避免和过程卡叠
-                    && viewModel.streamingToolSteps.isEmpty  // 还没工具步
-                    && viewModel.streamingToolStatus.isEmpty {  // 还没状态字
-            HStack(spacing: 10) {  // 还没任何输出时的等待行
-                ProgressView().controlSize(.small)  // 小转圈，不抢正文
-                Text(viewModel.rightPageTab == .aiEvolution ? BookL10n.string("vm.evolutionRunning") : BookL10n.string("evolution.cursorExecuting"))  // 进化/Cursor 两套等待文案
-                    .font(BookTheme.captionFont)  // 状态用说明字号
-                    .foregroundStyle(BookTheme.inkSecondary)  // 次要墨，别压正文
-            }
-        }
+        llmStreamingContent
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -262,9 +198,6 @@ struct ExplanationChatTranscriptView: View {
 
     /// 讲解只在 explanation 任务时出流式泡；进化看 isLoading。
     private var showsActiveStreamingBubble: Bool {
-        if viewModel.rightPageTab == .aiEvolution {  // 进化：只要在跑就出流式泡
-            return viewModel.isLoading  // 分析/执行都算
-        }
         return viewModel.isLoading
             && viewModel.assistant.readingAssistantActiveTask == .explanation
             && !viewModel.assistant.showsExplanationProgressSheet  // 全文讲解流在弹出层

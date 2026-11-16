@@ -26,7 +26,7 @@ enum OperationAction: Equatable {
     case toggleReadingMode
     case setPaneFocus(String) // both / leading / trailing
     case showAssistantPanel(String) // explanation / translation
-    case showRightPage(String) // assistant / evolution
+    case showRightPage(String) // assistant
     case showExplanationLanguage(String) // 语言 rawValue
     case showTranslationLanguage(String)
     case openLibraryFile(String) // 书库文件名
@@ -56,18 +56,8 @@ enum OperationAction: Equatable {
     case unlockExplanation
     case toggleExplanationTable
     case toggleTranslationTable
-    case startEvolution
-    case analyzeOptimizations
 
-    /// 进化和分析先问过用户才执行。
-    var requiresConfirmation: Bool {
-        switch self {
-        case .startEvolution, .analyzeOptimizations: // 会改工程或排队
-            return true
-        default:
-            return false // 其余安全操作马上做
-        }
-    }
+    var requiresConfirmation: Bool { false }
 }
 
 /// 一轮解析得到的操作，顺序就是执行顺序。

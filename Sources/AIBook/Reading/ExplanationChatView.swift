@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 右页：读书助手与 AI 进化（讲解 / 翻译 / 对话区壳层）。
+/// 右页：读书助手（讲解 / 翻译 / 对话区壳层）。
 struct ExplanationChatView: View {
     @EnvironmentObject private var viewModel: ReadingViewModel  // 右页 tab、翻译、进化都从这读
     @ObservedObject private var settings = AppSettings.shared  // LLM/Cursor 配好没有，语言变了刷新
@@ -14,19 +14,11 @@ struct ExplanationChatView: View {
     /// 右页：读书助手或进化，外加配置条。
     var body: some View {
         let _ = settings.localizationRevision  // 语言变了强迫 body 重算 L10n
-        VStack(spacing: 0) {  // 页内贴齐，分隔靠各段自己的 padding
-            switch viewModel.rightPageTab {  // 助手和进化是两套页
-            case .readingAssistant:  // 讲解/翻译
-                readingAssistantPage  // 分栏 + 内容 + 输入
-            case .aiEvolution:  // 进化对话
-                aiEvolutionPage  // 队列 + 对话 + 输入
-            }
+        VStack(spacing: 0) {
+            readingAssistantPage
         }
-        .padding(.bottom, 2)  // 和书桌底留一线
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // 吃掉右页剩余
-        .onAppear {  // 每次露出来核对钥匙，避免过期
-            settings.reloadCursorAPIKey()  // 钥匙可能在钥匙串里被换过
-        }
+        .padding(.bottom, 2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// 读书助手页：分栏加输入。
@@ -67,7 +59,7 @@ struct ExplanationChatView: View {
         if !isReadingChromeVisible {  // 沉浸时只留恢复
             EmptyView()  // 沉浸时连折叠条也藏
         } else if isReadingComposerVisible {  // 展开才上完整输入
-            composer(for: .readingAssistant)  // 书内 LLM 输入
+            composer()
         } else {
             collapsedReadingComposerBar  // 只留状态和展开
         }
@@ -590,51 +582,10 @@ struct ExplanationChatView: View {
         .buttonStyle(.plain)  // 不要系统默认凸起
     }
 
-    /// 进化对话页。
-    private var aiEvolutionPage: some View {
-        VStack(spacing: 0) {  // 页内贴齐，分隔靠各段自己的 padding
-            configurationNotice  // 没配后端先提示
-
-            EvolutionUtilityTabsPanel(  // 优化队列
-                items: viewModel.evolution.evolutionItems,  // 按编号排
-                projectPath: SelfEvolution.sourceProjectPath(),  // 本仓库路径，给打开命令用
-                isRunning: viewModel.isRunning,  // 跑着时队列操作要收
-                isAnalyzing: viewModel.isAnalyzing,  // 分析轮和执行轮按钮不同
-                executingCommandNumber: viewModel.evolution.executingEvolutionCommandNumber,  // 正在做的那条
-                budget: viewModel.evolutionTokenBudget,  // 超限要提示
-                liveToolLabel: viewModel.evolutionLiveToolLabel,  // 当前工具名
-                lastRequestId: viewModel.evolution.evolutionLastRequestId,  // 排错用
-                hasPending: viewModel.evolution.hasPendingOptimization,  // 还有未做的
-                onAddUserItem: { viewModel.evolution.addUserOptimization(title: $0) },  // 用户自加一项
-                onSkip: { viewModel.evolution.skipOptimization(id: $0) },  // 跳过
-                onDelete: { viewModel.evolution.deleteOptimization(id: $0) },  // 删项
-                onPin: { viewModel.evolution.pinOptimization(id: $0) },  // 置顶
-                onRestore: { viewModel.evolution.restoreOptimization(id: $0) }  // 恢复跳过的
-            )
-
-            if viewModel.evolution.isEvolutionRebuilding {  // 重建工程时出横幅
-                EvolutionRebuildBanner(status: viewModel.evolution.evolutionRebuildStatus)  // 重建进度
-                    .padding(.horizontal, 14)  // 左右边距
-                    .padding(.bottom, 4)  // 底边距
-            }
-
-            ExplanationChatTranscriptView()  // 讲解气泡，输入在外
-                .frame(maxWidth: .infinity, maxHeight: .infinity)  // 吃掉右页剩余
-
-            composer(for: .aiEvolution)  // Cursor 输入
-        }
-    }
-
     @ViewBuilder
     /// 未配后端时的说明。
     private var configurationNotice: some View {
-        if viewModel.rightPageTab == .aiEvolution {  // 进化看 Cursor，助手看书内 LLM
-            if !settings.isCursorRunnable {  // 没钥匙/模型就先配
-                CursorConfigPanel()  // 就地配 Cursor
-                    .padding(.horizontal, 16)  // 左右边距
-                    .padding(.vertical, 6)  // 上下边距
-            }
-        } else if !settings.isBookLLMConfigured {  // 助手页没配书内 LLM
+        if !settings.isBookLLMConfigured {
             bookConfigBanner  // 引导去书籍设置
                 .padding(.horizontal, 16)  // 左右边距
                 .padding(.vertical, 6)  // 上下边距
@@ -666,19 +617,14 @@ struct ExplanationChatView: View {
 
     @ViewBuilder
     /// 按右页 Tab 选输入条。
-    private func composer(for mode: RightPageTab) -> some View {
-        if mode == .aiEvolution {  // 进化走 Cursor 输入
-            CursorComposerView(mode: mode)  // Cursor 对话输入
-        } else {
-            LLMComposerView(  // 书内 LLM 输入
-                mode: mode,
-                onCollapse: {
-                    withAnimation(.easeOut(duration: 0.18)) {  // 展开输入短动画
-                        isReadingComposerVisible = false  // 折叠输入，多给对话高度
-                    }
+    private func composer() -> some View {
+        LLMComposerView(
+            onCollapse: {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    isReadingComposerVisible = false
                 }
-            )
-        }
+            }
+        )
     }
 
     /// 教案编辑器。

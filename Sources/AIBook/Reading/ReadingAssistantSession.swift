@@ -1,4 +1,3 @@
-import AIBookEvolution
 import AppKit
 import Combine
 import Foundation
@@ -141,10 +140,7 @@ final class ReadingAssistantSession: ObservableObject {
         let context = host.activePromptContext  // 当前 Tab
         let messages = host.contextHistory(for: context)  // 源历史
         guard let message = messages.first(where: { $0.id == id }) else { return }  // 已经没了
-        let welcomeID = context == .reading  // 欢迎 id 两套
-            ? ReadingAssistantSession.defaultWelcomeMessage.id  // 讲解欢迎
-            : ReadingEvolutionSession.defaultEvolutionWelcomeMessage.id  // 进化欢迎
-        guard messages.count > 1 || message.id != welcomeID else { return }  // 只剩欢迎不能删
+        guard messages.count > 1 || message.id != ReadingAssistantSession.defaultWelcomeMessage.id else { return }
 
         if message.role == .assistant, isSpeakingExplanation {  // 正在读这条就停
             host.assistant.stopExplanationSpeech()  // 当停止
@@ -210,7 +206,7 @@ final class ReadingAssistantSession: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }  // 取消
 
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)  // utf8
+            let text = try host.document.folderGrants.readText(at: url)  // 面板给出的作用域
                 .trimmingCharacters(in: .whitespacesAndNewlines)  // 首尾空
             guard !text.isEmpty else {  // 空文件
                 host.errorMessage = BookL10n.string("vm.error.aiOutputOpenEmpty")  // 提示
@@ -221,6 +217,8 @@ final class ReadingAssistantSession: ObservableObject {
             host.appendDisplayedMessage(message, to: .reading)  // 追加，不清旧对话
             host.errorMessage = nil  // 清错
             host.document.showTransientSaveMessage(BookL10n.format("vm.opened.aiOutput", url.lastPathComponent))  // 提示
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请重新用面板选择
         } catch {
             host.errorMessage = BookL10n.format("vm.error.openAIOutput", error.localizedDescription)  // 读失败
         }
@@ -339,7 +337,7 @@ final class ReadingAssistantSession: ObservableObject {
     /// 读入讲解文本并拆成消息。
     func loadExplanation(at url: URL) {
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)  // utf8
+            let text = try host.document.folderGrants.readText(at: url)  // 面板或已授权目录
                 .trimmingCharacters(in: .whitespacesAndNewlines)  // 首尾空
             guard !text.isEmpty else {  // 空文件
                 host.errorMessage = BookL10n.string("vm.error.explanationOpenEmpty")  // 空档
@@ -358,6 +356,8 @@ final class ReadingAssistantSession: ObservableObject {
             host.errorMessage = nil  // 清错
             host.document.explanationBundle.capture(languageID: host.document.explanationBundle.displayed.rawValue) // 打开的稿记入当前语言
             host.document.showTransientSaveMessage(BookL10n.format("vm.opened.explanation", url.lastPathComponent))  // 打开提示
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请重新用面板选择
         } catch {
             host.errorMessage = BookL10n.format("vm.error.openExplanation", error.localizedDescription)  // 读失败
         }

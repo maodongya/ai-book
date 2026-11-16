@@ -1,4 +1,3 @@
-import AIBookEvolution
 import AppKit
 import Combine
 import Foundation
@@ -12,8 +11,7 @@ final class ReadingDocumentSession: ObservableObject {
 
     @Published var fileContent = "" {
         didSet {
-            isDirty = fileContent != savedContent  // 和上次落盘比，• 标靠这个
-            scheduleAutoSaveIfNotes()  // 笔记档 2 秒后自动存
+            isDirty = fileContent != savedContent
             if !host.isRestoringSession, !host.translation.isApplyingAlignment {  // 恢复/刷对齐时原文没真改
                 host.translation.refreshTranslationAlignmentStaleState()  // 原文变了标 stale
             }
@@ -42,9 +40,13 @@ final class ReadingDocumentSession: ObservableObject {
     lazy var explanationBundle = ReadingExplanationLanguages(document: self)
     private var savedContent = ""  // 上次成功写入的正文
     var selectedTextRange: NSRange?  // 和 selectedText 一起更新
-    private var autoSaveTask: Task<Void, Never>?  // 笔记防抖
-    private var saveMessageTask: Task<Void, Never>?  // 3 秒清提示
-    private let readmeNotesStore = ReadmeNotesStore.shared  // 编号笔记存储
+    private var saveMessageTask: Task<Void, Never>?
+    /// 用户通过面板授权过的文件夹和当前文件。
+    let folderGrants = UserFolderGrants()
+    /// 当前打开文件的书签 id，和目录根分开，另存时才换。
+    let documentGrantID = UUID()
+    /// 另存面板确认前临时拿着的访问，取消覆盖时丢掉，不替换当前文件。
+    private let pendingSaveGrantID = UUID()
 
     /// 标题栏文件名；未打开文件时用未命名。
     var displayFileName: String {
@@ -52,11 +54,8 @@ final class ReadingDocumentSession: ObservableObject {
             return BookL10n.string("vm.noFileOpen")  // 顶栏「未打开」
         }
         let name = currentFileURL?.lastPathComponent ?? fileName  // 有路径用文件名
-        return isDirty ? "\(name) •" : name  // 脏了加点
+        return isDirty ? "\(name) •" : name
     }
-
-    /// 没打开文件就是在写笔记，保存走笔记路径。
-    var isEditingNotes: Bool { currentFileURL == nil }
 
 
 
@@ -103,6 +102,8 @@ final class ReadingDocumentSession: ObservableObject {
         panel.canChooseDirectories = false  // 目录走另一入口
 
         guard panel.runModal() == .OK, let url = panel.url else { return }  // 取消就停
+        guard grantUserFile(url) else { return }  // 没拿到作用域就不读
+        DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()  // 下次面板用书签
         openDocument(at: url)
     }
 
@@ -136,14 +137,18 @@ final class ReadingDocumentSession: ObservableObject {
     /// 把树里的文件或文件夹移到废纸篓，然后刷新这棵树。
     func deleteDirectoryItem(at url: URL, sessionID: UUID) {
         let target = url.standardizedFileURL  // 和树节点同一套路径
+        guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }  // 根可能已经卸了
+        let root = directoryBrowserSessions[index].rootURL.standardizedFileURL  // 删的如果是根，会话也去掉
+        guard DirectoryItemTrash.isInsideGrantedFolder(target, roots: [root]), folderGrants.covers(target) else {
+            host.errorMessage = BookL10n.string("directory.access.outsideGrant")  // 授权根以外不删
+            return
+        }
         do {
             try DirectoryItemTrash.trash(target)  // 废纸篓，不直接抹掉
         } catch {
             host.errorMessage = BookL10n.format("directory.delete.failed", error.localizedDescription)  // 权限或占用
             return  // 树保持原样
         }
-        guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }  // 根可能已经卸了
-        let root = directoryBrowserSessions[index].rootURL.standardizedFileURL  // 删的如果是根，会话也去掉
         if DirectoryItemTrash.contains(path: root.path, deletedPath: target.path)
             || !FileManager.default.fileExists(atPath: root.path) {  // 根被移走
             removeDirectorySession(sessionID)  // 书签一起删
@@ -158,6 +163,7 @@ final class ReadingDocumentSession: ObservableObject {
 
     /// 去掉一个根，书签一起删。
     func removeDirectorySession(_ id: UUID) {
+        folderGrants.stop(id)  // 卸掉这个根的访问
         directoryBrowserSessions.removeAll { $0.id == id }  // 根和展开一起丢
         if selectedDirectorySessionID == id {  // 删的是当前根
             selectedDirectorySessionID = directoryBrowserSessions.first?.id  // 恢复上次第一个
@@ -191,6 +197,7 @@ final class ReadingDocumentSession: ObservableObject {
         switch target {  // 同一文件三种打开方式
         case .original:  // 当左页
             guard confirmDiscardUnsavedIfNeeded() else { return }  // 脏了先问
+            guard grantUserFile(url) else { return }  // 目录授权还在才打开
             openDocument(at: url)  // txt 或 .aibook
         case .translation:  // 当译文
             host.selectRightPageTab(.readingAssistant)  // 先切到译文
@@ -231,7 +238,12 @@ final class ReadingDocumentSession: ObservableObject {
             return  // 不追加
         }
 
-        let session = DirectoryBrowserRootSession.new(url: standardized)  // 新 id、空树
+        var session = DirectoryBrowserRootSession.new(url: standardized)  // 新 id、空树
+        guard let captured = folderGrants.capture(standardized, id: session.id) else {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 沙盒里没拿到书签
+            return
+        }
+        session.bookmarkData = captured.bookmarkData  // 下次启动靠它，不靠路径
         directoryBrowserSessions.append(session)  // 先上屏再扫
         selectedDirectorySessionID = session.id  // 立刻选中
         persistDirectoryBrowserSessions()  // 书签立刻写
@@ -241,16 +253,21 @@ final class ReadingDocumentSession: ObservableObject {
 
     /// 启动时从书签恢复仍在的根。
     func restoreDirectoryBrowserSessions() {
-        let stored = DirectoryBrowserPersistence.load()  // 书签；权限没了也先建
-        directoryBrowserSessions = stored.map { storedRoot in  // 树稍后扫
-            let url = URL(fileURLWithPath: storedRoot.urlPath, isDirectory: true).standardizedFileURL  // 当目录
+        let stored = DirectoryBrowserPersistence.load()  // 只解码，不按路径探盘
+        let restored = DirectoryBrowserPersistence.restorable(stored) { data in  // 没书签的根丢掉
+            SecurityScopedBookmark.resolve(data)?.url
+        }
+        directoryBrowserSessions = restored.compactMap { item in  // 书签打不开的也不建会话
+            guard let captured = folderGrants.begin(item.bookmarkData, id: item.id) else { return nil }  // 重新 start
+            let expanded = FolderAccessPolicy.pathsInside(root: captured.url, paths: Set(item.expandedPaths))
             return DirectoryBrowserRootSession(  // tree 空，isLoading 后面再开
-                id: storedRoot.id,
-                rootURL: url,
+                id: item.id,
+                rootURL: captured.url,
                 tree: nil,
                 isLoading: false,
-                expandedPaths: Set(storedRoot.expandedPaths),
-                loadError: nil
+                expandedPaths: expanded,
+                loadError: nil,
+                bookmarkData: captured.bookmarkData
             )
         }
         selectedDirectorySessionID = directoryBrowserSessions.first?.id  // 恢复上次第一个
@@ -270,7 +287,15 @@ final class ReadingDocumentSession: ObservableObject {
     private func loadDirectoryTree(for sessionID: UUID) {
         guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }) else { return }  // 可能已被删
         let rootURL = directoryBrowserSessions[index].rootURL  // 扫之前抓出来，避免下标过期
-        let expandedPaths = directoryBrowserSessions[index].expandedPaths  // 已展开的层也要按现在的硬盘列
+        guard folderGrants.covers(rootURL) else {  // 没授权不扫
+            directoryBrowserSessions[index].isLoading = false
+            directoryBrowserSessions[index].loadError = BookL10n.string("directory.access.usePanel")
+            return
+        }
+        let expandedPaths = FolderAccessPolicy.pathsInside(  // 只扫根里面展开过的层
+            root: rootURL,
+            paths: directoryBrowserSessions[index].expandedPaths
+        )
         directoryBrowserSessions[index].isLoading = true  // 转圈
         directoryBrowserSessions[index].loadError = nil  // 清上次错
 
@@ -301,6 +326,9 @@ final class ReadingDocumentSession: ObservableObject {
     /// 展开的那一层重新列目录。已经展开的子目录也跟着重读。
     private func reloadDirectoryLevel(sessionID: UUID, path: String) {
         let url = URL(fileURLWithPath: path, isDirectory: true)  // 节点 id 就是绝对路径
+        guard let index = directoryBrowserSessions.firstIndex(where: { $0.id == sessionID }),
+              FolderAccessPolicy.contains(candidate: url, root: directoryBrowserSessions[index].rootURL),
+              folderGrants.covers(url) else { return }  // 根以外的路径不列
         Task.detached(priority: .userInitiated) {  // 列目录不堵界面
             let children = DirectoryTreeScanner.children(in: url)  // 只这一层
             await MainActor.run { [weak self] in  // 树写在主线程
@@ -329,6 +357,7 @@ final class ReadingDocumentSession: ObservableObject {
             return
         }
         guard confirmDiscardUnsavedIfNeeded() else { return }  // 脏了先问
+        guard grantUserFile(url) else { return }  // 拖入的 URL 也要能做成书签
         openDocument(at: url)
     }
 
@@ -344,7 +373,7 @@ final class ReadingDocumentSession: ObservableObject {
     /// 读文本进左页并重置分页。
     func loadFile(at url: URL, resetChat: Bool = true) {
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)  // 按 utf8，坏编码抛
+            let text = try folderGrants.readText(at: url)  // 没授权的路径在沙盒里读不到
             fileContent = text  // 左页
             savedContent = text  // 刚读的，不脏
             isDirty = false  // 干净
@@ -356,8 +385,7 @@ final class ReadingDocumentSession: ObservableObject {
             lastCommittedSelectionRange = nil  // 没有可回钉的
             selectedTextRange = nil  // 长度变了，旧 range 作废
             if resetChat {  // 恢复会话时 false
-                host.assistant.readingPromptMessages = []  // 讲解清空，欢迎由 persist 那边补
-                host.evolution.evolutionPromptMessages = []  // 进化也清
+                host.assistant.readingPromptMessages = []
                 host.syncDisplayedChatMessages()  // 气泡空
             }
             clearBundledLanguages()
@@ -365,6 +393,8 @@ final class ReadingDocumentSession: ObservableObject {
             host.persistChatSession()  // 落盘空档
             host.translation.refreshTranslationAlignmentAfterSourceChange()  // 能修对齐就修
             host.assistant.refreshExplanationAlignmentStaleState()
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请重新用面板选择
         } catch {
             host.errorMessage = BookL10n.format("vm.error.readFile", error.localizedDescription)  // 读失败
         }
@@ -377,11 +407,10 @@ final class ReadingDocumentSession: ObservableObject {
             writeAIBook(to: url)
             return
         }
-        if let url = currentFileURL {  // 已绑文件也回写磁盘
-            writeContent(to: url)  // 有路径写文件
-            syncReadmeNotesIfNeeded()  // 笔记档还要回写 store
-        } else {  // 没选区整页替换
-            saveReadmeNotes()  // 没路径当笔记
+        if let url = currentFileURL {
+            writeContent(to: url)
+        } else {
+            saveAs()
         }
     }
 
@@ -442,85 +471,34 @@ final class ReadingDocumentSession: ObservableObject {
             directory: directory
         ) else { return }
 
+        guard folderGrants.capture(destination, id: pendingSaveGrantID) != nil else {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 面板 URL 没拿到访问权
+            return
+        }
+
         if FileManager.default.fileExists(atPath: destination.path),  // 覆盖先问
            !AppGuard.confirmOverwriteExistingFile(at: destination) {  // 取消则停
+            folderGrants.stop(pendingSaveGrantID)  // 不替换当前文件的授权
             return  // 不追加
         }
 
         do {
-            try DocumentExporter.write(content, to: destination) // 调用可能失败的方法
+            try folderGrants.writeText(content, to: destination) // 在刚拿到的作用域里写
             if content == fileContent {  // 另存的是整页才切路径
+                _ = folderGrants.capture(destination, id: documentGrantID)  // 临时授权还在时换成文档书签
                 currentFileURL = destination  // 下次保存走新路径
                 fileName = destination.lastPathComponent  // 顶栏
                 savedContent = fileContent  // 干净
                 isDirty = false  // 干净
             }
+            folderGrants.stop(pendingSaveGrantID)  // 文档书签已经单独 start，临时的可以停
             host.errorMessage = nil  // 清错
             host.document.showTransientSaveMessage("\(successPrefix) \(destination.lastPathComponent)")  // 3 秒提示
             onSaved?(destination)  // 译文可写 sidecar
         } catch {
+            folderGrants.stop(pendingSaveGrantID)  // 写失败也放开临时授权
             host.errorMessage = BookL10n.format("vm.error.saveFile", error.localizedDescription)  // 写失败
         }
-    }
-
-
-    /// 编号笔记和左页互相跟。
-    func syncLeftPageWithEvolutionCommands(from url: URL, formatted: String) {
-        fileContent = formatted  // 编号命令上左页
-        savedContent = formatted  // 和队列一致
-        fileName = url.lastPathComponent  // 顶栏
-        currentFileURL = url  // 路径可能是第一次 saveAs 定的
-        isDocumentOpen = true  // 让顶栏有名字
-        isDirty = false  // 干净
-        do {
-            try ReadmeNotesStore.shared.save(formatted) // 调用可能失败的方法
-        } catch {
-            host.errorMessage = BookL10n.format("vm.error.syncCommandNotes", error.localizedDescription)  // store 失败不影响内存
-        }
-    }
-
-    /// 将优化队列格式化为左页编号命令（N、…）并同步展示与持久化。
-
-    func syncLeftPageFromOptimizationQueue() {
-        guard !host.evolution.optimizationQueue.items.isEmpty else { return }  // 空队列不覆盖左页
-        let formatted = NumberedNoteFormatter.format(host.evolution.optimizationQueue)  // N、正文
-        fileContent = formatted  // 编号命令上左页
-        savedContent = formatted  // 和队列一致
-        isDirty = false  // 干净
-        if !isDocumentOpen {  // 笔记还没标打开
-            isDocumentOpen = true  // 让顶栏有名字
-        }
-        do {
-            try ReadmeNotesStore.shared.save(formatted) // 调用可能失败的方法
-        } catch {
-            host.errorMessage = BookL10n.format("vm.error.syncCommandNotes", error.localizedDescription)  // store 失败不影响内存
-        }
-        if let url = currentFileURL {  // 已绑文件也回写磁盘
-            try? DocumentExporter.write(formatted, to: url)  // 失败只靠 store 报错
-        }
-    }
-
-    /// 左页含编号命令行时回写优化队列，使手动编辑与进化队列保持一致。
-
-    func syncOptimizationQueueFromLeftPageIfNeeded() {
-        guard !host.isRunning else { return }  // 跑着不改队列
-        guard !host.evolution.optimizationQueue.items.contains(where: { $0.status == .running }) else { return }  // 有 running 不覆盖
-        let imported = OptimizationQueue.importFromNotes(fileContent)  // 解析编号行
-        guard !imported.items.isEmpty else { return }  // 不像笔记就不动队列
-        host.evolution.optimizationQueue = imported  // 整表替换
-        host.evolution.persistOptimizationQueue()  // 队列落盘
-    }
-
-
-    /// 导入队列会覆盖时先问。
-    func confirmReplaceOptimizationQueue() -> Bool {
-        let alert = NSAlert()  // 覆盖确认
-        alert.messageText = BookL10n.string("vm.alert.replaceQueueTitle")  // 标题
-        alert.informativeText = BookL10n.format("vm.alert.replaceQueueMsg", host.evolution.optimizationQueue.items.count)  // 带条数
-        alert.alertStyle = .warning  // 警告
-        alert.addButton(withTitle: BookL10n.string("action.replace"))  // 默认按钮
-        alert.addButton(withTitle: BookL10n.string("alert.cancel"))  // 取消
-        return alert.runModal() == .alertFirstButtonReturn  // 点替换才 true
     }
 
 
@@ -544,51 +522,10 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
 
-    /// 读编号笔记。
-    func loadReadmeNotes() {
-        let content = ReadmeNotesStore.shared.loadInitialContent()  // 空则不改左页
-        guard !content.isEmpty else { return }  // 没笔记就保持未打开
-
-        fileContent = content
-        savedContent = content
-        fileName = "readme-notes.txt"  // 约定名，自动存靠它认
-        currentFileURL = nil  // 笔记不绑用户文件
-        isDocumentOpen = true  // 让顶栏有名字
-        isDirty = false  // 干净
-    }
-
-
-    /// 写编号笔记。
-    private func saveReadmeNotes() {
-        do {
-            try ReadmeNotesStore.shared.save(fileContent) // 调用可能失败的方法
-            savedContent = fileContent  // 干净
-            fileName = "readme-notes.txt"  // 约定名，自动存靠它认
-            currentFileURL = nil  // 笔记不绑用户文件
-            isDirty = false  // 干净
-            host.errorMessage = nil  // 清错
-            syncOptimizationQueueFromLeftPageIfNeeded()  // 编号行回写队列
-        } catch {
-            host.errorMessage = BookL10n.format("vm.error.saveCommandNotes", error.localizedDescription)  // 笔记存失败
-        }
-    }
-
-
-    /// 队列变了才回写笔记。
-    private func syncReadmeNotesIfNeeded() {
-        guard fileName == "readme-notes.txt" || currentFileURL == nil else { return }  // 普通文件不碰 store
-        do {
-            try ReadmeNotesStore.shared.save(fileContent) // 调用可能失败的方法
-        } catch {
-            host.errorMessage = BookL10n.format("vm.error.syncCommandNotes", error.localizedDescription)  // store 失败不影响内存
-        }
-    }
-
-
     /// 原子写文件。失败抛给调用方。
     private func writeContent(to url: URL) {
         do {
-            try DocumentExporter.write(fileContent, to: url) // 调用可能失败的方法
+            try folderGrants.writeText(fileContent, to: url) // 只写已经授权的文件
             currentFileURL = url  // 路径可能是第一次 saveAs 定的
             fileName = url.lastPathComponent  // 顶栏
             savedContent = fileContent  // 干净
@@ -596,6 +533,8 @@ final class ReadingDocumentSession: ObservableObject {
             host.errorMessage = nil  // 清错
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()  // 下次面板
             host.document.showTransientSaveMessage(BookL10n.format("vm.saved.file", url.lastPathComponent))  // 已保存
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请用另存为重新授权
         } catch {
             host.errorMessage = BookL10n.format("vm.error.saveFile", error.localizedDescription)  // 写失败
         }
@@ -710,6 +649,21 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
 
+    /// 面板或已授权目录里的文件才能成为当前文档。
+    @discardableResult
+    func grantUserFile(_ url: URL) -> Bool {
+        if folderGrants.capture(url, id: documentGrantID) != nil { return true }  // 文件自己的书签
+        if folderGrants.covers(url) { return true }  // 父目录已经授权
+        host.errorMessage = BookL10n.string("directory.access.usePanel")
+        return false
+    }
+
+    /// 用上次保存的文件书签重新打开。书签无效就保持未命名，不按路径去读。
+    func reopenGrantedFile(_ data: Data) {
+        guard let captured = folderGrants.begin(data, id: documentGrantID) else { return }
+        loadFile(at: captured.url, resetChat: false)
+    }
+
     /// txt 当原文，`.aibook` 同时恢复各语言译文和讲解。
     func openDocument(at url: URL) {
         if url.pathExtension.lowercased() == "aibook" {
@@ -731,6 +685,7 @@ final class ReadingDocumentSession: ObservableObject {
             suggestedName: aibookSuggestedName(overrideStem: suggestedStem),
             directory: directory
         ) else { return }
+        guard grantUserFile(destination) else { return }  // 另存的包也要留下书签
         writeAIBook(to: destination)
     }
 
@@ -810,7 +765,7 @@ final class ReadingDocumentSession: ObservableObject {
 
     private func openAIBook(at url: URL) {
         do {
-            let data = try Data(contentsOf: url)
+            let data = try folderGrants.readData(at: url)  // 没授权不读包
             let bundle = try AIBookBundle.decode(data)
             host.assistant.stopExplanationSpeech()
             bundledLanguages = bundle.languages
@@ -825,7 +780,6 @@ final class ReadingDocumentSession: ObservableObject {
             lastCommittedSelectionRange = nil
             selectedTextRange = nil
             host.assistant.readingPromptMessages = [ReadingAssistantSession.defaultWelcomeMessage]
-            host.evolution.evolutionPromptMessages = [ReadingEvolutionSession.defaultEvolutionWelcomeMessage]
             host.syncDisplayedChatMessages()
             host.assistant.readingChatInput = ""
             applyBundledLanguage(bundle, kind: .translation)
@@ -833,6 +787,8 @@ final class ReadingDocumentSession: ObservableObject {
             host.errorMessage = nil
             host.persistChatSession()
             showTransientSaveMessage(BookL10n.format("vm.opened.aibook", url.lastPathComponent))
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请重新用面板选择
         } catch {
             host.errorMessage = BookL10n.format("vm.error.aibookRead", error.localizedDescription)
         }
@@ -885,7 +841,7 @@ final class ReadingDocumentSession: ObservableObject {
         let bundle = AIBookBundle(title: title, source: fileContent, languages: bundledLanguages)
         do {
             let data = try bundle.encoded()
-            try data.write(to: url, options: .atomic)
+            try folderGrants.writeData(data, to: url)  // 只写已经授权的包
             currentFileURL = url
             fileName = url.lastPathComponent
             savedContent = fileContent
@@ -894,6 +850,8 @@ final class ReadingDocumentSession: ObservableObject {
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()
             showTransientSaveMessage(BookL10n.format("vm.saved.aibook", url.lastPathComponent))
             host.persistChatSession()
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请用另存为重新授权
         } catch {
             host.errorMessage = BookL10n.format("vm.error.aibookSave", error.localizedDescription)
         }
@@ -1004,23 +962,8 @@ final class ReadingDocumentSession: ObservableObject {
             writeAIBook(to: url)
             return
         }
-        if let url = currentFileURL {  // 已绑文件也回写磁盘
-            writeContent(to: url)  // 有路径写文件
-        } else {  // 没选区整页替换
-            saveReadmeNotes()  // 没路径当笔记
-        }
-    }
-
-
-    /// 笔记档延迟自动存。
-    private func scheduleAutoSaveIfNotes() {
-        guard isEditingNotes, isDirty, !host.isRestoringSession else { return }  // 普通文件不自动存
-
-        autoSaveTask?.cancel()  // 输入中防抖
-        autoSaveTask = Task { @MainActor [weak self] in  // 2 秒后
-            try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 秒
-            guard !Task.isCancelled else { return }  // 被新提示打断
-            self?.saveReadmeNotes()  // 写 store
+        if let url = currentFileURL {
+            writeContent(to: url)
         }
     }
 

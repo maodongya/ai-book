@@ -99,8 +99,6 @@ enum OperationPlanParser {
         case "unlockExplanation": return .unlockExplanation
         case "toggleExplanationTable": return .toggleExplanationTable
         case "toggleTranslationTable": return .toggleTranslationTable
-        case "startEvolution": return .startEvolution
-        case "analyzeOptimizations": return .analyzeOptimizations
         default:
             return nil // 目录外的名字不执行
         }
@@ -134,5 +132,5 @@ enum OperationPlanParser {
 
     private static let paneFocus: Set<String> = ["both", "leading", "trailing"]
     private static let panels: Set<String> = ["explanation", "translation"]
-    private static let pages: Set<String> = ["assistant", "evolution"]
+    private static let pages: Set<String> = ["assistant"]
 }

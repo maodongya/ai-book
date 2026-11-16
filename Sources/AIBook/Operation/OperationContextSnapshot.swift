@@ -44,6 +44,7 @@ struct OperationContextSnapshot: Equatable, Encodable {
         let trimmedSelection = selection.trimmingCharacters(in: .whitespacesAndNewlines) // 空白选区当没有
         let excerpt = String(trimmedSelection.prefix(selectionExcerptLimit)) // 第 81 个字符起不进快照
         let library = Array(libraryFileNames.prefix(libraryFileLimit)) // 保持原顺序
+        let _ = rightPage
         return OperationContextSnapshot(
             fileName: fileName,
             hasDocumentPath: hasDocumentPath,
@@ -52,7 +53,7 @@ struct OperationContextSnapshot: Equatable, Encodable {
             selectionExcerpt: excerpt,
             experienceMode: experienceMode.rawValue,
             paneFocus: paneFocus.rawValue,
-            rightPage: rightPage == .aiEvolution ? "evolution" : "assistant", // 右页只分这两档
+            rightPage: "assistant",
             assistantPanel: assistantPanel.rawValue,
             explanationLanguage: explanationLanguage.rawValue,
             translationLanguage: translationLanguage.rawValue,

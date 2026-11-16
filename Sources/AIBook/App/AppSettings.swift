@@ -72,26 +72,6 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    @Published var explanationSource: ExplanationSource {
-        didSet { UserDefaults.standard.set(explanationSource.rawValue, forKey: Keys.explanationSource) }
-    }
-
-    @Published var cursorAPIKey: String {
-        didSet { UserDefaults.standard.set(cursorAPIKey, forKey: Keys.cursorAPIKey) }
-    }
-
-    @Published var cursorModel: String {
-        didSet { UserDefaults.standard.set(cursorModel, forKey: Keys.cursorModel) }
-    }
-
-    @Published var cursorBridgePath: String {
-        didSet { UserDefaults.standard.set(cursorBridgePath, forKey: Keys.cursorBridgePath) }
-    }
-
-    @Published var cursorContextPercent: Double {
-        didSet { UserDefaults.standard.set(cursorContextPercent, forKey: Keys.cursorContextPercent) }
-    }
-
     @Published var llmContextPercent: Double {
         didSet { UserDefaults.standard.set(llmContextPercent, forKey: Keys.llmContextPercent) }
     }
@@ -135,10 +115,6 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(bookContextPercent, forKey: Keys.bookContextPercent) }
     }
 
-    @Published var autoEvolutionEnabled: Bool {
-        didSet { UserDefaults.standard.set(autoEvolutionEnabled, forKey: Keys.autoEvolutionEnabled) }
-    }
-
     @Published var explanationVoiceID: String {
         didSet { SpeechVoiceStore.selectedVoiceID = explanationVoiceID } // 语音另库存一份
     }
@@ -174,6 +150,7 @@ final class AppSettings: ObservableObject {
         didSet {
             guard appLanguage != oldValue else { return }
             UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage)
+            InterfaceLanguageLaunch.apply(appLanguage) // 下次启动的系统权限框跟这一语言
             localizationRevision &+= 1 // 通知界面重取目录文案
         }
     }
@@ -187,18 +164,12 @@ final class AppSettings: ObservableObject {
         static let baseURL = "aiBook.baseURL"
         static let model = "aiBook.model"
         static let apiKey = "aiBook.apiKey"
-        static let explanationSource = "aiBook.explanationSource"
-        static let cursorAPIKey = "aiBook.cursorAPIKey"
-        static let cursorModel = "aiBook.cursorModel"
-        static let cursorBridgePath = "aiBook.cursorBridgePath"
-        static let cursorContextPercent = "aiBook.cursorContextPercent"
         static let llmContextPercent = "aiBook.llmContextPercent"
         static let bookProvider = "aiBook.book.provider"
         static let bookBaseURL = "aiBook.book.baseURL"
         static let bookModel = "aiBook.book.model"
         static let bookApiKey = "aiBook.book.apiKey"
         static let bookContextPercent = "aiBook.book.contextPercent"
-        static let autoEvolutionEnabled = "aiBook.autoEvolutionEnabled"
         static let speechEngineMode = "aiBook.speechEngineMode"
         static let speechLanguageMode = "aiBook.speechLanguageMode"
         static let appLanguage = "aiBook.appLanguage"
@@ -219,7 +190,8 @@ final class AppSettings: ObservableObject {
         LLMProfileStore.migrateLegacyFlatStorageIfNeeded() // 旧扁平 key → 按提供商分档
 
         let storedProvider = UserDefaults.standard.string(forKey: Keys.provider)
-        let resolvedProvider = LLMProvider(rawValue: storedProvider ?? "") ?? .openAI // 乱值当 OpenAI
+        let providerWasLocal = storedProvider == LLMProvider.retiredLocalRawValue
+        let resolvedProvider = LLMProvider.resolved(stored: storedProvider, fallback: .openAI)
         provider = resolvedProvider
 
         let legacyBaseURL = UserDefaults.standard.string(forKey: Keys.baseURL) ?? resolvedProvider.defaultBaseURL
@@ -242,42 +214,58 @@ final class AppSettings: ObservableObject {
         LLMProfileStore.seedBookScopeIfNeeded(activeEvolutionProvider: resolvedProvider)
 
         let profile = LLMProfileStore.profile(for: resolvedProvider, scope: .evolution)
-        baseURL = profile.baseURL.isEmpty ? legacyBaseURL : profile.baseURL
-        model = profile.model.isEmpty ? legacyModel : profile.model
-        apiKey = profile.apiKey
+        var resolvedBaseURL = profile.baseURL.isEmpty ? legacyBaseURL : profile.baseURL
+        var resolvedModel = profile.model.isEmpty ? legacyModel : profile.model
+        var resolvedKey = profile.apiKey
+        if providerWasLocal {
+            UserDefaults.standard.set(resolvedProvider.rawValue, forKey: Keys.provider)
+            // 只有读出来仍是本机地址时才覆盖。已存的 OpenAI 档案留下。
+            if LLMProvider.looksLikeRetiredLocal(baseURL: resolvedBaseURL, model: resolvedModel) {
+                resolvedBaseURL = resolvedProvider.defaultBaseURL
+                resolvedModel = resolvedProvider.defaultModel
+                resolvedKey = ""
+                UserDefaults.standard.set(resolvedBaseURL, forKey: Keys.baseURL)
+                UserDefaults.standard.set(resolvedModel, forKey: Keys.model)
+                UserDefaults.standard.set(resolvedKey, forKey: Keys.apiKey)
+            }
+        }
+        baseURL = resolvedBaseURL
+        model = resolvedModel
+        apiKey = resolvedKey
 
         let storedBookProvider = UserDefaults.standard.string(forKey: Keys.bookProvider)
-        let resolvedBookProvider = LLMProvider(rawValue: storedBookProvider ?? "") ?? .ollama // 读书默认本地
-        bookProvider = resolvedBookProvider
+        let bookWasLocal = storedBookProvider == LLMProvider.retiredLocalRawValue
+        var resolvedBookProvider = LLMProvider.resolved(stored: storedBookProvider, fallback: .openAI)
         let bookProfile = LLMProfileStore.profile(for: resolvedBookProvider, scope: .book)
-        bookBaseURL = UserDefaults.standard.string(forKey: Keys.bookBaseURL)
+        var resolvedBookURL = UserDefaults.standard.string(forKey: Keys.bookBaseURL)
             ?? (bookProfile.baseURL.isEmpty ? resolvedBookProvider.defaultBaseURL : bookProfile.baseURL)
-        bookModel = UserDefaults.standard.string(forKey: Keys.bookModel)
+        var resolvedBookModel = UserDefaults.standard.string(forKey: Keys.bookModel)
             ?? (bookProfile.model.isEmpty ? resolvedBookProvider.defaultModel : bookProfile.model)
-        bookApiKey = UserDefaults.standard.string(forKey: Keys.bookApiKey) ?? bookProfile.apiKey
+        var resolvedBookKey = UserDefaults.standard.string(forKey: Keys.bookApiKey) ?? bookProfile.apiKey
+        // 旧默认是本机 Ollama。没选过提供商但地址仍是 11434 的，一并改到 OpenAI。
+        let bookStillLocal = bookWasLocal
+            || (storedBookProvider == nil && LLMProvider.looksLikeRetiredLocal(baseURL: resolvedBookURL, model: resolvedBookModel))
+        if bookStillLocal {
+            resolvedBookProvider = .openAI
+            if LLMProvider.looksLikeRetiredLocal(baseURL: resolvedBookURL, model: resolvedBookModel) || bookWasLocal {
+                resolvedBookURL = resolvedBookProvider.defaultBaseURL
+                resolvedBookModel = resolvedBookProvider.defaultModel
+                resolvedBookKey = ""
+            }
+            UserDefaults.standard.set(resolvedBookProvider.rawValue, forKey: Keys.bookProvider)
+            UserDefaults.standard.set(resolvedBookURL, forKey: Keys.bookBaseURL)
+            UserDefaults.standard.set(resolvedBookModel, forKey: Keys.bookModel)
+            UserDefaults.standard.set(resolvedBookKey, forKey: Keys.bookApiKey)
+        }
+        bookProvider = resolvedBookProvider
+        bookBaseURL = resolvedBookURL
+        bookModel = resolvedBookModel
+        bookApiKey = resolvedBookKey
         let storedBookContext = UserDefaults.standard.object(forKey: Keys.bookContextPercent) as? Double
         bookContextPercent = storedBookContext ?? 50
 
-        let storedSource = UserDefaults.standard.string(forKey: Keys.explanationSource)
-        explanationSource = ExplanationSource(rawValue: storedSource ?? "") ?? .llm
-        let resolvedCursorKey = CursorAPIKeyStore.resolveStoredKey()
-        cursorAPIKey = resolvedCursorKey
-        if !resolvedCursorKey.isEmpty {
-            CursorAPIKeyStore.save(resolvedCursorKey) // 统一写回钥匙串，避免只在 Defaults 里
-        }
-        cursorModel = Self.sanitizeCursorModel(
-            UserDefaults.standard.string(forKey: Keys.cursorModel) ?? CursorModelOption.composer25.rawValue
-        )
-        cursorBridgePath = UserDefaults.standard.string(forKey: Keys.cursorBridgePath) ?? CursorService.defaultBridgeDirectory()?.path ?? ""
-        let storedContext = UserDefaults.standard.object(forKey: Keys.cursorContextPercent) as? Double
-        cursorContextPercent = storedContext ?? 50
         let storedLLMContext = UserDefaults.standard.object(forKey: Keys.llmContextPercent) as? Double
         llmContextPercent = storedLLMContext ?? 50
-        if UserDefaults.standard.object(forKey: Keys.autoEvolutionEnabled) != nil {
-            autoEvolutionEnabled = UserDefaults.standard.bool(forKey: Keys.autoEvolutionEnabled)
-        } else {
-            autoEvolutionEnabled = true // 没写过这个键默认开自动升级
-        }
         explanationVoiceID = SpeechVoiceStore.selectedVoiceID
         let storedSpeechMode = UserDefaults.standard.string(forKey: Keys.speechEngineMode)
         speechEngineMode = SpeechEngineMode.migrated(from: storedSpeechMode)
@@ -356,27 +344,6 @@ final class AppSettings: ObservableObject {
         explanationTargetLanguages = TranslationTargetLanguage.orderedSelection(next)
     }
 
-    var selectedCursorModel: CursorModelOption {
-        get { CursorModelOption(rawValue: resolvedCursorModel) ?? .composer25 }
-        set { cursorModel = newValue.rawValue }
-    }
-
-    /// 送给 cursor-bridge 的公开模型 id，滤掉 crsr_* 等内部 id。
-    var resolvedCursorModel: String {
-        Self.sanitizeCursorModel(cursorModel)
-    }
-
-    /// 空、内部 id、旧 composer-2 别名都收到 composer25；带连字符的未知公开 id 原样放行。
-    static func sanitizeCursorModel(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return CursorModelOption.composer25.rawValue }
-        if trimmed.hasPrefix("crsr_") { return CursorModelOption.composer25.rawValue }
-        if trimmed == "composer-2" || trimmed == "composer-2-fast" { return CursorModelOption.composer25.rawValue }
-        if CursorModelOption(rawValue: trimmed) != nil { return trimmed }
-        if trimmed.contains("-"), !trimmed.contains("_") { return trimmed }
-        return CursorModelOption.composer25.rawValue
-    }
-
     var llmConfiguration: LLMConfiguration {
         LLMProfileStore.resolvedConfiguration(for: provider, scope: .evolution)
     }
@@ -386,26 +353,7 @@ final class AppSettings: ObservableObject {
     }
 
     var evolutionLLMConfiguration: LLMConfiguration {
-        llmConfiguration // 进化走同一套进化档案，名字给调用方读
-    }
-
-    /// 桥目录无效则 nil，调用方应提示未配置。
-    var cursorConfiguration: CursorConfiguration? {
-        let bridgeURL: URL?
-        if cursorBridgePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            bridgeURL = CursorService.defaultBridgeDirectory()
-        } else {
-            bridgeURL = URL(fileURLWithPath: cursorBridgePath, isDirectory: true)
-        }
-
-        guard let bridgeURL else { return nil }
-
-        return CursorConfiguration(
-            apiKey: effectiveCursorAPIKey,
-            model: resolvedCursorModel,
-            bridgeDirectory: bridgeURL,
-            workingDirectory: CursorService.defaultProjectDirectory()?.path ?? FileManager.default.currentDirectoryPath
-        )
+        llmConfiguration
     }
 
     /// 把当前进化提供商的空字段填成默认值，已有档案不覆盖。

@@ -5,6 +5,7 @@ struct PersistedChatSession: Codable {
     var messages: [ChatMessage] // 历史：曾是单一聊天；现作 reading 回退
     var chatInput: String
     var lastOpenedFilePath: String?
+    var lastOpenedFileBookmark: Data? = nil // 当前文件的安全作用域书签；没有就不恢复磁盘文件
     var lessonPlanContent: String? // 译文/讲解稿，名字是历史遗留
     var translationAlignment: TranslationAlignment?
     var scrollSyncEnabled: Bool?
@@ -49,6 +50,7 @@ final class ChatSessionStore {
         rightPageTab: RightPageTab,
         readingAssistantPanel: ReadingAssistantPanel,
         lastOpenedFilePath: String?,
+        lastOpenedFileBookmark: Data? = nil,
         lessonPlanContent: String,
         translationAlignment: TranslationAlignment?,
         translationTableViewEnabled: Bool,
@@ -59,6 +61,7 @@ final class ChatSessionStore {
             messages: readingMessages, // 旧字段 = 阅读，避免升级后丢掉气泡
             chatInput: readingChatInput,
             lastOpenedFilePath: lastOpenedFilePath,
+            lastOpenedFileBookmark: lastOpenedFileBookmark,
             lessonPlanContent: lessonPlanContent,
             translationAlignment: translationAlignment,
             translationTableViewEnabled: translationTableViewEnabled,

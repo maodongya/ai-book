@@ -7,7 +7,12 @@ enum DirectoryItemTrash {
         path == deletedPath || path.hasPrefix(deletedPath + "/")
     }
 
-    /// 移到废纸篓。调用方负责刷新目录树。
+    /// 目标必须是某个已授权根自己，或在它里面。空列表表示现在没有授权。
+    static func isInsideGrantedFolder(_ url: URL, roots: [URL]) -> Bool {
+        roots.contains { FolderAccessPolicy.contains(candidate: url, root: $0) }
+    }
+
+    /// 移到废纸篓。调用方负责先确认授权，并在访问仍然有效时调用。
     static func trash(_ url: URL) throws {
         try FileManager.default.trashItem(at: url, resultingItemURL: nil)
     }

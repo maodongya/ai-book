@@ -255,7 +255,7 @@ struct BookToolbarMenuCaption: View {
         Text(title)
             .font(styleManager.tokens.typography.captionFont)
             .foregroundStyle(styleManager.tokens.colors.menuItemText.opacity(0.62))
-            .lineLimit(2)
+            .lineLimit(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 4)

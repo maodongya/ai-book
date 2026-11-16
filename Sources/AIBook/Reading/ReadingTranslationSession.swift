@@ -1,4 +1,3 @@
-import AIBookEvolution
 import AppKit
 import Combine
 import Foundation
@@ -204,7 +203,7 @@ final class ReadingTranslationSession: ObservableObject {
     /// 读入译文并尝试对齐。
     func loadLessonPlan(at url: URL) {
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)  // utf8
+            let text = try host.document.folderGrants.readText(at: url)  // 面板或已授权目录
             isApplyingAlignment = true  // 成对写，抑制 stale
             lessonPlanContent = text  // 先上屏
             isApplyingAlignment = false  // 解开
@@ -218,6 +217,8 @@ final class ReadingTranslationSession: ObservableObject {
             DocumentExporter.lastDirectoryURL = url.deletingLastPathComponent()  // 记住
             host.errorMessage = nil  // 清旧错
             host.document.showTransientSaveMessage(BookL10n.format("vm.opened.translation", url.lastPathComponent))  // 打开提示
+        } catch FolderAccessError.notAuthorized {
+            host.errorMessage = BookL10n.string("directory.access.usePanel")  // 请重新用面板选择
         } catch {
             host.errorMessage = BookL10n.format("vm.error.openTranslation", error.localizedDescription)  // 读失败
         }
@@ -272,6 +273,10 @@ final class ReadingTranslationSession: ObservableObject {
 
     /// 保存译文时写入 sidecar。
     private func saveTranslationAlignmentSidecar(near txtURL: URL) {
+        if UserFolderGrants.isSandboxed,
+           !host.document.folderGrants.covers(txtURL.deletingLastPathComponent()) {
+            return  // 只有文件授权时，沙盒里不能在旁边新建 sidecar
+        }
         guard let alignment = translationAlignment, !alignment.isStale else { return }  // 没对齐或过期不写
         guard alignment.mode == .paragraph else { return }  // 逐词另说
         TranslationAlignmentSidecar.write(alignment, near: txtURL)  // 失败不影响 txt

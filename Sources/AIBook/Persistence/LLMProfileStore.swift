@@ -25,7 +25,7 @@ enum LLMProfileStore {
         apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// 修 Qwen/Ollama 档案后拼出发请求用的配置。
+    /// 修 Qwen 档案后拼出发请求用的配置。
     static func resolvedConfiguration(
         for provider: LLMProvider,
         scope: LLMProfileScope = .evolution
@@ -33,8 +33,6 @@ enum LLMProfileStore {
         var profile = profile(for: provider, scope: scope)
         if provider == .qwen {
             profile = QwenBailianConfig.repairProfile(profile) // 百炼地域/key 前缀
-        } else if provider == .ollama {
-            profile = OllamaConfig.repairProfile(profile)
         }
 
         let baseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -67,9 +65,6 @@ enum LLMProfileStore {
         let stored = loadAll(scope: scope)[provider.rawValue] ?? .defaults(for: provider)
         if provider == .qwen {
             return QwenBailianConfig.repairProfile(stored)
-        }
-        if provider == .ollama {
-            return OllamaConfig.repairProfile(stored)
         }
         return stored
     }
@@ -155,16 +150,17 @@ enum LLMProfileStore {
         persistScoped(scoped)
     }
 
-    /// 读书桶尚未建立时：进化若是 Ollama 则复用，否则只给一份 Ollama 默认。
+    /// 读书桶尚未建立时，复用当前进化提供商的档案；没有则给一份 OpenAI 默认。
     static func seedBookScopeIfNeeded(activeEvolutionProvider: LLMProvider) {
         var scoped = loadScoped()
         guard scoped[LLMProfileScope.book.rawValue] == nil else { return }
 
-        if activeEvolutionProvider == .ollama {
-            scoped[LLMProfileScope.book.rawValue] = scoped[LLMProfileScope.evolution.rawValue] ?? [:]
+        let evolution = scoped[LLMProfileScope.evolution.rawValue] ?? [:]
+        if let profile = evolution[activeEvolutionProvider.rawValue] {
+            scoped[LLMProfileScope.book.rawValue] = [activeEvolutionProvider.rawValue: profile]
         } else {
             scoped[LLMProfileScope.book.rawValue] = [
-                LLMProvider.ollama.rawValue: .defaults(for: .ollama)
+                LLMProvider.openAI.rawValue: .defaults(for: .openAI)
             ]
         }
         persistScoped(scoped)

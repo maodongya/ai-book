@@ -11,36 +11,58 @@ enum DocumentExporter {
     /// 导出进化命令时的默认文件名。
     static let evolutionCommandsSuggestedName = "进化命令.txt"
 
-    /// 上次成功导出目录的 UserDefaults 键，只在本类型里出现。
+    /// 旧版只存了路径。新代码不再读它，避免按裸路径探磁盘。
     private static let lastDirectoryKey = "DocumentExporter.lastDirectory"
+    /// 上次目录的安全作用域书签。
+    private static let lastDirectoryBookmarkKey = "DocumentExporter.lastDirectoryBookmark"
+    /// 这次进程里已经打开访问的上次目录。
+    private static var heldDirectory: URL?
+    /// heldDirectory 是否调用过 start，停的时候要配对。
+    private static var heldDirectoryStarted = false
 
-    /// 上次用户选过且仍然存在的目录；路径没了当 nil，避免面板指到黑洞。
+    /// 上次用户通过面板选过的目录。只从书签恢复，不按旧路径去 stat。
     static var lastDirectoryURL: URL? {
         get {
-            guard let path = UserDefaults.standard.string(forKey: lastDirectoryKey) else { return nil } // 从未导出过
-            let url = URL(fileURLWithPath: path, isDirectory: true) // 按目录打开，不是文件
-            return FileManager.default.fileExists(atPath: url.path) ? url : nil // 目录被删则忘掉
+            if let heldDirectory { return heldDirectory } // 这次进程已经打开过
+            guard let data = UserDefaults.standard.data(forKey: lastDirectoryBookmarkKey),
+                  let resolved = SecurityScopedBookmark.resolve(data) else { return nil } // 没书签就让面板自己决定
+            let started = resolved.url.startAccessingSecurityScopedResource() // 解析后仍要打开访问
+            if !started && UserFolderGrants.isSandboxed { return nil } // 沙盒里书签无效就忘掉
+            heldDirectory = resolved.url
+            heldDirectoryStarted = started
+            return resolved.url
         }
         set {
-            if let url = newValue {
-                UserDefaults.standard.set(url.path, forKey: lastDirectoryKey) // 只记 path，跨卷也能读
-            } else {
-                UserDefaults.standard.removeObject(forKey: lastDirectoryKey) // 显式清空
+            if heldDirectoryStarted, let heldDirectory {
+                heldDirectory.stopAccessingSecurityScopedResource() // 换目录前先停旧的
+            }
+            heldDirectory = nil
+            heldDirectoryStarted = false
+            UserDefaults.standard.removeObject(forKey: lastDirectoryKey) // 旧的裸路径不再使用
+            guard let url = newValue?.standardizedFileURL else {
+                UserDefaults.standard.removeObject(forKey: lastDirectoryBookmarkKey) // 显式清空
+                return
+            }
+            let started = url.startAccessingSecurityScopedResource()
+            if started || !UserFolderGrants.isSandboxed {
+                heldDirectory = url // 这次进程的面板还能指到这里
+                heldDirectoryStarted = started
+            }
+            if let data = SecurityScopedBookmark.make(for: url) {
+                UserDefaults.standard.set(data, forKey: lastDirectoryBookmarkKey) // 只记书签
             }
         }
     }
 
-    /// 另存为面板的起始目录：当前文件旁 → 上次目录 → 桌面 → 临时目录。
+    /// 另存为面板的起始目录：当前文件旁 → 上次书签目录 → 沙盒临时目录。不探桌面或整盘。
     static func defaultDirectory(currentFileURL: URL?) -> URL {
-        if let directory = currentFileURL?.deletingLastPathComponent(),
-           FileManager.default.fileExists(atPath: directory.path) {
-            return directory // 和正在读的书放一起，少让用户找
+        if let directory = currentFileURL?.deletingLastPathComponent() {
+            return directory // 和正在读的书放一起；真正写入仍要授权
         }
         if let last = lastDirectoryURL {
-            return last // 沿用上次导出位置
+            return last // 沿用上次面板选过的目录
         }
-        return FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory // 桌面不可用时才进临时目录
+        return FileManager.default.temporaryDirectory // 沙盒里这是容器内目录，不是用户磁盘
     }
 
     /// 建议文件名：无名变 未命名.txt；已有扩展名则保留；选区导出加「-选中摘录」。

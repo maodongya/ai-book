@@ -26,7 +26,7 @@ enum AIBookProduct {
         [
             positioning.trimmingCharacters(in: .whitespacesAndNewlines), // 去掉多行字符串首尾空白，避免关于页多空行
             "项目标识 \(slug)，源码目录含 Package.swift 与 Sources/AIBook。", // 给开发者/关于页定位仓库，不是运行时路径检查
-            "支持大模型 API 与 Cursor 本地对话，可由 AI 分析优化队列并一键升级。", // 点出进化能力，细节在 Evolution 包
+            "讲解、翻译和朗读走你配置的大模型 API。",
         ]
     }
 }

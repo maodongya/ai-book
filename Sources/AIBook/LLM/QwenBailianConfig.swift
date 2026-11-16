@@ -114,7 +114,7 @@ enum QwenBailianConfig {
         let home = FileManager.default.homeDirectoryForCurrentUser
         candidates.append(home.appendingPathComponent(".aibook/dashscope.env"))
 
-        for root in CursorAPIKeyStore.projectRootCandidates() {
+        for root in ProjectRoots.candidates() {
             candidates.append(root.appendingPathComponent("dashscope.local.env"))
             candidates.append(root.appendingPathComponent("ai-book/dashscope.local.env"))
             candidates.append(root.appendingPathComponent("cursor.local.env"))

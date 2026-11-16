@@ -13,7 +13,7 @@ Das Handbuch in der App folgt der Oberflächensprache. Diese Datei ist die deuts
 - Menüleiste **Hilfe → AIBook Benutzerhandbuch** (Fenster in der App; Text lässt sich markieren und kopieren)
 - **Hilfe → Handbuch im Finder zeigen** (wählt die Handbuchdatei der aktuellen Sprache)
 - **In Standard-App öffnen** in der Titelleiste des Handbuchfensters
-- Die Schaltfläche **Handbuch** in der Titelleiste von **Book-Einstellungen** und **Evolutions-Einstellungen**
+- Die Schaltfläche **Handbuch** in der Titelleiste von **Book-Einstellungen**
 
 ---
 
@@ -26,7 +26,6 @@ Das Handbuch in der App folgt der Oberflächensprache. Diese Datei ist die deuts
 - Wort für Wort oder absatzweise übersetzen und eine Gegenüberstellung sehen.
 - Original, Übersetzung oder Erklärung vorlesen lassen.
 - In den Lesemodus wechseln und wie in einem aufgeschlagenen Buch blättern.
-- Optional die KI-Evolution nutzen: das Projekt analysieren, einen Eintrag aus der Warteschlange anwenden und die App neu bauen.
 
 ### 1.2 Der Schreibtisch
 
@@ -45,7 +44,7 @@ Wechsel in der Titelleiste: **Lesemodus** (⌘⇧P) und **Lernmodus**.
 
 ## 2. Hauptfenster (Lernmodus)
 
-Die Titelleiste enthält Dokument, Erklärung, Übersetzung, Vorlesen, Layout und Einstellungen. Links steht das Original. Rechts ist der Leseassistent, oder **KI-Evolution**, wenn dieser Tab gewählt ist.
+Die Titelleiste enthält Dokument, Erklärung, Übersetzung, Vorlesen, Layout und Einstellungen. Links steht das Original. Rechts ist der Leseassistent.
 
 ### 2.1 Layout
 
@@ -132,16 +131,7 @@ Die Animation biegt **ein Blatt**. Der Rücken verformt sich nicht.
 | **Gesamtes Original wählen** | ⌘⌃A | |
 | **Original ergänzen** | ⌘⇧C | Siehe Abschnitt 9 |
 
-Ohne externe Datei lädt die linke Seite die **Befehlsnotizen** (siehe 4.3).
-
-### 4.3 Befehlsnotizen (vorbesetzte linke Seite)
-
-- Beim ersten Start oder ohne geöffnete Datei zeigt die linke Seite Notizen für eigene Bemerkungen oder älteren Evolutionstext.
-- Gespeichert unter `~/Library/Application Support/AIBook/readme-notes.txt`.
-- Fehlt die lokale Kopie, fällt die App auf die eingebaute oder die `readme.txt`-Vorlage im Projekt zurück.
-- **⌘S** sichert die Notizen in Application Support.
-
-> Die **Optimierungswarteschlange** ist `optimization-queue.json`. Die Notizen sind nicht mehr die Befehlsquelle der Evolution, bleiben aber ein persönliches Blatt.
+Ohne externe Datei ist die linke Seite ein leeres Dokument. **Original sichern unter…** schreibt sie in eine Datei.
 
 ### 4.4 Ordnerbrowser (Bibliothek)
 
@@ -161,16 +151,15 @@ Hinzugefügte Ordner und ihr aufgeklappter Zustand werden **gespeichert**. So we
 
 ## 5. KI-Anbindung und Einstellungen
 
-Erklärung, Übersetzung und **Original ergänzen** nutzen das Buchmodell in **Book-Einstellungen**. Die KI-Evolution verwendet fest Cursor, in den **Evolutions-Einstellungen**. In der Titelleiste gibt es keinen Umschalter.
+Erklärung, Übersetzung, **Original ergänzen** und Sprachbefehle nutzen das Buchmodell in **Book-Einstellungen**.
 
-### 5.1 Buchmodell zum Lesen, Cursor für die Evolution
+### 5.1 Buchmodell
 
 | Verwendung | Steuerung |
 |------------|-----------|
-| Erklären, übersetzen, Original ergänzen | **Book-Einstellungen** → **KI-Modelle** → **Aktiver Anbieter** |
-| **Analysieren** und **Evolution** | **Cursor-Modell** in den **Evolutions-Einstellungen** |
+| Erklären, übersetzen, Original ergänzen, Sprachbefehl | **Book-Einstellungen** → **KI-Modelle** → **Aktiver Anbieter** |
 
-Die Titelleistenkapsel zeigt den Dateinamen und **Ungesichert**. Fehlt das Buchmodell, sagt sie **Book-LLM fehlt**. Ist Cursor nicht bereit, sagt sie **Cursor nicht bereit**.
+Fehlt das Buchmodell, sagt die Titelleistenkapsel **Book-LLM fehlt**. Die zugehörigen Schaltflächen bitten darum, zuerst **Book-Einstellungen** zu öffnen.
 
 ### 5.2 Book-Einstellungen
 
@@ -185,18 +174,12 @@ Die Titelleistenkapsel zeigt den Dateinamen und **Ungesichert**. Fehlt das Buchm
 |----------|---------------------|
 | OpenAI | GPT-Modelle in der Cloud |
 | DeepSeek | Günstigeres Chinesisch |
-| Ollama | **Kostenlos auf diesem Mac** (für das tägliche Lesen empfohlen) |
+| Anthropic | claude-sonnet-5-5 |
+| Gemini | gemini-4-hydrogen |
+| xAI | grok-4.7 |
 | Moonshot / Qwen / Zhipu | Cloud-Modelle in China |
 | Benutzerdefiniert | Jeder OpenAI-kompatible Endpunkt |
 
-**Ollama, kurzer Start**:
-
-```bash
-ollama serve
-ollama pull llama3.2
-```
-
-Wählen Sie Ollama in den Book-Einstellungen und **suchen Sie die auf diesem Mac installierten Modelle**. Verlangt Ollama einen API-Schlüssel, tragen Sie ihn dort ein.
 
 - **Übersetzungssprachen** und **Erklärungssprachen**: Sie können mehrere aus Vereinfachtem Chinesisch, Englisch, Japanisch, Deutsch, Französisch, Italienisch, Latein oder Griechisch wählen. Der nächste Lauf erzeugt sie in der angekreuzten Reihenfolge. Vorhandene Ergebnisse bleiben auf der rechten Seite und lassen sich umschalten. Eine `.aibook`-Datei behält alle.
 - **Auszugsanteil links**: wie viel Original der linken Seite jede Anfrage mitnimmt, damit das Fenster des Modells nicht überläuft.
@@ -208,26 +191,6 @@ Siehe Abschnitt 8.
 #### Erscheinungsbild
 
 Siehe Abschnitt 11.
-
-### 5.3 Evolutions-Einstellungen
-
-**Einstieg**: Menü **AIBook → Einstellungen** (Tab Evolution).
-
-| Einstellung | Bedeutung |
-|-------------|-----------|
-| Cursor-API-Schlüssel | Oder die Umgebungsvariable `CURSOR_API_KEY` |
-| Cursor-Modell | Zum Beispiel ein Composer-Modell |
-| Pfad zu cursor-bridge | Das Verzeichnis `cursor-bridge` im Projekt |
-| **Auto-Upgrade** | Nach einem Klick auf **Evolution** können weitere Einträge nacheinander laufen (siehe Abschnitt 10) |
-
-**Lokale Cursor-Abhängigkeit**:
-
-```bash
-cd ai-book/cursor-bridge
-npm install
-```
-
-**Node.js 18+** ist erforderlich.
 
 ---
 
@@ -359,7 +322,7 @@ Vor der Wiedergabe werden Markdown und ähnliche Auszeichnung **bereinigt und in
 
 ### 8.6 Sprachbefehle
 
-Halten Sie das Mikrofon in der Titelleiste, sprechen Sie, und lassen Sie los, um auszuführen. Im Lesemodus, wo diese Taste fehlt, **halten Sie Option+Leertaste**, solange die App vorn ist. Die App macht aus Sprache Text und ordnet den Satz mit demselben Buchmodell wie Übersetzung und Erklärung einer vorhandenen Aktion zu. Erklären, übersetzen, vorlesen, Layout, öffnen, sichern und exportieren laufen sofort. Evolution starten und Optimierungen analysieren fragen zuerst nach. Ist der Satz unklar oder passt zu keiner Aktion, geschieht nichts; die App zeigt nur den gehörten Text.
+Halten Sie das Mikrofon in der Titelleiste, sprechen Sie, und lassen Sie los, um auszuführen. Im Lesemodus, wo diese Taste fehlt, **halten Sie Option+Leertaste**, solange die App vorn ist. Die App macht aus Sprache Text und ordnet den Satz mit demselben Buchmodell wie Übersetzung und Erklärung einer vorhandenen Aktion zu. Erklären, übersetzen, vorlesen, Layout, öffnen, sichern und exportieren laufen sofort. Ist der Satz unklar oder passt zu keiner Aktion, geschieht nichts; die App zeigt nur den gehörten Text.
 
 ---
 
@@ -376,38 +339,9 @@ Gedacht für den Zusammenhang um einen Lehrbuchauszug oder ein Fragment. Nutzen 
 
 ---
 
-## 10. KI-Evolution (für Fortgeschrittene)
+## 10. Evolutionsmodus
 
-> **Warnung**: Die Evolution ändert den Quelltext von AIBook und installiert die App neu. Nutzen Sie sie nur, wenn Sie Git und Sicherungen kennen. Schalten Sie die **Auto-Upgrade** nicht auf einem Rechner ein, den Sie nicht verändern dürfen.
-
-### 10.1 Was sie tut
-
-- **Analysieren**: Das Modell **liest** das Projekt und schreibt Vorschläge in die **Optimierungswarteschlange**. Es ändert keinen Code.
-- **Evolution**: Nimmt einen **offenen** Eintrag, **ändert den Code**, baut und installiert, dann **startet die App neu**.
-
-### 10.2 Ein typischer Lauf
-
-1. Öffnen Sie rechts den Tab **KI-Evolution**.
-2. Klicken Sie **Analysieren** und warten Sie, bis Vorschläge in die Warteschlange kommen.
-3. Lesen Sie die Einträge (Titel, Nummer, Status).
-4. Klicken Sie **Evolution** (⌘E), um den **nächsten offenen** Eintrag auszuführen.
-5. Beobachten Sie die **Überlegung** und die **Werkzeugschritte**.
-6. Die App kann danach neu starten. Ist die **Auto-Upgrade** an und Sie haben in dieser Sitzung schon eine Evolution von Hand gestartet, können weitere offene Einträge **nacheinander** laufen.
-
-### 10.3 Befehle und Warteschlangendatei
-
-- Datei: `~/Library/Application Support/AIBook/optimization-queue.json`
-- Im Evolution-Tab können Sie ein Befehlsdokument (UTF-8) **sichern und öffnen**.
-- Die Analyse **verwirft Dubletten** über einen vereinheitlichten Titel. Eine Analyse schlägt eine begrenzte Zahl vor (etwa 8).
-
-### 10.4 Kanal
-
-**Analysieren** und **Evolution** nutzen beide den lokalen Cursor-Agenten. Es gibt keinen Rückfall auf das Buchmodell. Die Analyse liest nur. **Evolution** ändert den Code, baut und installiert. Ist Cursor nicht bereit, bleiben die Schaltflächen aus und die Kapsel sagt **Cursor nicht bereit**.
-
-### 10.5 Token und Status
-
-- Evolution und lange Gespräche bleiben in einem **Token-Budget**. Die Oberfläche zeigt den Verbrauch und verweigert das Senden, wenn das Budget aufgebraucht ist.
-- Die Kapsel in der Titelleiste kann die **Zahl der offenen Einträge** und die Nummer des nächsten zeigen.
+Diese Fassung hat keinen Evolutionsmodus. Die rechte Seite ist nur der Leseassistent. Die App analysiert den Quelltext nicht, ändert keinen Code und aktualisiert sich nicht selbst.
 
 ---
 
@@ -428,7 +362,6 @@ Gedacht für den Zusammenhang um einen Lehrbuchauszug oder ein Fragment. Nutzen 
 Neben den Schaltflächen der Titelleiste sammeln **Ablage / Bearbeiten** dieselben Kürzel wie die Original- und Erklärungsaktionen.  
 **Hilfe** öffnet dieses Handbuch und zeigt es im Finder.
 
-**AIBook → Einstellungen** gilt der Evolution.  
 **Book-Einstellungen** in der Titelleiste gilt dem Lesen, der Übersetzung, der Sprache und dem Erscheinungsbild.
 
 ---
@@ -447,7 +380,6 @@ Neben den Schaltflächen der Titelleiste sammeln **Ablage / Bearbeiten** dieselb
 | Original vorlesen (Auswahl oder alles, wie das Menü es festlegt) | ⌘⌥R |
 | Ganze Übersetzung vorlesen | ⌘⌥T |
 | Original ergänzen | ⌘⇧C |
-| **Selbst-Evolution** (Menü) / **Evolution** (Titelleiste) | ⌘E |
 | Lesemodus öffnen | ⌘⇧P |
 | Sprachbefehl | Option+Leertaste halten |
 | Lesen: **Vorherige Seite** / **Nächste Seite** | ← / → |
@@ -468,16 +400,13 @@ Wurzel: `~/Library/Application Support/AIBook/`
 
 | Was | Pfad |
 |-----|------|
-| Befehlsnotizen | `readme-notes.txt` |
-| Optimierungswarteschlange | `optimization-queue.json` |
 | Gespräche | Zwischenspeicher nach Buchpfad |
 | Ordnerbrowser | Geöffnete Wurzeln und aufgeklappter Zustand |
 | Online-Stimmproben | `voices/` |
-| **Auto-Upgrade** | `auto-evolution-active` und verwandte Dateien |
 
 ### 14.2 Netz und Schlüssel
 
-- Anfragen an **Modell / Cursor** gehen an die von Ihnen eingetragene API oder den Cursor-Dienst. Schlüssel bleiben in den lokalen Einstellungen. Geben Sie den Rechner nicht weiter.
+- Anfragen an das **Modell** gehen an den von Ihnen eingetragenen Anbieter. Schlüssel bleiben in den lokalen Einstellungen. Geben Sie den Rechner nicht weiter.
 - **Edge TTS** braucht ein Netz. Systemstimmen arbeiten offline.
 - **Sprachbefehle** nutzen Mikrofon und die Spracherkennung des Systems. Unterstützt die Systemsprache die Erkennung auf dem Gerät, bleibt das Audio auf diesem Mac. Der erkannte Text geht an dasselbe Buchmodell wie Übersetzung und Erklärung.
 
@@ -538,19 +467,13 @@ swift run
 ## 17. Fragen
 
 **Die Erklärung meldet, das Modell sei nicht konfiguriert.**  
-Öffnen Sie **Book-Einstellungen → Modell**, wählen Sie einen Anbieter und tragen Sie einen API-Schlüssel ein. Auf diesem Mac ist Ollama die übliche Wahl.
-
-**Cursor lokal ist nicht verfügbar.**  
-Prüfen Sie Node.js, `npm install` in cursor-bridge, den Cursor-API-Schlüssel und den Pfad in den Evolutions-Einstellungen.
+Öffnen Sie **Book-Einstellungen → Modell**, wählen Sie einen Anbieter und tragen Sie einen API-Schlüssel ein. Üblich sind OpenAI, Claude, Gemini oder Grok.
 
 **Die Übersetzungstabelle ist ausgegraut.**  
 Schließen Sie zuerst eine Wort-für-Wort- oder Absatzübersetzung ab, und das JSON muss gültige Ausrichtungsblöcke enthalten. Ist die Ausrichtung verfallen, nutzen Sie **Übersetzung ausrichten**.
 
 **Die Seitenzahlen im Lesemodus haben sich geändert.**  
 Eine andere Schriftgröße oder Fenstergröße bricht neu um. Das ist erwartet. Der Doppelseiten-Index wird wiederhergestellt, soweit das geht.
-
-**Die App verhält sich nach der Evolution anders.**  
-Die Evolution ändert die lokal installierte Kopie von AIBook. Halten Sie den Quelltext in Git, und nutzen Sie die **Auto-Upgrade** nur mit Absicht.
 
 **Handbuch und Oberfläche widersprechen sich.**  
 Maßgeblich ist der **installierte Stand von AIBook**. Zeigen Sie auf eine Schaltfläche, um den aktuellen Hinweis zu sehen.
@@ -560,8 +483,8 @@ Maßgeblich ist der **installierte Stand von AIBook**. Zeigen Sie auf eine Schal
 ## 18. Fassung und Dokumente
 
 - Dieses Handbuch liegt in der App und öffnet sich über **Hilfe**.
-- Das Repository enthält außerdem Entwurfsnotizen (Lesemodus, Erscheinungsbild, Evolution) für die Entwicklung.
-- Die README des Projekts enthält die kurze Einrichtung von Ollama und Cursor.
+- Das Repository enthält außerdem Entwurfsnotizen (Lesemodus, Erscheinungsbild) für die Entwicklung.
+- Die README des Projekts enthält die kurze Einrichtung der Modelle.
 
 ---
 

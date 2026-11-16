@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$ROOT/cursor.local.env"
-BUNDLE_ID="com.aibook.reader"
+BUNDLE_ID="com.mdy2010life.aibook"
 APP_SUPPORT="$HOME/Library/Application Support/AIBook"
 KEY_FILE="$APP_SUPPORT/cursor-api-key"
 

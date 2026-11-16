@@ -88,7 +88,7 @@ enum OperationSessionBridge {
             viewModel.selectRightPageTab(.readingAssistant)
             viewModel.assistant.selectReadingAssistantPanel(panel)
         case .showRightPage(let page):
-            viewModel.selectRightPageTab(page == "evolution" ? .aiEvolution : .readingAssistant)
+            viewModel.selectRightPageTab(.readingAssistant)
         case .showExplanationLanguage(let raw):
             guard let language = TranslationTargetLanguage(rawValue: raw) else { return }
             viewModel.document.explanationBundle.show(language)
@@ -158,10 +158,6 @@ enum OperationSessionBridge {
             viewModel.explanationTableViewEnabled.toggle()
         case .toggleTranslationTable:
             viewModel.translationTableViewEnabled.toggle()
-        case .startEvolution:
-            viewModel.evolution.startEvolution()
-        case .analyzeOptimizations:
-            viewModel.evolution.analyzeOptimizations()
         }
     }
 

@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "Το AIBook χρειάζεται το μικρόφωνο για να μετατρέψει όσα λέτε σε κείμενο.";
+"NSSpeechRecognitionUsageDescription" = "Το AIBook χρειάζεται την αναγνώριση ομιλίας για να μετατρέψει όσα λέτε σε ενέργεια.";

@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "AIBook 需要麦克风，把你说的操作转成文字。";
+"NSSpeechRecognitionUsageDescription" = "AIBook 需要语音识别，把你说的操作转成可执行的功能。";

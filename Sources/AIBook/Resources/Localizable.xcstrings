@@ -578,49 +578,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "更改后立即生效"
+            "value": "界面文案立即更换。系统弹出的麦克风和语音识别说明，在下次打开应用时改用这一语言。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Applies immediately"
+            "value": "Interface text changes immediately. The system microphone and speech prompts use this language the next time the app opens."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "すぐに反映されます"
+            "value": "画面の文言はすぐに変わります。システムのマイクと音声認識の説明は、次回起動からこの言語になります。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gilt sofort"
+            "value": "Der Oberflächentext wechselt sofort. Die Systemhinweise für Mikrofon und Spracherkennung nutzen diese Sprache beim nächsten Start."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Effet immédiat"
+            "value": "Le texte de l’interface change tout de suite. Les invites système du micro et de la reconnaissance vocale utilisent cette langue au prochain lancement."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Effetto immediato"
+            "value": "Il testo dell’interfaccia cambia subito. Gli avvisi di sistema per microfono e riconoscimento vocale usano questa lingua al prossimo avvio."
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Statim valet"
+            "value": "Textus interfaciei statim mutatur. Monita systematis de microphono et recognitione vocis hac lingua in proximo initio utuntur."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ισχύει αμέσως"
+            "value": "Το κείμενο της διεπαφής αλλάζει αμέσως. Οι οδηγίες συστήματος για μικρόφωνο και αναγνώριση ομιλίας χρησιμοποιούν αυτή τη γλώσσα στην επόμενη εκκίνηση."
           }
         }
       }
@@ -17993,6 +17993,682 @@
         }
       }
     },
+    "privacy.outbound": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文将发送到 %@。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source text is sent to %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文は %@ に送信されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Originaltext wird an %@ gesendet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le texte original est envoyé à %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il testo originale è inviato a %@."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Textus originalis ad %@ mittitur."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το πρωτότυπο κείμενο αποστέλλεται στο %@."
+          }
+        }
+      }
+    },
+    "privacy.outbound.cursor": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文将发送到 Cursor。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source text is sent to Cursor."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文は Cursor に送信されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Originaltext wird an Cursor gesendet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le texte original est envoyé à Cursor."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il testo originale è inviato a Cursor."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Textus originalis ad Cursor mittitur."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το πρωτότυπο κείμενο αποστέλλεται στο Cursor."
+          }
+        }
+      }
+    },
+    "privacy.company.alibaba": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阿里云"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アリババクラウド"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba-Cloud"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nuage Alibaba"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nuvola Alibaba"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Nubes"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "νέφος Alibaba"
+          }
+        }
+      }
+    },
+    "privacy.company.zhipu": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智谱"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智譜"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu-KI"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu IA"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu IA"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu Sinae"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zhipu Κίνας"
+          }
+        }
+      }
+    },
+    "privacy.company.custom": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义服务"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指定したサービス"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigener Dienst"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service personnalisé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servizio personalizzato"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servitium proprium"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Προσαρμοσμένη υπηρεσία"
+          }
+        }
+      }
+    },
+    "privacy.policy.title": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私政策"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy Policy"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プライバシー"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confidentialité"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privata"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Απόρρητο"
+          }
+        }
+      }
+    },
+    "privacy.policy.lead": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook 在你这台 Mac 上读书。原文、选中文字、追问，以及语音操作听写成的文字，只会在你点讲解、翻译、发送或松开语音键时离开本机。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook reads on this Mac. Source text, selections, follow-up questions, and words heard by voice control leave the Mac only when you explain, translate, send, or release the voice key."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook はこの Mac で読書します。原文、選択、追問、音声操作で文字になった内容は、解説・翻訳・送信、または音声キーを離したときだけ外に出ます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook liest auf diesem Mac. Original, Auswahl, Nachfragen und erkannter Sprachtext verlassen den Mac nur beim Erklären, Übersetzen, Senden oder Loslassen der Sprachtaste."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook lit sur ce Mac. Le texte, la sélection, les questions et le texte reconnu quittent le Mac seulement quand vous expliquez, traduisez, envoyez ou relâchez la touche vocale."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook legge su questo Mac. Testo, selezione, domande e testo riconosciuto escono dal Mac solo quando spieghi, traduci, invii o rilasci il tasto vocale."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook in hoc Mac legit. Textus, selectum, quaestiones et verba audita Mac relinquunt tantum cum explicas, transfers, mittis aut clavem vocis solvis."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το AIBook διαβάζει σε αυτό το Mac. Το κείμενο, η επιλογή, οι ερωτήσεις και το αναγνωρισμένο κείμενο φεύγουν μόνο όταν εξηγείτε, μεταφράζετε, στέλνετε ή αφήνετε το πλήκτρο φωνής."
+          }
+        }
+      }
+    },
+    "privacy.policy.thirdParty": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接收方是你在 book 设置里选中的那一家，发送按钮和菜单上方会写明公司名和主机名。各家用你自己的 API Key，Key 只存在本机。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recipient is the provider you chose in Book Settings. The company and host are written above the send button and in the menus. Each provider uses your own API key, stored only on this Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取り先は book 設定で選んだ提供者です。会社名とホスト名は送信ボタンとメニューの上に出ます。API Key は各社のもので、この Mac にだけ保存します。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empfänger ist der Anbieter aus den Book-Einstellungen. Firma und Host stehen über der Senden-Taste und in den Menüs. Der API-Key jeder Firma bleibt nur auf diesem Mac."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le destinataire est le fournisseur choisi dans les réglages book. La société et l’hôte sont indiqués au-dessus du bouton d’envoi et dans les menus. La clé API reste seulement sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il destinatario è il fornitore scelto nelle impostazioni book. Società e host compaiono sopra il pulsante di invio e nei menu. La chiave API resta solo su questo Mac."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accipiens est praebitor electus in configuratione book. Societas et hospes supra mittendi bullam et in menus scribuntur. Clavis API tantum in hoc Mac manet."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ο παραλήπτης είναι ο πάροχος που διαλέξατε στις ρυθμίσεις book. Η εταιρεία και ο διακομιστής γράφονται πάνω από το κουμπί αποστολής και στα μενού. Το κλειδί API μένει μόνο σε αυτό το Mac."
+          }
+        }
+      }
+    },
+    "privacy.policy.audio": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风只在你按住语音键时打开，用来把口令听成文字。系统能在本机识别时，音频不上传。听出的文字若要执行讲解或翻译，会按上面的接收方发送。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone turns on only while you hold the voice key, to turn a command into text. When the system recognizes speech on this Mac, the audio is not uploaded. If the recognized words run an explanation or translation, they go to the recipient above."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクは音声キーを押している間だけ開き、命令を文字にします。システムがこの Mac で認識できるとき、音声は送りません。認識した文字で解説や翻訳を実行するときは、上の受け取り先へ送ります。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Mikrofon ist nur bei gehaltener Sprachtaste an und macht aus dem Befehl Text. Erkennt das System lokal, wird Audio nicht hochgeladen. Erkannter Text für Erklärung oder Übersetzung geht an den Empfänger oben."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le micro n’est ouvert que pendant la touche vocale, pour changer l’ordre en texte. Si le système reconnaît sur ce Mac, l’audio n’est pas envoyé. Le texte reconnu qui lance une explication ou une traduction part vers le destinataire ci-dessus."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il microfono è acceso solo mentre tieni il tasto vocale, per trasformare il comando in testo. Se il sistema riconosce su questo Mac, l’audio non viene caricato. Il testo riconosciuto che avvia spiegazione o traduzione va al destinatario sopra."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphonum tantum dum clavem vocis tenes apertum est, ut mandatum in textum vertat. Si systema in hoc Mac agnoscit, sonus non mittitur. Verba agnita quae explicationem aut translationem incipiunt ad accipientem supra eunt."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το μικρόφωνο ανοίγει μόνο όσο κρατάτε το πλήκτρο φωνής, για να γίνει η εντολή κείμενο. Αν το σύστημα αναγνωρίζει σε αυτό το Mac, ο ήχος δεν αποστέλλεται. Το αναγνωρισμένο κείμενο που ξεκινά εξήγηση ή μετάφραση πηγαίνει στον παραλήπτη παραπάνω."
+          }
+        }
+      }
+    },
+    "privacy.policy.local": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "书籍文件、API Key 和设置写在本机的 Application Support 与偏好设置里。AIBook 不用这些内容做跨 App 跟踪。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Books, API keys, and settings stay in Application Support and preferences on this Mac. AIBook does not use them to track you across apps."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書籍、API Key、設定はこの Mac の Application Support と環境設定にあります。AIBook はこれで他の App をまたいで追跡しません。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bücher, API-Keys und Einstellungen bleiben in Application Support und den Einstellungen auf diesem Mac. AIBook verfolgt dich damit nicht über Apps hinweg."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livres, clés API et réglages restent dans Application Support et les préférences de ce Mac. AIBook ne s’en sert pas pour vous suivre entre apps."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libri, chiavi API e impostazioni restano in Application Support e nelle preferenze di questo Mac. AIBook non li usa per tracciarti tra app."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libri, claves API et configurationes in Application Support et praeferentiis huius Mac manent. AIBook eis non utitur ut te per applicationes sequatur."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Τα βιβλία, τα κλειδιά API και οι ρυθμίσεις μένουν στο Application Support και στις προτιμήσεις αυτού του Mac. Το AIBook δεν τα χρησιμοποιεί για παρακολούθηση ανάμεσα σε εφαρμογές."
+          }
+        }
+      }
+    },
+    "privacy.policy.urlMissing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公开网址还没有发布。上架前请把同一份说明放到任何人能打开的网页，并把网址填进 App Store Connect 的隐私政策栏，以及工程里的 PrivacyPolicy.publicURL。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A public web address is not published yet. Before release, put this same notice on a page anyone can open, then enter that address in App Store Connect and in PrivacyPolicy.publicURL."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開 URL はまだありません。公開前に同じ説明を誰でも開けるページに置き、App Store Connect と PrivacyPolicy.publicURL に記入してください。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine öffentliche Adresse ist noch nicht veröffentlicht. Lege denselben Text vor der Veröffentlichung auf eine offene Seite und trage die Adresse in App Store Connect und in PrivacyPolicy.publicURL ein."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’adresse publique n’est pas encore publiée. Avant la sortie, mettez ce texte sur une page ouverte, puis saisissez l’adresse dans App Store Connect et dans PrivacyPolicy.publicURL."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’indirizzo pubblico non è ancora pubblicato. Prima del rilascio metti lo stesso testo su una pagina aperta, poi scrivi l’indirizzo in App Store Connect e in PrivacyPolicy.publicURL."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inscriptum publicum nondum editum est. Ante editionem eandem notitiam in paginam apertam pone, deinde inscriptum in App Store Connect et in PrivacyPolicy.publicURL scribe."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η δημόσια διεύθυνση δεν έχει δημοσιευτεί ακόμη. Πριν την κυκλοφορία βάλτε το ίδιο κείμενο σε ανοιχτή σελίδα και γράψτε τη διεύθυνση στο App Store Connect και στο PrivacyPolicy.publicURL."
+          }
+        }
+      }
+    },
+    "privacy.mic.purpose": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook 需要麦克风，把你说的操作转成文字。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook needs the microphone to turn what you say into text."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook は、話した操作を文字にするためにマイクを使います。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook benötigt das Mikrofon, um Gesagtes in Text zu verwandeln."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook a besoin du microphone pour transformer ce que vous dites en texte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook usa il microfono per trasformare ciò che dici in testo."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook microphono eget ut dicta in textum vertat."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το AIBook χρειάζεται το μικρόφωνο για να μετατρέψει όσα λέτε σε κείμενο."
+          }
+        }
+      }
+    },
+    "privacy.speech.purpose": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook 需要语音识别，把你说的操作转成可执行的功能。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook needs speech recognition to turn what you say into an action."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook は、話した操作を実行できる機能にするために音声認識を使います。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook benötigt die Spracherkennung, um Gesagtes in eine Aktion zu verwandeln."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook a besoin de la reconnaissance vocale pour transformer ce que vous dites en action."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook usa il riconoscimento vocale per trasformare ciò che dici in un’azione."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIBook recognitione vocis eget ut dicta in actionem vertat."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το AIBook χρειάζεται την αναγνώριση ομιλίας για να μετατρέψει όσα λέτε σε ενέργεια."
+          }
+        }
+      }
+    },
     "file.untitled": {
       "localizations": {
         "zh-Hans": {
@@ -20026,49 +20702,49 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "配置读书助手大模型（推荐本机 Ollama）"
+            "value": "配置读书助手大模型（OpenAI、Claude、Gemini、Grok 等）"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Configure book LLM (local Ollama recommended)"
+            "value": "Configure the book LLM (OpenAI, Claude, Gemini, Grok, and others)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "読書アシスタントの大規模モデルを設定（ローカル Ollama 推奨）"
+            "value": "読書アシスタントの大規模モデルを設定（OpenAI、Claude、Gemini、Grok など）"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buch-LLM einrichten (lokales Ollama empfohlen)"
+            "value": "Buch-LLM einrichten (OpenAI, Claude, Gemini, Grok u. a.)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Configurer le LLM book (Ollama local recommandé)"
+            "value": "Configurer le LLM book (OpenAI, Claude, Gemini, Grok, etc.)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Configura l’LLM book (Ollama locale consigliato)"
+            "value": "Configura l’LLM book (OpenAI, Claude, Gemini, Grok e altri)"
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "Configura LLM libri (Ollama locale commendatur)"
+            "value": "Configura LLM libri (OpenAI, Claude, Gemini, Grok, ceteraque)"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ρύθμιση LLM ανάγνωσης (συνιστάται τοπικό Ollama)"
+            "value": "Ρύθμιση LLM ανάγνωσης (OpenAI, Claude, Gemini, Grok κ.ά.)"
           }
         }
       }
@@ -37706,49 +38382,205 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "OpenAI 官方 API，适合通用阅读讲解。"
+            "value": "OpenAI 官方 API。默认 gpt-6.1-sol，也可选 gpt-6-astra、gpt-6-luna。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Official OpenAI API for general reading explanations."
+            "value": "Official OpenAI API. Default gpt-6.1-sol; gpt-6-astra and gpt-6-luna are also listed."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "OpenAI 公式 API。一般的な読書の解説に向きます。"
+            "value": "OpenAI 公式 API。既定は gpt-6.1-sol。gpt-6-astra と gpt-6-luna も選べます。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Offizielle OpenAI-API, geeignet für allgemeine Leseerklärungen."
+            "value": "Offizielle OpenAI-API. Standard gpt-6.1-sol; auch gpt-6-astra und gpt-6-luna."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "API officielle OpenAI, adaptée aux explications de lecture générales."
+            "value": "API officielle OpenAI. Modèle par défaut gpt-6.1-sol ; gpt-6-astra et gpt-6-luna sont aussi proposés."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "API ufficiale OpenAI, adatta a spiegazioni di lettura generali."
+            "value": "API ufficiale OpenAI. Predefinito gpt-6.1-sol; sono disponibili anche gpt-6-astra e gpt-6-luna."
           }
         },
         "la": {
           "stringUnit": {
             "state": "translated",
-            "value": "API officialis OpenAI, apta explicationibus legendi generalibus."
+            "value": "API officialis OpenAI. Default gpt-6.1-sol; etiam gpt-6-astra et gpt-6-luna."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Επίσημο API της OpenAI, κατάλληλο για γενικές εξηγήσεις ανάγνωσης."
+            "value": "Επίσημο API της OpenAI. Προεπιλογή gpt-6.1-sol· διαθέσιμα και τα gpt-6-astra και gpt-6-luna."
+          }
+        }
+      }
+    },
+    "llm.hint.anthropic": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude。默认 claude-sonnet-5-5，走 OpenAI 兼容接口。Key 在 Claude Console 创建。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude. Default claude-sonnet-5-5 on the OpenAI-compatible endpoint. Create the key in the Claude Console."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude。既定は claude-sonnet-5-5。OpenAI 互換エンドポイント。Key は Claude Console で作成します。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude. Standard claude-sonnet-5-5 über die OpenAI-kompatible Schnittstelle. Den Key in der Claude Console erstellen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude. Modèle par défaut claude-sonnet-5-5, via l’endpoint compatible OpenAI. Créez la clé dans la Claude Console."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude. Predefinito claude-sonnet-5-5, sull’endpoint compatibile OpenAI. Crea la chiave nella Claude Console."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude. Default claude-sonnet-5-5, per finem compatibilem OpenAI. Crea clavem in Claude Console."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic Claude. Προεπιλογή claude-sonnet-5-5, στο συμβατό με OpenAI άκρο. Δημιουργήστε το κλειδί στο Claude Console."
+          }
+        }
+      }
+    },
+    "llm.hint.gemini": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini。默认 gemini-4-hydrogen，走 OpenAI 兼容地址。Key 在 Google AI Studio 创建。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini. Default gemini-4-hydrogen on the OpenAI-compatible endpoint. Create the key in Google AI Studio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini。既定は gemini-4-hydrogen。OpenAI 互換アドレス。Key は Google AI Studio で作成します。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini. Standard gemini-4-hydrogen über die OpenAI-kompatible Adresse. Den Key in Google AI Studio erstellen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini. Modèle par défaut gemini-4-hydrogen, via l’adresse compatible OpenAI. Créez la clé dans Google AI Studio."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini. Predefinito gemini-4-hydrogen, sull’indirizzo compatibile OpenAI. Crea la chiave in Google AI Studio."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini. Default gemini-4-hydrogen, per inscriptum compatibile OpenAI. Crea clavem in Google AI Studio."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Gemini. Προεπιλογή gemini-4-hydrogen, στη συμβατή με OpenAI διεύθυνση. Δημιουργήστε το κλειδί στο Google AI Studio."
+          }
+        }
+      }
+    },
+    "llm.hint.xai": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok。默认 grok-4.7。Key 在 xAI 控制台创建。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok. Default grok-4.7. Create the key in the xAI console."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok。既定は grok-4.7。Key は xAI コンソールで作成します。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok. Standard grok-4.7. Den Key in der xAI-Konsole erstellen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok. Modèle par défaut grok-4.7. Créez la clé dans la console xAI."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok. Predefinito grok-4.7. Crea la chiave nella console xAI."
+          }
+        },
+        "la": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok. Default grok-4.7. Crea clavem in consolio xAI."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI Grok. Προεπιλογή grok-4.7. Δημιουργήστε το κλειδί στην κονσόλα xAI."
           }
         }
       }
@@ -37957,58 +38789,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Σειρά GLM της Zhipu, κατάλληλη για κινεζικά βιβλία και σημειώσεις."
-          }
-        }
-      }
-    },
-    "llm.hint.ollama": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本机 Ollama，离线可用；设置页可自动扫描已安装模型并选择。支持 OLLAMA_HOST 环境变量与可选 API Key。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local Ollama, works offline. Settings can scan installed models. Supports OLLAMA_HOST and an optional API key."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ローカルの Ollama。オフラインで使えます。設定でインストール済みモデルを走査して選べます。OLLAMA_HOST と任意の API Key に対応します。"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lokales Ollama, auch offline. Die Einstellungen können installierte Modelle suchen. OLLAMA_HOST und ein optionaler API-Key werden unterstützt."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ollama local, utilisable hors ligne. Les réglages peuvent chercher les modèles installés. OLLAMA_HOST et une clé API facultative sont pris en charge."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ollama locale, anche offline. Le impostazioni possono cercare i modelli installati. Sono supportati OLLAMA_HOST e una chiave API facoltativa."
-          }
-        },
-        "la": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ollama locale, etiam sine rete. Configuratio modela installata quaerere potest. OLLAMA_HOST et clavis API optativa sustinentur."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Τοπικό Ollama, και χωρίς δίκτυο. Οι ρυθμίσεις μπορούν να βρουν εγκατεστημένα μοντέλα. Υποστηρίζονται OLLAMA_HOST και προαιρετικό κλειδί API."
           }
         }
       }

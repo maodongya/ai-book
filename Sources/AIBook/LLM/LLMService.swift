@@ -45,18 +45,12 @@ enum LLMServiceError: LocalizedError {
     }
 }
 
-/// 把 URLError / 原串加成「去哪开 Key」。Ollama 走自己的 enrich。
+/// 把 URLError / 原串加成「去哪开 Key」。
 enum LLMServiceErrorPresenter {
-    /// 已是 LLMServiceError 用自带文案；Ollama 网络错走 OllamaConfig。
+    /// 已是 LLMServiceError 用自带文案。
     static func message(for error: Error, provider: LLMProvider, baseURL: String? = nil) -> String {
         if let llmError = error as? LLMServiceError {
             return llmError.errorDescription ?? error.localizedDescription
-        }
-        if provider == .ollama, let urlError = error as? URLError {
-            return OllamaConfig.enrichError(
-                urlError.localizedDescription,
-                host: OllamaConfig.resolvedHost(baseURL: baseURL ?? OllamaConfig.defaultOpenAIBaseURL)
-            )
         }
         return enrich(error.localizedDescription, provider: provider, baseURL: baseURL)
     }
@@ -64,18 +58,6 @@ enum LLMServiceErrorPresenter {
     /// 只在像 Key 错时叠提示。认不出原样返回。
     static func enrich(_ message: String, provider: LLMProvider, baseURL: String? = nil) -> String {
         let lower = message.lowercased()
-
-        if provider == .ollama {
-            let host = OllamaConfig.resolvedHost(baseURL: baseURL ?? OllamaConfig.defaultOpenAIBaseURL)
-            if lower.contains("api key") || lower.contains("apikey") || lower.contains("incorrect")
-                || lower.contains("connection") || lower.contains("connect")
-                || lower.contains("refused") || lower.contains("network")
-                || lower.contains("timed out") || lower.contains("无法连接")
-                || lower.contains("model") || OllamaConfig.isToolsUnsupportedAPIError(message)
-                || lower.contains("invalid response") || lower.contains("无法解析") {
-                return OllamaConfig.enrichError(message, host: host)
-            }
-        }
 
         guard lower.contains("api key") || lower.contains("apikey") || lower.contains("incorrect") else {
             return message
@@ -97,8 +79,6 @@ enum LLMServiceErrorPresenter {
 
             提示：请在智谱开放平台创建 Key，并在设置中为「智谱」单独保存。
             """
-        case .ollama:
-            return OllamaConfig.enrichError(message, host: OllamaConfig.resolvedHost(baseURL: baseURL ?? OllamaConfig.defaultOpenAIBaseURL))
         default:
             return """
             \(message)
@@ -140,27 +120,19 @@ final class LLMService {
         )
     }
 
-    /// 百炼/Ollama 修地址、补 Key、解析真实模型名。
+    /// 百炼修地址、补 Key。其它提供商只做去空白。
     private func preparedConfiguration(_ configuration: LLMConfiguration) async -> LLMConfiguration {
         let config = normalizedConfiguration(configuration)
         if config.provider == .qwen {
             return QwenBailianConfig.preparedConfiguration(config)
         }
-        guard config.provider == .ollama else { return config }
+        return config
+    }
 
-        let baseURL = OllamaConfig.normalizedOpenAIBaseURL(config.baseURL)
-        let apiKey = OllamaConfig.resolveAPIKey(stored: config.apiKey)
-        let model = await OllamaConfig.resolveModelForRequest(
-            config.model,
-            baseURL: baseURL,
-            apiKey: apiKey
-        )
-        return LLMConfiguration(
-            provider: .ollama,
-            baseURL: baseURL,
-            model: model,
-            apiKey: apiKey
-        )
+    /// Claude 新模型拒绝非默认 temperature，其它家照常带上。
+    private func applySamplingTemperature(_ temperature: Double, provider: LLMProvider, to payload: inout [String: Any]) {
+        guard !provider.omitsSamplingTemperature else { return }
+        payload["temperature"] = temperature
     }
 
     /// 设置页「测试连接」：发最短 messages，能通即可。
@@ -175,14 +147,14 @@ final class LLMService {
             throw LLMServiceError.invalidURL
         }
 
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "model": configuration.model,
             "messages": [
                 ["role": "user", "content": "ping"],
             ],
-            "max_tokens": 1,
-            "temperature": 0,
+            "max_tokens": 16, // 推理模型把 1 个 token 用在思考上时，过小的上限会直接 400
         ]
+        applySamplingTemperature(0, provider: configuration.provider, to: &payload)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -201,11 +173,6 @@ final class LLMService {
                 ?? "连接失败（HTTP \(httpResponse.statusCode)）"
             if configuration.provider == .qwen {
                 message = QwenBailianConfig.enrichError(message, baseURL: configuration.baseURL)
-            } else if configuration.provider == .ollama {
-                message = OllamaConfig.enrichError(
-                    message,
-                    host: OllamaConfig.resolvedHost(baseURL: configuration.baseURL)
-                )
             }
             throw LLMServiceError.apiError(message, provider: configuration.provider)
         }
@@ -229,28 +196,19 @@ final class LLMService {
         }
 
         let useStreaming = streamPartial != nil
-        var includeTools = true
-        if configuration.provider == .ollama {
-            includeTools = await OllamaConfig.modelSupportsTools(
-                baseURL: configuration.baseURL,
-                model: configuration.model,
-                apiKey: configuration.apiKey
-            )
-        }
+        let includeTools = true
 
-        for toolsAttempt in 0 ..< 2 {
-            do {
-                return try await performWithTransientRetry {
-                    var payload: [String: Any] = [
-                        "model": configuration.model,
-                        "messages": messages,
-                        "temperature": 0.2,
-                        "stream": useStreaming,
-                    ]
-                    if includeTools {
-                        payload["tools"] = tools
-                        payload["tool_choice"] = "auto"
-                    }
+        return try await performWithTransientRetry {
+                var payload: [String: Any] = [
+                    "model": configuration.model,
+                    "messages": messages,
+                    "stream": useStreaming,
+                ]
+                self.applySamplingTemperature(0.2, provider: configuration.provider, to: &payload)
+                if includeTools {
+                    payload["tools"] = tools
+                    payload["tool_choice"] = "auto"
+                }
                     if configuration.provider == .qwen {
                         for (key, value) in QwenBailianConfig.requestExtras(
                             model: configuration.model,
@@ -297,30 +255,12 @@ final class LLMService {
                             ?? "请求失败（HTTP \(httpResponse.statusCode)）"
                         if configuration.provider == .qwen {
                             message = QwenBailianConfig.enrichError(message, baseURL: configuration.baseURL)
-                        } else if configuration.provider == .ollama {
-                            message = OllamaConfig.enrichError(
-                                message,
-                                host: OllamaConfig.resolvedHost(baseURL: configuration.baseURL)
-                            )
                         }
                         throw LLMServiceError.apiError(message, provider: configuration.provider)
                     }
 
                     return try self.parseCompletionResult(from: data)
-                }
-            } catch let error as LLMServiceError {
-                if case .apiError(let message, .ollama) = error,
-                   includeTools,
-                   toolsAttempt == 0,
-                   OllamaConfig.isToolsUnsupportedAPIError(message) {
-                    includeTools = false
-                    continue
-                }
-                throw error
             }
-        }
-
-        throw LLMServiceError.invalidResponse
     }
 
     /// 瞬时网络错重试一次。业务 4xx 不重试。
@@ -393,11 +333,6 @@ final class LLMService {
                 ?? "请求失败（HTTP \(httpResponse.statusCode)）"
             if configuration.provider == .qwen {
                 message = QwenBailianConfig.enrichError(message, baseURL: configuration.baseURL)
-            } else if configuration.provider == .ollama {
-                message = OllamaConfig.enrichError(
-                    message,
-                    host: OllamaConfig.resolvedHost(baseURL: configuration.baseURL)
-                )
             }
             throw LLMServiceError.apiError(message, provider: configuration.provider)
         }
@@ -571,9 +506,9 @@ final class LLMService {
         var payload: [String: Any] = [
             "model": configuration.model,
             "messages": messages,
-            "temperature": 0.3,
             "stream": onEvent != nil,
         ]
+        applySamplingTemperature(0.3, provider: configuration.provider, to: &payload)
         if let maxTokens {
             payload["max_tokens"] = maxTokens
         }
@@ -604,11 +539,6 @@ final class LLMService {
                 ?? "请求失败（HTTP \(httpResponse.statusCode)）"
             if configuration.provider == .qwen {
                 message = QwenBailianConfig.enrichError(message, baseURL: configuration.baseURL)
-            } else if configuration.provider == .ollama {
-                message = OllamaConfig.enrichError(
-                    message,
-                    host: OllamaConfig.resolvedHost(baseURL: configuration.baseURL)
-                )
             }
             throw LLMServiceError.apiError(message, provider: configuration.provider)
         }
@@ -650,8 +580,6 @@ final class LLMService {
                 ?? "请求失败（HTTP \(httpResponse.statusCode)）"
             if provider == .qwen {
                 message = QwenBailianConfig.enrichError(message, baseURL: baseURL)
-            } else if provider == .ollama {
-                message = OllamaConfig.enrichError(message, host: OllamaConfig.resolvedHost(baseURL: baseURL))
             }
             throw LLMServiceError.apiError(message, provider: provider)
         }
@@ -713,7 +641,7 @@ final class LLMService {
         return ""
     }
 
-    /// Bearer。空 Key 不写头（Ollama 本机常无 Key）。
+    /// Bearer。空 Key 不写头。
     private func applyAuthorizationHeader(to request: inout URLRequest, apiKey: String) {
         let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -722,9 +650,6 @@ final class LLMService {
 
     /// HTTP 错误体。百炼走专用解析。
     private func parseErrorMessage(from data: Data, provider: LLMProvider) -> String? {
-        if provider == .ollama {
-            return OllamaConfig.parseAPIErrorMessage(from: data)
-        }
         if provider == .qwen {
             return QwenBailianConfig.parseAPIErrorMessage(from: data)
         }

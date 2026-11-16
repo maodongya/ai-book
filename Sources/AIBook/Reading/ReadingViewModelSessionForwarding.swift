@@ -85,11 +85,6 @@ extension ReadingViewModel {
         translation.sendChatInput()
     }
 
-    /// 进化输入条发送。空串直接回。
-    func sendEvolutionChatInput() {
-        evolution.sendEvolutionChatInput()
-    }
-
     /// 按当前原文出译文。
     func generateLessonPlan() {
         translation.generateLessonPlan()

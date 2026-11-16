@@ -59,18 +59,12 @@ struct LLMConfigPanel: View {
                 .foregroundStyle(BookTheme.inkMuted)
 
             if settings.provider.showsAPIKeyField {
-                if settings.provider == .ollama {
-                    Text(BookL10n.string("llm.apiKeyOptionalHint"))
-                        .font(BookTheme.captionFont)
-                        .foregroundStyle(BookTheme.inkMuted)
-                }
-
                 HStack(spacing: 8) {
                     Group {
                         if showAPIKey {
-                            TextField(settings.provider == .ollama ? BookL10n.string("llm.optionalAPIKey") : "sk-...", text: $draftAPIKey)
+                            TextField("sk-...", text: $draftAPIKey)
                         } else {
-                            SecureField(settings.provider == .ollama ? BookL10n.string("llm.optionalAPIKey") : "sk-...", text: $draftAPIKey)
+                            SecureField("sk-...", text: $draftAPIKey)
                         }
                     }
                     .textFieldStyle(.plain)
@@ -95,7 +89,7 @@ struct LLMConfigPanel: View {
                     .buttonStyle(.plain)
                 }
 
-                Button(settings.provider == .ollama ? BookL10n.string("llm.saveConfig") : BookL10n.string("llm.saveAPIKey")) {
+                Button(BookL10n.string("llm.saveAPIKey")) {
                     settings.apiKey = draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
                 .buttonStyle(.plain)

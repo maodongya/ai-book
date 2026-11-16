@@ -26,7 +26,7 @@ struct OperationMicButton: View {
                 })
                 .frame(width: 36, height: 36) // 命中层和圆一样大
             }
-            .help(BookL10n.string("operation.mic.help"))
+            .help(BookL10n.string("operation.mic.help") + "\n" + OutboundNotice.reading(settings: localizationSettings))
     }
 }
 

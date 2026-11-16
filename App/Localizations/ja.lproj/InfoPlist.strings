@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "AIBook は、話した操作を文字にするためにマイクを使います。";
+"NSSpeechRecognitionUsageDescription" = "AIBook は、話した操作を実行できる機能にするために音声認識を使います。";

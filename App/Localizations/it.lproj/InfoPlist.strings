@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "AIBook usa il microfono per trasformare ciò che dici in testo.";
+"NSSpeechRecognitionUsageDescription" = "AIBook usa il riconoscimento vocale per trasformare ciò che dici in un’azione.";

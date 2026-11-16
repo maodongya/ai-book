@@ -1,7 +1,15 @@
 import SwiftUI
 
-/// 应用入口：一扇阅读窗 + 菜单命令。状态在 ReadingViewModel / AppSettings，这里只接线。
+/// 先把已保存的界面语言写进 AppleLanguages，再启动 SwiftUI。系统权限框据此选 InfoPlist.strings。
 @main
+enum AIBookMain {
+    static func main() {
+        InterfaceLanguageLaunch.applySaved()
+        AIBookApp.main()
+    }
+}
+
+/// 应用入口：一扇阅读窗 + 菜单命令。状态在 ReadingViewModel / AppSettings，这里只接线。
 struct AIBookApp: App {
     /// AppKit 代理，用来在退出前问未保存。
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -139,16 +147,15 @@ struct AIBookApp: App {
                 }
                 .bookMenuShortcut(BookKeyboardShortcuts.classicSupplement)
                 .disabled(viewModel.fileContent.isEmpty || viewModel.isRunning)
-
-                Button(BookL10n.string("action.evolution")) {
-                    viewModel.evolution.startEvolution() // 正式改码入口，不用聊天里的「进化」空谈
-                }
-                .bookMenuShortcut(BookKeyboardShortcuts.evolution)
             }
 
             CommandGroup(replacing: .help) {
                 Button(BookL10n.string("help.manual")) {
                     viewModel.openUserManual() // 应用内说明书
+                }
+
+                Button(BookL10n.string("privacy.policy.title")) {
+                    viewModel.openPrivacyPolicy()
                 }
 
                 Button(BookL10n.string("help.manual.reveal")) {

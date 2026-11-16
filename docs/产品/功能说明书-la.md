@@ -13,7 +13,7 @@ Manualis in applicatione linguam interfaciei sequitur. Hic fasciculus est editio
 - E linea menuium **Auxilium → Manualis AIBook** (fenestra in applicatione; textus seligi et copiari potest)
 - **Auxilium → Ostende manualem in Finder** (fasciculum manualis linguae praesentis seligit)
 - **Aperi in app systematis** in linea tituli fenestrae manualis
-- Pygula **Manualis** in linea tituli **Configurationis book** et **Configurationis evolutionis**
+- Pygula **Manualis** in linea tituli **Configurationis book**
 
 ---
 
@@ -26,7 +26,6 @@ Manualis in applicatione linguam interfaciei sequitur. Hic fasciculus est editio
 - Verbum pro verbo aut per paragraphos transferre, et tabulam textus et translationis videre.
 - Textum, translationem aut explicationem recitari.
 - In modum legendi intrare et paginas sicut librum apertum vertere.
-- Si vis, evolutione uti: proiectum inspicere, unam rem e serie applicare, et applicationem rursus aedificare.
 
 ### 1.2 Mensa
 
@@ -45,7 +44,7 @@ Mutatio e linea tituli: **Modus legendi** (⌘⇧P) et **Modus discendi**.
 
 ## 2. Fenestra princeps (modus studii)
 
-Linea tituli documentum, explicationem, translationem, recitationem, dispositionem et configurationem continet. Pagina sinistra est textus. Pagina dextra est adiutor legendi, aut **evolutio**, cum illa tabula electa est.
+Linea tituli documentum, explicationem, translationem, recitationem, dispositionem et configurationem continet. Pagina sinistra est textus. Pagina dextra est adiutor legendi.
 
 ### 2.1 Dispositio
 
@@ -132,16 +131,7 @@ Animatio **unam chartam** flectit. Dorsum non mutatur.
 | **Elige totum originale** | ⌘⌃A | |
 | **Supple originale** | ⌘⇧C | Vide sectionem 9 |
 
-Sine fasciculo externo pagina sinistra **notas mandatorum** legit (vide 4.3).
-
-### 4.3 Notae mandatorum (pagina sinistra praedefinita)
-
-- Primo usu, aut sine fasciculo aperto, pagina sinistra notas ostendit ad tuas annotationes aut textum evolutionis veterem.
-- Servantur in `~/Library/Application Support/AIBook/readme-notes.txt`.
-- Si copia localis deest, applicatio ad exemplum insitum aut `readme.txt` proiecti redit.
-- **⌘S** notas in Application Support servat.
-
-> **Series optimizationis** nunc est `optimization-queue.json`. Notae non iam fons mandatorum evolutionis sunt, sed manent scheda personalis.
+Sine fasciculo externo pagina sinistra documentum vacuum est. **Serva originale ut…** illud in fasciculum scribit.
 
 ### 4.4 Scrutator capsarum (bibliotheca)
 
@@ -161,16 +151,15 @@ Capsae additae et status expansus **servantur**. Ita in una bibliotheca inter `.
 
 ## 5. Instrumenta intellegentiae et configuratio
 
-Explicatio, translatio et **Supple originale** exemplari legendi in **Configuratione book** utuntur. Evolutio semper Cursor utitur, in **Configuratione evolutionis**. In linea tituli nullus commutator est.
+Explicatio, translatio, **Supple originale** et mandata vocis exemplari legendi in **Configuratione book** utuntur.
 
-### 5.1 Exemplar legendi, Cursor pro evolutione
+### 5.1 Exemplar legendi
 
 | Usus | Gubernaculum |
 |------|--------------|
-| Explicare, transferre, originale supplere | **Configuratio book** → **Modelli IA** → **Praebitor activus** |
-| **Analyse** et **Evolue** | **Modellus Cursor** in **Configuratione evolutionis** |
+| Explicare, transferre, originale supplere, mandatum vocis | **Configuratio book** → **Modelli IA** → **Praebitor activus** |
 
-Capsula lineae tituli nomen fasciculi et **Non servatum** ostendit. Sine exemplari legendi dicit **Book LLM non configuratum**. Si Cursor non paratus est: **Cursor non paratus**.
+Sine exemplari legendi capsula dicit **Book LLM non configuratum**. Pyglae cognatae rogant ut prius **Configurationem book** aperias.
 
 ### 5.2 Configuratio book
 
@@ -185,18 +174,12 @@ Capsula lineae tituli nomen fasciculi et **Non servatum** ostendit. Sine exempla
 |-----------|--------------|
 | OpenAI | Exemplaria GPT in nube |
 | DeepSeek | Sinica minoris pretii |
-| Ollama | **Gratis in hoc Mac** (ad lectionem cotidianam commendatum) |
+| Anthropic | claude-sonnet-5-5 |
+| Gemini | gemini-4-hydrogen |
+| xAI | grok-4.7 |
 | Moonshot / Qwen / Zhipu | Exemplaria nubis in Sina |
 | Proprium | Quilibet terminus cum OpenAI compatibilis |
 
-**Ollama, initium breve**:
-
-```bash
-ollama serve
-ollama pull llama3.2
-```
-
-Ollama in Configuratione book elige, deinde **exemplaria in hoc Mac installata scrutare**. Si Ollama clavem API postulat, eam ibi scribe.
 
 - **Linguae translationis** et **linguae explicationis**: plures ex Sinica simpliciore, Anglica, Iaponica, Germanica, Gallica, Italica, Latina aut Graeca seligere potes. Proxima generatio eas ordine notato producit. Effectus iam praesentes in pagina dextra manent et mutari possunt. Fasciculus `.aibook` omnes servat.
 - **Portio excerpta sinistra**: quanta pars textus sinistri cum unaquaque petitione mittitur, ne fenestra exemplaris excedatur.
@@ -208,26 +191,6 @@ Vide sectionem 8.
 #### Species
 
 Vide sectionem 11.
-
-### 5.3 Configuratio evolutionis
-
-**Aditus**: menu **AIBook → Configurationes** (tabula evolutionis).
-
-| Configuratio | Sensus |
-|--------------|--------|
-| Clavis API Cursor | Aut variabilis ambitus `CURSOR_API_KEY` |
-| Exemplar Cursor | Exempli gratia exemplar Composer |
-| Via cursor-bridge | Capsa `cursor-bridge` in proiecto |
-| **Auto renovatio** | Post unum clic in **Evolue**, res reliquae continua serie currere possunt (vide sectionem 10) |
-
-**Dependentia Cursor localis**:
-
-```bash
-cd ai-book/cursor-bridge
-npm install
-```
-
-**Node.js 18+** necessarium est.
 
 ---
 
@@ -359,7 +322,7 @@ Ante recitationem Markdown et similia **purgantur et in sententias dividuntur**.
 
 ### 8.6 Mandata vocis
 
-Microphonum lineae tituli tene, loquere, et solve ut exsequatur. In modo legendi, ubi illa pygula deest, **Optionem et spatium tene** dum applicatio ante est. Applicatio vocem in textum vertit, deinde eodem exemplari legendi quo translatio et explicatio sententiam actioni iam praesenti attribuit. Explicare, transferre, recitare, dispositionem mutare, aperire, servare et exportare statim currunt. Evolutionem incipere aut optimizationes inspicere prius confirmationem petit. Si sententia obscura est aut nulli actioni congruit, nihil currit; applicatio solum textum auditum ostendit.
+Microphonum lineae tituli tene, loquere, et solve ut exsequatur. In modo legendi, ubi illa pygula deest, **Optionem et spatium tene** dum applicatio ante est. Applicatio vocem in textum vertit, deinde eodem exemplari legendi quo translatio et explicatio sententiam actioni iam praesenti attribuit. Explicare, transferre, recitare, dispositionem mutare, aperire, servare et exportare statim currunt. Si sententia obscura est aut nulli actioni congruit, nihil currit; applicatio solum textum auditum ostendit.
 
 ---
 
@@ -376,38 +339,9 @@ Ad contextum excerpti libri scholastici aut fragmenti restituendum. Noli eo uti 
 
 ---
 
-## 10. Evolutio (provectis)
+## 10. Modus evolutionis
 
-> **Monitum**: evolutio fontem AIBook mutat et applicationem denuo instituit. Ea utere solum si Git et exempla servata intellegis. **Auto renovatio** in machina quam mutare non potes ne accendas.
-
-### 10.1 Quid facit
-
-- **Inspice**: exemplar proiectum **legit** et consilia in **seriem optimizationis** scribit. Codicem non mutat.
-- **Evolue**: unam rem **expectantem** capit, **codicem mutat**, aedificat et instituit, deinde **applicationem rursus incipit**.
-
-### 10.2 Cursus typicus
-
-1. Tabulam **Evolutionis** ad dextram aperi.
-2. **Inspice** preme et exspecta donec consilia in seriem intrent.
-3. Res lege (titulum, numerum, statum).
-4. **Evolue** (⌘E) preme ut **proximam rem expectantem** exsequaris.
-5. **Ratiocinationem** et **gradus instrumentorum** observa.
-6. Finita re applicatio rursus incipere potest. Si **Auto renovatio** accensa est et in hac sessione evolutionem iam manu incipisti, res posteriores **continua serie** currere possunt.
-
-### 10.3 Mandata et fasciculus seriei
-
-- Fasciculus: `~/Library/Application Support/AIBook/optimization-queue.json`
-- In tabula evolutionis documentum mandatorum (UTF-8) **servare et aperire** potes.
-- Inspectio **duplicia removet** secundum titulum ordinatum. Una inspectio numerum finitum proponit (circiter 8).
-
-### 10.4 Canalis
-
-**Analyse** et **Evolue** ambo agente Cursor locali utuntur. Nullus reditus ad exemplar legendi est. Analysis tantum legit. **Evolue** codicem mutat, aedificat et instituit. Si Cursor non paratus est, pygulae manent clausae et capsula dicit **Cursor non paratus**.
-
-### 10.5 Tesserae et status
-
-- Evolutio et colloquia longa intra **budgetum tesserarum** manent. Interfacies usum ostendit et missionem negat cum budgetum exhaustum est.
-- Capsula lineae tituli **numerum rerum expectantium** et numerum proximae ostendere potest.
+Haec versio modum evolutionis non habet. Pagina dextra tantum adiutor legendi est. Applicatio fontem non inspicit, codicem non mutat, nec se ipsa renovat.
 
 ---
 
@@ -428,7 +362,6 @@ Ad contextum excerpti libri scholastici aut fragmenti restituendum. Noli eo uti 
 Praeter pygulas lineae tituli, menua **Fasciculus / Emenda** easdem breves habent atque actiones textus et explicationis.  
 **Auxilium** hunc manualem aperit et eum in Finder ostendit.
 
-**AIBook → Configurationes** evolutioni est.  
 **Configuratio book** in linea tituli lectioni, translationi, voci et speciei est.
 
 ---
@@ -447,7 +380,6 @@ Praeter pygulas lineae tituli, menua **Fasciculus / Emenda** easdem breves haben
 | Recita textum (selectionem aut totum, ut menu definit) | ⌘⌥R |
 | Recita totam translationem | ⌘⌥T |
 | Comple textum | ⌘⇧C |
-| **Evolutio sui** (menu) / **Evolue** (linea tituli) | ⌘E |
 | Intra modum legendi | ⌘⇧P |
 | Mandatum vocis | Tene Optionem et spatium |
 | Lectio: **Pagina prior** / **Pagina sequens** | ← / → |
@@ -468,16 +400,13 @@ Radix: `~/Library/Application Support/AIBook/`
 
 | Quid | Via |
 |------|-----|
-| Notae mandatorum | `readme-notes.txt` |
-| Series optimizationis | `optimization-queue.json` |
 | Colloquia | Condita secundum viam libri |
 | Scrutator capsarum | Radices apertae et status expansus |
 | Specimina vocum in rete | `voices/` |
-| **Auto renovatio** | `auto-evolution-active` et fasciculi cognati |
 
 ### 14.2 Rete et claves
 
-- Petitiones **exemplaris / Cursor** ad API aut servitium Cursor a te constitutum eunt. Claves in praeferentiis localibus manent. Machinam ne communices.
+- Petitiones **exemplaris** ad praebitorem a te constitutum eunt. Claves in praeferentiis localibus manent. Machinam ne communices.
 - **Edge TTS** rete requirit. Voces systematis sine rete laborant.
 - **Mandata vocis** microphono et agnitione vocis systematis utuntur. Cum lingua systematis agnitionem in ipso instrumento sinit, sonus in hoc Mac manet. Textus agnitus ad idem exemplar legendi mittitur quo translatio et explicatio.
 
@@ -538,19 +467,13 @@ swift run
 ## 17. Quaestiones
 
 **Pygula explicationis dicit exemplar non constitutum esse.**  
-**Configurationem book → exemplar** aperi, praebitorem elige et clavem API scribe. In hoc Mac Ollama electio usitata est.
-
-**Cursor locale non adest.**  
-Node.js, `npm install` in cursor-bridge, clavem API Cursor et viam in Configuratione evolutionis inspice.
+**Configurationem book → exemplar** aperi, praebitorem elige et clavem API scribe. Electio usitata est OpenAI, Claude, Gemini aut Grok.
 
 **Tabula translationis cineracea est.**  
 Prius translationem verbum pro verbo aut per paragraphos fini, et JSON blocos alignationis validos continere debet. Si alignatio evanuit, **Aligna translationem** utere.
 
 **Numeri paginarum in modo legendi mutati sunt.**  
 Magnitudo typi aut fenestra rursus dividit. Id exspectatur. Index paginarum geminarum restituitur cum potest.
-
-**Applicatio post evolutionem aliter agit.**  
-Evolutio copiam localem installatam AIBook mutat. Fontem in Git tene, et **Auto renovatio** solum data opera utere.
 
 **Hic manualis et interfacies dissentiunt.**  
 **Versioni AIBook installatae** crede. Super pygulam morare ut indicium recens videas.
@@ -560,8 +483,8 @@ Evolutio copiam localem installatam AIBook mutat. Fontem in Git tene, et **Auto 
 ## 18. Versio et documenta
 
 - Hic manualis in applicatione distribuitur et e menu **Auxilium** aperitur.
-- Repositorium etiam notas consilii habet (modus legendi, species, evolutio) ad evolutionem programmatis.
-- README proiecti institutionem brevem Ollama et Cursor continet.
+- Repositorium etiam notas consilii habet (modus legendi, species) ad evolutionem programmatis.
+- README proiecti institutionem brevem modelorum continet.
 
 ---
 

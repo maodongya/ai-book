@@ -165,13 +165,28 @@ enum ModelTokenLimits {
         if lower.contains("32k") || lower.contains("32768") { return 32_768 }
         if lower.contains("16k") { return 16_384 }
         if lower.contains("8k") { return 8_192 }
+        if lower.contains("gpt-6") { return 1_050_000 }
+        if lower.contains("claude") { return 1_000_000 }
+        if lower.contains("gemini") { return 1_000_000 }
+        if lower.contains("grok-4.7") || lower.contains("grok-4.6") || lower.contains("grok-4.5") {
+            return 500_000
+        }
+        if lower.contains("grok") { return 1_000_000 }
         if lower.contains("qwen") { return 131_072 }
         if lower.contains("deepseek") { return 64_000 }
         if lower.contains("gpt-4") { return 128_000 }
         if lower.contains("gpt-3.5") { return 16_384 }
         if lower.contains("llama3") || lower.contains("llama-3") { return 128_000 }
-        if provider == .ollama { return 32_768 } // 本地默认偏小
-        return 64_000 // 未点名的云模型给中等窗口
+        switch provider {
+        case .openAI:
+            return 1_050_000
+        case .anthropic, .gemini:
+            return 1_000_000
+        case .xai:
+            return 500_000
+        default:
+            return 64_000 // 未点名的云模型给中等窗口
+        }
     }
 
     /// Cursor 模型的用户可见标签；未知 rawValue 原样显示。

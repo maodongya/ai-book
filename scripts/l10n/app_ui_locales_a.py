@@ -18,12 +18,12 @@ LOCALES_A: dict[str, tuple[str, str, str, str, str, str]] = {
         "Μοντέλο Cursor της εξέλιξης AI",
     ),
     "help.configureBookLLM": (
-        "読書アシスタントの大規模モデルを設定（ローカル Ollama 推奨）",
-        "Buch-LLM einrichten (lokales Ollama empfohlen)",
-        "Configurer le LLM book (Ollama local recommandé)",
-        "Configura l’LLM book (Ollama locale consigliato)",
-        "Configura LLM libri (Ollama locale commendatur)",
-        "Ρύθμιση LLM ανάγνωσης (συνιστάται τοπικό Ollama)",
+        "読書アシスタントの大規模モデルを設定（OpenAI、Claude、Gemini、Grok など）",
+        "Buch-LLM einrichten (OpenAI, Claude, Gemini, Grok u. a.)",
+        "Configurer le LLM book (OpenAI, Claude, Gemini, Grok, etc.)",
+        "Configura l’LLM book (OpenAI, Claude, Gemini, Grok e altri)",
+        "Configura LLM libri (OpenAI, Claude, Gemini, Grok, ceteraque)",
+        "Ρύθμιση LLM ανάγνωσης (OpenAI, Claude, Gemini, Grok κ.ά.)",
     ),
     "help.evolutionDefault": (
         "進化、コマンドの保存と開く、コンテキスト消去、設定",

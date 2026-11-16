@@ -67,7 +67,7 @@ enum BookUserManual {
 
     /// 开发机上的仓库副本，优先 docs/产品（正文），其次 Sources 里给打包的那份。
     private static func developmentManualURL(named name: String) -> URL? {
-        guard let project = CursorService.defaultProjectDirectory() else { return nil } // 找不到项目根就放弃，避免乱扫磁盘
+        guard let project = ProjectRoots.sourceDirectory() else { return nil }
         let fileName = "\(name).\(resourceExtension)"
         let candidates = [
             project.appendingPathComponent("docs/产品/\(fileName)"), // 仓库正文，改文档看这里

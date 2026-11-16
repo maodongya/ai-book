@@ -41,6 +41,15 @@ if [[ ! -f "$ROOT/Assets/AppIcon.icns" ]]; then
 fi
 cp "$ROOT/Assets/AppIcon.icns" "$STAGING/Contents/Resources/AppIcon.icns"
 cp "$ROOT/App/Info.plist" "$STAGING/Contents/Info.plist"
+cp "$ROOT/App/PrivacyInfo.xcprivacy" "$STAGING/Contents/Resources/PrivacyInfo.xcprivacy"
+
+if [[ -d "$ROOT/App/Localizations" ]]; then
+  for lproj in "$ROOT/App/Localizations"/*.lproj; do
+    lang="$(basename "$lproj")"
+    mkdir -p "$STAGING/Contents/Resources/$lang"
+    cp "$lproj/InfoPlist.strings" "$STAGING/Contents/Resources/$lang/InfoPlist.strings"
+  done
+fi
 
 if [[ -d "$ROOT/Sources/AIBook/Resources" ]]; then
   cp -R "$ROOT/Sources/AIBook/Resources/." "$STAGING/Contents/Resources/"

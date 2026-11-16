@@ -7,7 +7,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 启动完成：灌 Cursor 鉴权、变成普通 app、拉到前台、统一窗口标题。
     func applicationDidFinishLaunching(_ notification: Notification) {
-        CursorAuthBootstrap.applyOnLaunch() // 启动时写入/刷新 Cursor 侧凭据
         NSApp.setActivationPolicy(.regular) // 保证有 Dock 和菜单，不当 accessory
         NSApp.activate(ignoringOtherApps: true) // 从终端 `swift run` 时也要跳到前台
         applyWindowTitle() // 标题随产品名和界面语言

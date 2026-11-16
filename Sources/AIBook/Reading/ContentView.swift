@@ -36,12 +36,6 @@ struct ContentView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")  // 空串防守
         }
-        .sheet(isPresented: $viewModel.showSettings) {  // 通用设置
-            SettingsView()  // 进化/Cursor 等
-                .environmentObject(viewModel)  // 共用 VM
-                .bookStyleEnvironment(styleManager)  // 主题
-                .bookLocalizationEnvironment()  // 语言
-        }
         .sheet(isPresented: $viewModel.showBookSettings) {  // 本书设置
             BookSettingsView()  // LLM/译文语
                 .environmentObject(viewModel)  // 共用 VM
@@ -52,6 +46,11 @@ struct ContentView: View {
             BookUserManualView()  // 不依赖 VM
                 .bookStyleEnvironment(styleManager)  // 主题
                 .bookLocalizationEnvironment()  // 语言
+        }
+        .sheet(isPresented: $viewModel.showPrivacyPolicy) {
+            PrivacyPolicyView()
+                .bookStyleEnvironment(styleManager)
+                .bookLocalizationEnvironment()
         }
         .sheet(isPresented: Binding(  // 目录浏览器
             get: { viewModel.document.showDirectoryBrowser },  // 文档会话开关
@@ -252,19 +251,10 @@ struct ContentView: View {
                             icon: "book.closed.fill",  // 书
                             tint: Color.white.opacity(0.52)  // 浅
                         )
-                        .help(BookL10n.string("help.bookLLMSettings"))  // 点设置
-                    } else if viewModel.rightPageTab == .aiEvolution {  // 进化页看 Cursor
-                        BookStatusPill(  // 配置状态
-                            title: settings.isCursorRunnable  // 桥+Key 齐才算可跑
-                                ? ModelTokenLimits.cursorModelLabel(settings.resolvedCursorModel)  // 当前模型名
-                                : BookL10n.string("status.cursor.notReady"),  // 没配
-                            icon: "cursorarrow.rays",  // Cursor
-                            tint: Color.white.opacity(0.66)  // 略亮
-                        )
-                        .help(BookL10n.string("help.evolutionCursorModel"))  // 进化设置
+                        .help(BookL10n.string("help.bookLLMSettings"))
                     }
 
-                    Spacer(minLength: 12)  // 模式钮推右
+                    Spacer(minLength: 12)
 
                     headerModeAndSourceControls  // 学习/阅读、来源
                 }
@@ -296,12 +286,6 @@ struct ContentView: View {
             ?? BookL10n.string("help.configureBookLLM")  // 已配则普通帮助
     }
 
-    /// 进化后端未就绪时的工具栏提示。
-    private var evolutionToolbarHelp: String {
-        AppGuard.evolutionErrorMessage(for: settings)  // Cursor/源码
-            ?? (viewModel.evolution.evolutionStatusLabel ?? BookL10n.string("help.evolutionDefault"))  // 队列状态或默认
-    }
-
     @ViewBuilder
     /// 打开书内 LLM 配置指南。
     private var bookLLMConfigGuideMenuItem: some View {
@@ -315,24 +299,8 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
-    /// 打开进化后端配置指南。
-    private var evolutionConfigGuideMenuItem: some View {
-        if !settings.isCursorRunnable {  // 桥或 Key 缺
-            Button {
-                viewModel.openSettings()  // 进化设置
-            } label: {
-                Text(BookL10n.string("guide.cursorSetup"))  // 引导
-            }
-            BookToolbarMenuDivider()  // 和正式项隔开
-        }
-    }
-
     /// 书内 LLM 还没配好，相关按钮先引导去配置。
     private var requiresBookLLM: Bool { !settings.isBookLLMConfigured }
-
-    /// Cursor 进化跑不起来，相关按钮先引导去配置。
-    private var requiresEvolutionBackend: Bool { !settings.isCursorRunnable }
 
     /// 当前工具栏按阅读而不是进化来排。
     private var isReadingToolbarContext: Bool {
@@ -343,18 +311,10 @@ struct ContentView: View {
     private func toolbarColumnWidths(totalWidth: CGFloat) -> (left: CGFloat, center: CGFloat, right: CGFloat) {
         let dividerSpan = Self.toolbarDividerSpan  // 两条竖线占的宽
         let dividers = dividerSpan * 2  // 左右各一条
-        switch viewModel.rightPageTab {  // 助手左栏宽，进化中栏宽
-        case .readingAssistant:  // 文档操作多
-            let left = totalWidth * 2 / 5  // 左 40%
-            let remaining = max(0, totalWidth - left - dividers)  // 扣竖线
-            let side = remaining / 2  // 中右均分
-            return (left, side, side)  // 左大
-        case .aiEvolution:  // 中间进化按钮多
-            let left = totalWidth / 5  // 文档缩
-            let right = totalWidth / 5  // 工具缩
-            let center = max(0, totalWidth - left - right - dividers)  // 中间吃剩下
-            return (left, center, right)  // 中大
-        }
+        let left = totalWidth * 2 / 5
+        let remaining = max(0, totalWidth - left - dividers)
+        let side = remaining / 2
+        return (left, side, side)
     }
 
     /// 顶栏主操作一行。
@@ -624,6 +584,7 @@ struct ContentView: View {
     @ViewBuilder
     /// 讲解菜单：生成、朗读、清空。
     private var explanationOperationsMenuContent: some View {
+        BookToolbarMenuCaption(title: OutboundNotice.reading(settings: settings))
         bookLLMConfigGuideMenuItem  // 没配先插引导
 
         if viewModel.document.explanationBundle.availableToShow.count >= 2 {
@@ -736,6 +697,7 @@ struct ContentView: View {
     @ViewBuilder
     /// 翻译菜单：译、对齐、对照表。
     private var translationOperationsMenuContent: some View {
+        BookToolbarMenuCaption(title: OutboundNotice.reading(settings: settings))
         bookLLMConfigGuideMenuItem  // 没配先插引导
 
         if viewModel.document.translationLanguagesAvailableToShow.count >= 2 {
@@ -952,19 +914,11 @@ struct ContentView: View {
                 } compact: {
                     readingPrimaryActionBarCompact  // 分栏+溢出
                 } minimal: {
-                    readingPrimaryActionBarMinimal  // 全进溢出
-                }
-            } else {  // 进化页
-                BookToolbarOverflowRow {  // 宽→全，窄→压，再窄→溢出
-                    evolutionPrimaryActionBarFull  // 进化+分析+停止
-                } compact: {
-                    evolutionPrimaryActionBarCompact  // 进化+溢出
-                } minimal: {
-                    evolutionPrimaryActionBarMinimal  // 全进溢出
+                    readingPrimaryActionBarMinimal
                 }
             }
         }
-        .frame(maxWidth: .infinity)  // 中栏拉满
+        .frame(maxWidth: .infinity)
         .animation(.easeOut(duration: 0.18), value: viewModel.assistant.isSpeakingExplanation)  // 切播放条
         .animation(.easeOut(duration: 0.2), value: viewModel.rightPageTab)  // 切 Tab 栏宽
     }
@@ -1082,74 +1036,6 @@ struct ContentView: View {
         .id(settings.localizationRevision)  // 讲解/翻译胶囊跟界面语言一起换字
     }
 
-    /// 进化主操作完整按钮。
-    private var evolutionPrimaryActionBarFull: some View {
-        HStack(spacing: 8) {  // 脏标记
-            evolutionPrimaryActionButtons  // 进化+分析
-            if viewModel.isRunning {  // 跑着才露停
-                evolutionStopButton  // 取消并回滚
-            }
-        }
-        .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
-    }
-
-    /// 进化主操作图标档。
-    private var evolutionPrimaryActionBarCompact: some View {
-        HStack(spacing: 8) {  // 脏标记
-            BookActionButton(  // 胶囊钮
-                title: BookL10n.string("action.evolve"),  // 「进化」
-                isCompact: true,
-                isDisabled: requiresEvolutionBackend || viewModel.isRunning  // 没 Cursor 或在跑
-            ) {
-                viewModel.evolution.startEvolution()  // 下一条 pending
-            }
-            .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.format("help.runNextEvolution", BookKeyboardShortcuts.evolutionHint))  // 没配先说原因
-
-            evolutionPrimaryOverflowMenu(includeEvolution: false)  // 外面已有进化钮
-        }
-        .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
-    }
-
-    /// 进化主操作菜单档。
-    private var evolutionPrimaryActionBarMinimal: some View {
-        HStack(spacing: 8) {  // 脏标记
-            evolutionPrimaryOverflowMenu(includeEvolution: true)  // 进化也进溢出
-        }
-        .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
-    }
-
-    @ViewBuilder
-    /// 进化主操作溢出。
-    private func evolutionPrimaryOverflowMenu(includeEvolution: Bool) -> some View {
-        BookToolbarOverflowMenu(help: BookL10n.string("help.evolutionOverflow")) {  // 进化溢出
-            if includeEvolution {  // 最小栏
-                Button {
-                    viewModel.evolution.startEvolution()  // 下一条 pending
-                } label: {
-                    Text(BookL10n.string("action.evolve"))  // 进化
-                }
-                .bookMenuShortcut(BookKeyboardShortcuts.evolution)  // 快捷键
-                .disabled(requiresEvolutionBackend || viewModel.isRunning)  // 没配或在跑
-            }
-
-            Button {
-                viewModel.evolution.analyzeOptimizations()  // 只出建议
-            } label: {
-                Text(BookL10n.string("action.analyze"))  // 分析
-            }
-            .disabled(requiresEvolutionBackend || viewModel.isRunning)  // 没配或在跑
-
-            if viewModel.isRunning {  // 跑着才露停
-                Button {
-                    viewModel.stopCurrentRun()  // 取消，进化回 pending
-                } label: {
-                    Text(BookL10n.string("action.stop"))  // 停止
-                }
-            }
-        }
-    }
-
-    /// 统一朗读条完整档。
     private var unifiedSpeechPlaybackBarFull: some View {
         HStack(spacing: 8) {  // 脏标记
             speechSourcePill  // 正在读哪一路
@@ -1301,193 +1187,9 @@ struct ContentView: View {
         }
     }
 
-    /// 进化主按钮。
-    private var evolutionPrimaryActionButtons: some View {
-        Group {
-            BookActionButton(  // 胶囊钮
-                title: BookL10n.string("action.evolve"),  // 「进化」
-                isCompact: true,
-                isDisabled: requiresEvolutionBackend || viewModel.isRunning  // 没 Cursor 或在跑
-            ) {
-                viewModel.evolution.startEvolution()  // 下一条 pending
-            }
-            .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.format("help.runNextEvolution", BookKeyboardShortcuts.evolutionHint))  // 没配先说原因
 
-            BookActionButton(  // 胶囊钮
-                title: BookL10n.string("action.analyze"),
-                isCompact: true,
-                isDisabled: requiresEvolutionBackend || viewModel.isRunning  // 没 Cursor 或在跑
-            ) {
-                viewModel.evolution.analyzeOptimizations()  // 只出建议
-            }
-            .help(requiresEvolutionBackend ? evolutionToolbarHelp : BookL10n.string("help.analyzeSource"))  // 只读分析
-        }
-    }
-
-    /// 停进化跑。
-    private var evolutionStopButton: some View {
-        BookActionButton(  // 胶囊钮
-            title: BookL10n.string("action.stop"),  // 停
-            isCompact: true  // 工具栏矮
-        ) {
-            viewModel.stopCurrentRun()  // 取消，进化回 pending
-        }
-        .help(BookL10n.string("help.stopEvolutionTask"))  // 停进化
-    }
-
-    /// 次要工具（设置、手册）。
     private var utilityActionBar: some View {
-        BookToolbarOverflowRow {  // 宽→全，窄→压，再窄→溢出
-            utilityActionBarFull  // 进化 Tab+菜单
-        } compact: {
-            utilityActionBarCompact  // Tab+溢出
-        } minimal: {
-            utilityActionBarMinimal  // 助手页只留 Tab
-        }
-    }
-
-    /// 次要工具完整档。
-    private var utilityActionBarFull: some View {
-        HStack(spacing: 8) {  // 脏标记
-            aiEvolutionTabButton  // 切进化
-            if !isReadingToolbarContext {  // 进化页才露进化菜单
-                evolutionOperationsMenu  // 分析/存命令
-            }
-        }
-        .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
-    }
-
-    /// 次要工具图标档。
-    private var utilityActionBarCompact: some View {
-        HStack(spacing: 8) {  // 脏标记
-            aiEvolutionTabButton  // 切进化
-            if !isReadingToolbarContext {  // 进化页才露进化菜单
-                utilityEvolutionOverflowMenu(includeTab: false)  // 外面已有 Tab
-            }
-        }
-        .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
-    }
-
-    /// 次要工具菜单档。
-    private var utilityActionBarMinimal: some View {
-        HStack(spacing: 8) {  // 脏标记
-            if isReadingToolbarContext {  // 进化页不塞讲解
-                aiEvolutionTabButton  // 切进化
-            } else {  // 进化页
-                utilityEvolutionOverflowMenu(includeTab: true)  // Tab 也进溢出
-            }
-        }
-        .fixedSize(horizontal: true, vertical: false)  // 溢出行按内容宽
-    }
-
-    /// 切到 AI 进化右页。
-    private var aiEvolutionTabButton: some View {
-        BookActionButton(  // 胶囊钮
-            title: RightPageTab.aiEvolution.localizedTitle,  // 「AI 进化」
-            isProminent: viewModel.rightPageTab == .aiEvolution,  // 当前高亮
-            isCompact: true  // 工具栏矮
-        ) {
-            viewModel.selectRightPageTab(.aiEvolution)  // 补欢迎并强制 Cursor
-        }
-        .help(BookL10n.string("help.switchEvolution"))  // 切进化
-    }
-
-    @ViewBuilder
-    /// 工具区进化 Tab 溢出。
-    private func utilityEvolutionOverflowMenu(includeTab: Bool) -> some View {
-        BookToolbarOverflowMenu(
-            help: requiresEvolutionBackend
-                ? evolutionToolbarHelp
-                : (viewModel.evolution.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary))
-        ) {
-            if includeTab {
-                Button {
-                    viewModel.selectRightPageTab(.aiEvolution)  // 补欢迎并强制 Cursor
-                } label: {
-                    Text(RightPageTab.aiEvolution.localizedTitle)
-                }
-                BookToolbarMenuDivider()  // 和正式项隔开
-            }
-
-            BookToolbarSubmenu(
-                title: RightPageTab.aiEvolution.toolbarMenuTitle ?? RightPageTab.aiEvolution.localizedTitle  // 子菜单标题
-            ) {
-                evolutionOperationsMenuContent  // 同一份
-            }
-        }
-    }
-
-    /// 进化操作下拉。
-    private var evolutionOperationsMenu: some View {
-        BookToolbarMenuButton(
-            title: RightPageTab.aiEvolution.toolbarMenuTitle ?? RightPageTab.aiEvolution.rawValue  // 菜单钮
-        ) {
-            evolutionOperationsMenuContent  // 同一份
-        }
-        .help(requiresEvolutionBackend ? evolutionToolbarHelp : (viewModel.evolution.evolutionStatusLabel ?? BookL10n.format("help.evolutionDefaultMenu", BookKeyboardShortcuts.evolutionMenuSummary)))
-    }
-
-    @ViewBuilder
-    /// 进化菜单：分析、执行、队列。
-    private var evolutionOperationsMenuContent: some View {
-        evolutionConfigGuideMenuItem  // 没配先引导
-
-        Button {
-            viewModel.selectRightPageTab(.aiEvolution)  // 补欢迎并强制 Cursor
-            viewModel.evolution.startEvolution()  // 下一条 pending
-        } label: {
-            Text(BookL10n.string("action.evolve"))  // 进化
-        }
-        .bookMenuShortcut(BookKeyboardShortcuts.evolution)  // 快捷键
-        .disabled(requiresEvolutionBackend || viewModel.isRunning)  // 没配或在跑
-
-        Button {
-            viewModel.selectRightPageTab(.aiEvolution)  // 补欢迎并强制 Cursor
-            viewModel.evolution.analyzeOptimizations()  // 只出建议
-        } label: {
-            Text(BookL10n.string("action.analyze"))  // 分析
-        }
-        .disabled(requiresEvolutionBackend || viewModel.isRunning)  // 没配或在跑
-
-        Button {
-            viewModel.openSettings()  // 进化设置
-        } label: {
-            Text(BookL10n.string("settings.evolution"))  // 进化设置
-        }
-
-        BookToolbarMenuDivider()  // 和正式项隔开
-
-        Button {
-            viewModel.evolution.saveEvolutionCommands()  // 导出编号笔记
-        } label: {
-            Text(BookL10n.string("action.saveEvolutionCommands"))  // 存命令
-        }
-        .disabled(!viewModel.canSaveEvolutionCommands)  // 空队列
-
-        Button {
-            viewModel.evolution.openEvolutionCommands()  // 导入，覆盖先问
-        } label: {
-            Text(BookL10n.string("action.openEvolutionCommands"))  // 开命令
-        }
-        .disabled(!viewModel.canOpenEvolutionCommands)  // 在跑不能开
-
-        Button(role: .destructive) {  // 红字
-            viewModel.selectRightPageTab(.aiEvolution)  // 补欢迎并强制 Cursor
-            viewModel.clearAIContext()  // 清进化对话和 token
-        } label: {
-            Text(BookL10n.string("action.clearAIContext"))  // 清上下文
-        }
-        .disabled(viewModel.isRunning || !viewModel.canClearAIContext)  // 空或在跑
-
-        if viewModel.isRunning {  // 跑着才露停
-            BookToolbarMenuDivider()  // 和正式项隔开
-
-            Button {
-                viewModel.stopCurrentRun()  // 取消，进化回 pending
-            } label: {
-                Text(BookL10n.string("action.stop"))  // 停止
-            }
-        }
+        EmptyView()
     }
 
     /// 打开的书：左页、书脊、右页。
@@ -1688,7 +1390,7 @@ struct ContentView: View {
 
     /// 右页要不要显示栏目标题。
     private var showsRightPageLabel: Bool {
-        viewModel.rightPageTab == .aiEvolution  // 助手页眉由聊天视图自己画
+        false
     }
 
     /// 全屏学习区标题（讲解/翻译/进化）。
@@ -1696,10 +1398,7 @@ struct ContentView: View {
         if learningPaneFocus == .leading {  // 左全屏用文件名
             return viewModel.document.displayFileName  // 带脏点
         }
-        if viewModel.rightPageTab == .readingAssistant {  // 助手页看病书模型
-            return viewModel.readingAssistantPanel.toolbarTitle  // 讲解或译文
-        }
-        return viewModel.rightPageTab.localizedTitle  // 进化
+        return viewModel.readingAssistantPanel.toolbarTitle
     }
 
     /// 中间书脊装饰。
@@ -1799,9 +1498,6 @@ struct ContentView: View {
     private var leftPageSaveStatus: String {
         if let message = viewModel.document.lastSaveMessage {  // 短暂「已保存 xxx」优先
             return message  // 3 秒后空
-        }
-        if viewModel.document.isEditingNotes {  // 笔记档
-            return viewModel.document.isDirty ? BookL10n.string("status.saving") : BookL10n.string("status.autosaved")  // 自动存中/已自动存
         }
         return viewModel.document.isDirty ? BookL10n.string("status.unsaved") : BookL10n.string("status.saved")  // 普通文件
     }
