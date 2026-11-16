@@ -13,7 +13,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "AIBookEvolution",
+            name: "com.mdy2010life.aibook",
             path: "Sources/AIBookEvolution"
         ),
         .executableTarget(
