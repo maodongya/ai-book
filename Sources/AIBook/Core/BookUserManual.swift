@@ -10,7 +10,11 @@ enum BookUserManual {
 
     /// 已安装 `.app` 走 `Bundle.main`；`swift run` 走 `Bundle.module`；再兜一层 SPM 嵌套 bundle。
     private static var resourceBundles: [Bundle] {
+        #if SWIFT_PACKAGE
         var bundles: [Bundle] = [Bundle.main, Bundle.module] // 先正式包，再 SPM 模块包
+        #else
+        var bundles: [Bundle] = [Bundle.main] // Xcode App 目标的资源在主 bundle
+        #endif
         if let resourceURL = Bundle.main.resourceURL {
             let nested = Bundle(url: resourceURL.appendingPathComponent("AIBook_AIBook.bundle", isDirectory: true)) // SPM 打进 app 时的嵌套包名
             if let nested {

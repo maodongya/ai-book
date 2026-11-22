@@ -218,4 +218,28 @@ final class BookL10nCatalogTests: XCTestCase {
             }
         }
     }
+
+    /// Xcode 把 xcstrings 编成 UTF-16 的 .lproj/Localizable.strings，目录要能按语言读出来。
+    func testCompiledStringsDirectorySuppliesEachLanguage() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("aibook-l10n-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCompiledStrings(["settings.language": "界面语言"], language: "zh-Hans", in: root)
+        try writeCompiledStrings(["settings.language": "Interface Language"], language: "en", in: root)
+
+        let table = BookL10nCatalog.stringsTable(in: root)
+        XCTAssertEqual(table["settings.language"]?["zh-Hans"], "界面语言")
+        XCTAssertEqual(table["settings.language"]?["en"], "Interface Language")
+    }
+
+    /// 写成和 Xcode 一样的 UTF-16 XML property list。
+    private func writeCompiledStrings(_ pairs: [String: String], language: String, in root: URL) throws {
+        let folder = root.appendingPathComponent("\(language).lproj", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let data = try PropertyListSerialization.data(fromPropertyList: pairs, format: .xml, options: 0)
+        let xml = String(decoding: data, as: UTF8.self)
+            .replacingOccurrences(of: "encoding=\"UTF-8\"", with: "encoding=\"UTF-16\"")
+        let utf16 = xml.data(using: .utf16)! // 带 BOM，和 xcstringstool 的 .strings 一致
+        try utf16.write(to: folder.appendingPathComponent("Localizable.strings"))
+    }
 }

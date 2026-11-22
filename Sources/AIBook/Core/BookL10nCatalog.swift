@@ -1,6 +1,6 @@
 import Foundation
 
-/// 运行时查 `Localizable.xcstrings`。SPM 拷的是 JSON，`String(localized:)` 解析不了，所以自己读。
+/// 运行时查界面文案。Swift Package 里是 `Localizable.xcstrings` JSON；Xcode 会把它编成各语言的 `Localizable.strings`。
 enum BookL10nCatalog {
     /// 保护 table / isLoaded，目录只加载一次。
     private static let lock = NSLock()
@@ -43,7 +43,14 @@ enum BookL10nCatalog {
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let strings = root["strings"] as? [String: Any]
         else {
-            return // 找不到或坏 JSON，table 保持空，string 退回 key
+            // Xcode 不把 xcstrings 打进包，改读 Contents/Resources/<lang>.lproj/Localizable.strings。
+            if let resourceURL = Bundle.main.resourceURL {
+                let compiled = stringsTable(in: resourceURL)
+                if !compiled.isEmpty {
+                    table = compiled
+                }
+            }
+            return
         }
 
         var parsed: [String: [String: String]] = [:]
@@ -75,11 +82,40 @@ enum BookL10nCatalog {
         table = parsed
     }
 
+    /// 读一个资源目录里各 `.lproj/Localizable.strings`。目录名就是语言码。
+    static func stringsTable(in resourceURL: URL) -> [String: [String: String]] {
+        guard let folders = try? FileManager.default.contentsOfDirectory(
+            at: resourceURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return [:] // 目录不存在就当没有编译结果
+        }
+
+        var parsed: [String: [String: String]] = [:]
+        for folder in folders where folder.pathExtension == "lproj" {
+            let code = folder.deletingPathExtension().lastPathComponent // zh-Hans.lproj → zh-Hans
+            let stringsURL = folder.appendingPathComponent("Localizable.strings")
+            guard let data = try? Data(contentsOf: stringsURL),
+                  let dict = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+            else { continue } // 坏文件跳过，其它语言仍可用
+
+            for (key, value) in dict where !value.isEmpty {
+                var langMap = parsed[key] ?? [:]
+                langMap[code] = value
+                parsed[key] = langMap
+            }
+        }
+        return parsed
+    }
+
     /// 模块包优先，其次主 bundle（已安装 app）。
     private static func resolveCatalogURL() -> URL? {
+        #if SWIFT_PACKAGE
         if let url = Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings") {
             return url // swift run / 测试
         }
+        #endif
         if let url = Bundle.main.url(forResource: "Localizable", withExtension: "xcstrings") {
             return url // 装好的 .app
         }
