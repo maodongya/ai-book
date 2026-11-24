@@ -307,34 +307,27 @@ struct ContentView: View {
         viewModel.rightPageTab == .readingAssistant  // 左栏菜单跟助手走
     }
 
-    /// 按总宽切左/中/右三栏，窄窗压缩中栏。
-    private func toolbarColumnWidths(totalWidth: CGFloat) -> (left: CGFloat, center: CGFloat, right: CGFloat) {
-        let dividerSpan = Self.toolbarDividerSpan  // 两条竖线占的宽
-        let dividers = dividerSpan * 2  // 左右各一条
+    /// 按总宽切左/右两栏。左栏是原文操作，右栏是讲解、翻译和朗读。
+    private func toolbarColumnWidths(totalWidth: CGFloat) -> (left: CGFloat, right: CGFloat) {
+        let dividers = Self.toolbarDividerSpan  // 中间一条竖线
         let left = totalWidth * 2 / 5
-        let remaining = max(0, totalWidth - left - dividers)
-        let side = remaining / 2
-        return (left, side, side)
+        let right = max(0, totalWidth - left - dividers)
+        return (left, right)
     }
 
     /// 顶栏主操作一行。
     private var toolbarActionRow: some View {
         GeometryReader { geometry in  // 量工具栏宽
-            let widths = toolbarColumnWidths(totalWidth: geometry.size.width)  // 按 Tab 切
+            let widths = toolbarColumnWidths(totalWidth: geometry.size.width)  // 左原文，右讲解
 
-            HStack(spacing: 0) {  // 三栏+两条竖线
+            HStack(spacing: 0) {  // 两栏+一条竖线
                 documentActionBar  // 打开/讲解/译文
                     .frame(width: widths.left, alignment: .leading)  // 左齐
 
                 toolbarSectionDivider  // 竖线
 
-                readingActionBar  // 中间：翻译或进化
-                    .frame(width: widths.center, alignment: .center)  // 居中
-
-                toolbarSectionDivider  // 竖线
-
-                utilityActionBar  // 说明书/设置
-                    .frame(width: widths.right, alignment: .trailing)  // 右齐
+                readingActionBar  // 讲解、翻译、朗读
+                    .frame(width: widths.right, alignment: .leading)  // 紧挨分隔线
             }
         }
         .frame(height: 24)  // 一行钮
@@ -900,7 +893,7 @@ struct ContentView: View {
     /// 阅读主操作条，随宽度换档。
     private var readingActionBar: some View {
         Group {
-            if viewModel.assistant.isSpeakingExplanation {  // 朗读中中栏改成播放条
+            if viewModel.assistant.isSpeakingExplanation {  // 朗读中右栏改成播放条
                 BookToolbarOverflowRow {  // 宽→全，窄→压，再窄→溢出
                     unifiedSpeechPlaybackBarFull  // 来源+暂停+停
                 } compact: {
@@ -918,7 +911,6 @@ struct ContentView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity)
         .animation(.easeOut(duration: 0.18), value: viewModel.assistant.isSpeakingExplanation)  // 切播放条
         .animation(.easeOut(duration: 0.2), value: viewModel.rightPageTab)  // 切 Tab 栏宽
     }
@@ -1187,10 +1179,6 @@ struct ContentView: View {
         }
     }
 
-
-    private var utilityActionBar: some View {
-        EmptyView()
-    }
 
     /// 打开的书：左页、书脊、右页。
     private var openBook: some View {
