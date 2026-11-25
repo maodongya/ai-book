@@ -1,0 +1,493 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B00F110000000000000001 /* BookAppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000001 /* BookAppLanguage.swift */; };
+		A1B00F110000000000000002 /* BookL10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000002 /* BookL10n.swift */; };
+		A1B00F110000000000000003 /* BookL10nCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000003 /* BookL10nCatalog.swift */; };
+		A1B00F110000000000000004 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000004 /* Localizable.xcstrings */; };
+		A1B00F110000000000000005 /* OperationAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000005 /* OperationAction.swift */; };
+		A1B00F110000000000000006 /* OperationPhraseMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000006 /* OperationPhraseMatch.swift */; };
+		A1B00F110000000000000007 /* TranslationTargetLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000007 /* TranslationTargetLanguage.swift */; };
+		A1B00F110000000000000008 /* AIBookBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000008 /* AIBookBundle.swift */; };
+		A1B00F110000000000000009 /* ZipArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000009 /* ZipArchive.swift */; };
+		A1B00F11000000000000000A /* TranslationBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F10000000000000000A /* TranslationBlock.swift */; };
+		A1B00F11000000000000000B /* BookL10nTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F10000000000000000B /* BookL10nTheme.swift */; };
+		A1B00F11000000000000000C /* BookL10nFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F10000000000000000C /* BookL10nFonts.swift */; };
+		A1B00F11000000000000000D /* BookStyleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F10000000000000000D /* BookStyleManager.swift */; };
+		A1B00F11000000000000000E /* BookStyleCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F10000000000000000E /* BookStyleCatalog.swift */; };
+		A1B00F11000000000000000F /* BookStylePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F10000000000000000F /* BookStylePreset.swift */; };
+		A1B00F110000000000000010 /* BookStyleTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000010 /* BookStyleTokens.swift */; };
+		A1B00F110000000000000011 /* BookUserManual.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000011 /* BookUserManual.swift */; };
+		A1B00F110000000000000012 /* ProjectRoots.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000012 /* ProjectRoots.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B00F130000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B00E010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B00E080000000000000001;
+			remoteInfo = AIBookIOS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A1B00E090000000000000001 /* AIBookIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIBookIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B00E090000000000000002 /* AIBookIOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AIBookIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B00F100000000000000001 /* BookAppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookAppLanguage.swift; path = Sources/AIBook/Core/BookAppLanguage.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000002 /* BookL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookL10n.swift; path = Sources/AIBook/Core/BookL10n.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000003 /* BookL10nCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookL10nCatalog.swift; path = Sources/AIBook/Core/BookL10nCatalog.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000004 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = Localizable.xcstrings; path = Sources/AIBook/Resources/Localizable.xcstrings; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000005 /* OperationAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OperationAction.swift; path = Sources/AIBook/Operation/OperationAction.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000006 /* OperationPhraseMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OperationPhraseMatch.swift; path = Sources/AIBook/Operation/OperationPhraseMatch.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000007 /* TranslationTargetLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TranslationTargetLanguage.swift; path = Sources/AIBook/Core/TranslationTargetLanguage.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000008 /* AIBookBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIBookBundle.swift; path = Sources/AIBook/Reading/Bundle/AIBookBundle.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000009 /* ZipArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ZipArchive.swift; path = Sources/AIBook/Reading/Bundle/ZipArchive.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F10000000000000000A /* TranslationBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TranslationBlock.swift; path = Sources/AIBook/Reading/Translation/TranslationBlock.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F10000000000000000B /* BookL10nTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookL10nTheme.swift; path = Sources/AIBook/Core/BookL10nTheme.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F10000000000000000C /* BookL10nFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookL10nFonts.swift; path = Sources/AIBook/UI/Style/BookL10nFonts.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F10000000000000000D /* BookStyleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookStyleManager.swift; path = Sources/AIBook/UI/Style/BookStyleManager.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F10000000000000000E /* BookStyleCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookStyleCatalog.swift; path = Sources/AIBook/UI/Style/BookStyleCatalog.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F10000000000000000F /* BookStylePreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookStylePreset.swift; path = Sources/AIBook/UI/Style/BookStylePreset.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000010 /* BookStyleTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookStyleTokens.swift; path = Sources/AIBook/UI/Style/BookStyleTokens.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000011 /* BookUserManual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookUserManual.swift; path = Sources/AIBook/Core/BookUserManual.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000012 /* ProjectRoots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProjectRoots.swift; path = Sources/AIBook/Core/ProjectRoots.swift; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A1B00E0B0000000000000001 /* AIBookIOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1B00E0C0000000000000001 /* Exceptions for "AIBookIOS" folder in "AIBookIOS" target */,
+			);
+			path = Sources/AIBookIOS;
+			sourceTree = "<group>";
+		};
+		A1B00E0B0000000000000002 /* AIBookIOSTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests/AIBookIOSTests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B00E0C0000000000000001 /* Exceptions for "AIBookIOS" folder in "AIBookIOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"功能说明.md",
+			);
+			target = A1B00E080000000000000001 /* AIBookIOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1B00E060000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B00E060000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1B00E000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A1B00E0B0000000000000001 /* AIBookIOS */,
+				A1B00E0B0000000000000002 /* AIBookIOSTests */,
+				A1B00F140000000000000001 /* Shared */,
+				A1B00EA0000000000000001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1B00EA0000000000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B00E090000000000000001 /* AIBookIOS.app */,
+				A1B00E090000000000000002 /* AIBookIOSTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B00F140000000000000001 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A1B00F100000000000000001 /* BookAppLanguage.swift */,
+				A1B00F100000000000000002 /* BookL10n.swift */,
+				A1B00F100000000000000003 /* BookL10nCatalog.swift */,
+				A1B00F100000000000000004 /* Localizable.xcstrings */,
+				A1B00F100000000000000005 /* OperationAction.swift */,
+				A1B00F100000000000000006 /* OperationPhraseMatch.swift */,
+				A1B00F100000000000000007 /* TranslationTargetLanguage.swift */,
+				A1B00F100000000000000008 /* AIBookBundle.swift */,
+				A1B00F100000000000000009 /* ZipArchive.swift */,
+				A1B00F10000000000000000A /* TranslationBlock.swift */,
+				A1B00F10000000000000000B /* BookL10nTheme.swift */,
+				A1B00F10000000000000000C /* BookL10nFonts.swift */,
+				A1B00F10000000000000000D /* BookStyleManager.swift */,
+				A1B00F10000000000000000E /* BookStyleCatalog.swift */,
+				A1B00F10000000000000000F /* BookStylePreset.swift */,
+				A1B00F100000000000000010 /* BookStyleTokens.swift */,
+				A1B00F100000000000000011 /* BookUserManual.swift */,
+				A1B00F100000000000000012 /* ProjectRoots.swift */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1B00E080000000000000001 /* AIBookIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B00F040000000000000001 /* Build configuration list for PBXNativeTarget "AIBookIOS" */;
+			buildPhases = (
+				A1B00E050000000000000001 /* Sources */,
+				A1B00E060000000000000001 /* Frameworks */,
+				A1B00E070000000000000001 /* Resources */,
+				A1B00E0D0000000000000001 /* Copy Seed Books */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1B00E0B0000000000000001 /* AIBookIOS */,
+			);
+			name = AIBookIOS;
+			productName = AIBookIOS;
+			productReference = A1B00E090000000000000001 /* AIBookIOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1B00E080000000000000002 /* AIBookIOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B00F040000000000000002 /* Build configuration list for PBXNativeTarget "AIBookIOSTests" */;
+			buildPhases = (
+				A1B00E050000000000000002 /* Sources */,
+				A1B00E060000000000000002 /* Frameworks */,
+				A1B00E070000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B00F120000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B00E0B0000000000000002 /* AIBookIOSTests */,
+			);
+			name = AIBookIOSTests;
+			productName = AIBookIOSTests;
+			productReference = A1B00E090000000000000002 /* AIBookIOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B00E010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					A1B00E080000000000000001 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					A1B00E080000000000000002 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A1B00E080000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = A1B00E040000000000000001 /* Build configuration list for PBXProject "AIBookIOS" */;
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = A1B00E000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A1B00EA0000000000000001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1B00E080000000000000001 /* AIBookIOS */,
+				A1B00E080000000000000002 /* AIBookIOSTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1B00E070000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B00F110000000000000004 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B00E070000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A1B00E0D0000000000000001 /* Copy Seed Books */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Seed Books";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "bash \"${SRCROOT}/scripts/copy-ios-seed-books.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1B00E050000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B00F110000000000000001 /* BookAppLanguage.swift in Sources */,
+				A1B00F110000000000000002 /* BookL10n.swift in Sources */,
+				A1B00F110000000000000003 /* BookL10nCatalog.swift in Sources */,
+				A1B00F110000000000000005 /* OperationAction.swift in Sources */,
+				A1B00F110000000000000006 /* OperationPhraseMatch.swift in Sources */,
+				A1B00F110000000000000007 /* TranslationTargetLanguage.swift in Sources */,
+				A1B00F110000000000000008 /* AIBookBundle.swift in Sources */,
+				A1B00F110000000000000009 /* ZipArchive.swift in Sources */,
+				A1B00F11000000000000000A /* TranslationBlock.swift in Sources */,
+				A1B00F11000000000000000B /* BookL10nTheme.swift in Sources */,
+				A1B00F11000000000000000C /* BookL10nFonts.swift in Sources */,
+				A1B00F11000000000000000D /* BookStyleManager.swift in Sources */,
+				A1B00F11000000000000000E /* BookStyleCatalog.swift in Sources */,
+				A1B00F11000000000000000F /* BookStylePreset.swift in Sources */,
+				A1B00F110000000000000010 /* BookStyleTokens.swift in Sources */,
+				A1B00F110000000000000011 /* BookUserManual.swift in Sources */,
+				A1B00F110000000000000012 /* ProjectRoots.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B00E050000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B00F120000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B00E080000000000000001 /* AIBookIOS */;
+			targetProxy = A1B00F130000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A1B00F020000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A1B00F030000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A1B00F020000000000000002 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 762PH5F88T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AIBookIOS-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AIBook;
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "AIBook 需要麦克风，把你说的操作转成文字。";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "AIBook 需要语音识别，把你说的操作转成可执行的功能。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aibook.reader.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				DEFINES_MODULE = YES;
+				ENABLE_TESTABILITY = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B00F030000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 762PH5F88T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AIBookIOS-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AIBook;
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "AIBook 需要麦克风，把你说的操作转成文字。";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "AIBook 需要语音识别，把你说的操作转成可执行的功能。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aibook.reader.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				DEFINES_MODULE = YES;
+				ENABLE_TESTABILITY = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1B00F020000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 762PH5F88T;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aibook.reader.ios.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AIBookIOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AIBookIOS";
+			};
+			name = Debug;
+		};
+		A1B00F030000000000000003 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 762PH5F88T;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aibook.reader.ios.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AIBookIOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AIBookIOS";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1B00E040000000000000001 /* Build configuration list for PBXProject "AIBookIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B00F020000000000000001 /* Debug */,
+				A1B00F030000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B00F040000000000000001 /* Build configuration list for PBXNativeTarget "AIBookIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B00F020000000000000002 /* Debug */,
+				A1B00F030000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B00F040000000000000002 /* Build configuration list for PBXNativeTarget "AIBookIOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B00F020000000000000003 /* Debug */,
+				A1B00F030000000000000003 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1B00E010000000000000001 /* Project object */;
+}

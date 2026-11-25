@@ -1,5 +1,7 @@
-import AppKit
 import Foundation
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// 定位并打开《功能说明书》。只找文件、打开/揭示，不解析正文结构。
 enum BookUserManual {
@@ -99,6 +101,7 @@ enum BookUserManual {
         return text
     }
 
+    #if os(macOS)
     /// 用系统默认编辑器打开说明书文件。找不到 URL 则静默返回。
     static func openInDefaultEditor() {
         guard let url = bundleURL else { return } // 没有文件不弹错，调用方已有菜单态
@@ -110,4 +113,5 @@ enum BookUserManual {
         guard let url = bundleURL else { return }
         NSWorkspace.shared.activateFileViewerSelecting([url]) // 只揭示这一个文件
     }
+    #endif
 }

@@ -1,5 +1,11 @@
 import Foundation
 
+/// 打开 `.aibook` 时要显示的译文和讲解。某一侧可以缺。
+struct AIBookOpenSelection: Equatable {
+    var translation: AIBookLanguagePayload?
+    var explanation: AIBookLanguagePayload?
+}
+
 /// 一种语言在包里的译文和讲解。某一侧可以缺。
 struct AIBookLanguagePayload: Equatable {
     var translationText: String?
@@ -152,6 +158,14 @@ struct AIBookBundle: Equatable {
         return language != .followAppLanguage
     }
 
+    /// 只取和当前软件语言设置相同的译文、讲解。这种语言没有那一侧时留空，不改用包里的另一种语言。
+    func openSelection(translationLanguageID: String, explanationLanguageID: String) -> AIBookOpenSelection {
+        AIBookOpenSelection(
+            translation: Self.matchingSide(languages[translationLanguageID], has: \.hasTranslation),
+            explanation: Self.matchingSide(languages[explanationLanguageID], has: \.hasExplanation)
+        )
+    }
+
     /// 界面语言收成包里用的 BCP-47。跟随系统时按当前地区映射。
     static func contentLanguageID(appLanguage: BookAppLanguage) -> String {
         switch appLanguage {
@@ -174,6 +188,15 @@ struct AIBookBundle: Equatable {
         case .el:
             return TranslationTargetLanguage.el.rawValue
         }
+    }
+
+    /// 这一侧有正文才采用。空串和缺语言都当成没有。
+    private static func matchingSide(
+        _ payload: AIBookLanguagePayload?,
+        has key: KeyPath<AIBookLanguagePayload, Bool>
+    ) -> AIBookLanguagePayload? {
+        guard let payload, payload[keyPath: key] else { return nil }
+        return payload
     }
 
     private static func textFile(_ path: String, in files: [String: Data]) throws -> String? {

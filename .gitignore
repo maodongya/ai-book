@@ -1,6 +1,9 @@
 .build/
+build/
+**/__pycache__/
 .swiftpm/
 *.xcodeproj
+!AIBookIOS.xcodeproj/
 DerivedData/
 .DS_Store
 cursor-bridge/node_modules/

@@ -45,6 +45,32 @@ final class AIBookBundleTests: XCTestCase {
         XCTAssertNil(decoded.languages["ja"]?.translationText)
     }
 
+    func testOpenSelectionUsesOnlyTheLanguageInSettings() {
+        var bundle = AIBookBundle(title: "文章", source: "原文", languages: [:])
+        bundle.upsert(languageID: "zh-Hans", translationText: "译文", explanationText: "讲解")
+        bundle.upsert(languageID: "en", translationText: "Translation", explanationText: "Notes")
+
+        let matched = bundle.openSelection(translationLanguageID: "zh-Hans", explanationLanguageID: "zh-Hans")
+        XCTAssertEqual(matched.translation?.translationText, "译文")
+        XCTAssertEqual(matched.explanation?.explanationText, "讲解")
+
+        let missing = bundle.openSelection(translationLanguageID: "ja", explanationLanguageID: "ja")
+        XCTAssertNil(missing.translation)
+        XCTAssertNil(missing.explanation)
+    }
+
+    func testOpenSelectionKeepsTranslationAndExplanationOnTheirOwnSettings() {
+        var bundle = AIBookBundle(title: "文章", source: "原文", languages: [:])
+        bundle.upsert(languageID: "en", translationText: "Translation")
+        bundle.upsert(languageID: "ja", explanationText: "解説")
+
+        let selection = bundle.openSelection(translationLanguageID: "en", explanationLanguageID: "ja")
+        XCTAssertEqual(selection.translation?.translationText, "Translation")
+        XCTAssertNil(selection.translation?.explanationText)
+        XCTAssertEqual(selection.explanation?.explanationText, "解説")
+        XCTAssertNil(selection.explanation?.translationText)
+    }
+
     func testUpsertKeepsOtherLanguage() throws {
         var bundle = AIBookBundle(title: "文章", source: "原文", languages: [:])
         bundle.upsert(languageID: "ja", translationText: "訳")

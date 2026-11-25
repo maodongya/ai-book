@@ -1,5 +1,10 @@
-import AppKit
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// 一套风格的全部颜色。具体色值在 BookStyleCatalog，这里只描述形状。
 struct BookStyleColors {

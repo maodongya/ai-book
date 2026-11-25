@@ -384,9 +384,8 @@ final class ReadingDocumentSession: ObservableObject {
             lastCommittedSelectionText = ""  // 提交值也清
             lastCommittedSelectionRange = nil  // 没有可回钉的
             selectedTextRange = nil  // 长度变了，旧 range 作废
-            if resetChat {  // 恢复会话时 false
-                host.assistant.readingPromptMessages = []
-                host.syncDisplayedChatMessages()  // 气泡空
+            if resetChat {  // 纯文本只开原文；恢复上次会话时留下译文和讲解
+                host.clearReadingCompanionsForNewDocument()
             }
             clearBundledLanguages()
             host.errorMessage = nil  // 清错
@@ -661,10 +660,14 @@ final class ReadingDocumentSession: ObservableObject {
     /// 用上次保存的文件书签重新打开。书签无效就保持未命名，不按路径去读。
     func reopenGrantedFile(_ data: Data) {
         guard let captured = folderGrants.begin(data, id: documentGrantID) else { return }
-        loadFile(at: captured.url, resetChat: false)
+        if captured.url.pathExtension.lowercased() == "aibook" {
+            openAIBook(at: captured.url)  // 重启也按包恢复当前语言的译文和讲解
+        } else {
+            loadFile(at: captured.url, resetChat: false)  // txt 只恢复原文，会话里的译文留着
+        }
     }
 
-    /// txt 当原文，`.aibook` 同时恢复各语言译文和讲解。
+    /// txt 只开原文。`.aibook` 同时打开和当前语言设置相同的译文、讲解。
     func openDocument(at url: URL) {
         if url.pathExtension.lowercased() == "aibook" {
             openAIBook(at: url)
@@ -784,6 +787,7 @@ final class ReadingDocumentSession: ObservableObject {
             host.assistant.readingChatInput = ""
             applyBundledLanguage(bundle, kind: .translation)
             applyBundledLanguage(bundle, kind: .explanation)
+            host.mode.exitReadingMode()  // 学习双页才能同时看见原文和右页
             host.errorMessage = nil
             host.persistChatSession()
             showTransientSaveMessage(BookL10n.format("vm.opened.aibook", url.lastPathComponent))
@@ -800,13 +804,15 @@ final class ReadingDocumentSession: ObservableObject {
     }
 
     private func applyBundledLanguage(_ bundle: AIBookBundle, kind: BundledPart) {
+        let settings = AppSettings.shared
+        let selection = bundle.openSelection(
+            translationLanguageID: settings.resolvedTranslationTargetLanguage.rawValue,
+            explanationLanguageID: settings.resolvedExplanationTargetLanguage.rawValue
+        )
         switch kind {
         case .translation:
-            let preferred = AppSettings.shared.resolvedTranslationTargetLanguage.rawValue
-            let id = bundle.languages[preferred]?.hasTranslation == true
-                ? preferred
-                : bundle.languages.keys.sorted().first { bundle.languages[$0]?.hasTranslation == true }
-            if let id, let payload = bundle.languages[id] {
+            let id = settings.resolvedTranslationTargetLanguage.rawValue
+            if let payload = selection.translation {
                 bundledTranslationLanguageID = id
                 host.translation.installBundledTranslation(
                     text: payload.translationText ?? "",
@@ -817,11 +823,8 @@ final class ReadingDocumentSession: ObservableObject {
                 host.translation.installBundledTranslation(text: "", alignment: nil)
             }
         case .explanation:
-            let preferred = AppSettings.shared.resolvedExplanationTargetLanguage.rawValue // 打开后先看记住的讲解语言
-            let id = bundle.languages[preferred]?.hasExplanation == true
-                ? preferred
-                : bundle.languages.keys.sorted().first { bundle.languages[$0]?.hasExplanation == true }
-            if let id, let payload = bundle.languages[id] {
+            let id = settings.resolvedExplanationTargetLanguage.rawValue // 讲解跟讲解语言设置，不跟界面语言
+            if let payload = selection.explanation {
                 bundledExplanationLanguageID = id
                 host.assistant.installBundledExplanation(
                     text: payload.explanationText ?? "",
