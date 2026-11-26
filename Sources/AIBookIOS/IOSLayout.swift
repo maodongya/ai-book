@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import SwiftUI
+import UIKit
 
 /// 宽窄决定单页还是并排。iPhone 横屏仍走单页，避免压出一条书脊。
 enum IOSLayout {
@@ -8,8 +9,10 @@ enum IOSLayout {
     /// 页标题距正文区顶缘（顶栏已用 safeAreaInset 占位）
     static let pageTitleTopPadding: CGFloat = 12
     static let pageTitleHorizontalPadding: CGFloat = 20
-    /// 阅读页正文与屏幕边缘留白
-    static let readingTextPadding: CGFloat = 24
+    /// 阅读页正文与屏幕边缘留白。iPad 略小以多排字。
+    static var readingTextPadding: CGFloat {
+        UIDevice.current.userInterfaceIdiom == .pad ? 20 : 24
+    }
 
     static func usesSideBySide(width: CGFloat) -> Bool {
         width >= sideBySideMinWidth // 够宽才原文+副页并排

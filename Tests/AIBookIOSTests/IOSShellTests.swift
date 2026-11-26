@@ -129,9 +129,10 @@ final class IOSShellTests: XCTestCase {
         XCTAssertEqual(alignment?.blocks[0].translationText, "A")
     }
 
-    func testSpreadLeftIndexSnapsToEven() {
-        XCTAssertEqual(IOSReadingPreferences.spreadLeftIndex(3), 2)
-        XCTAssertEqual(IOSReadingPreferences.spreadLeftIndex(4), 4)
+    func testReadingPreferencesSinglePage() {
+        XCTAssertFalse(IOSReadingPreferences.showsDualSpread(containerSize: CGSize(width: 1200, height: 800)))
+        XCTAssertEqual(IOSReadingPreferences.spreadLeftIndex(3), 3)
+        XCTAssertEqual(IOSReadingPreferences.singlePageWidth(in: CGSize(width: 400, height: 800)), 400)
     }
 
     func testStreamSSEParsesContentDelta() {

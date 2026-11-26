@@ -1,37 +1,29 @@
 import CoreGraphics
 import UIKit
 
-/// iPad 阅读偏好。仅宽屏横屏才生效。
+/// iOS 阅读偏好。iPhone 与 iPad 统一单页全屏，保留左右滑/点按翻页。
 enum IOSReadingPreferences {
     private static let dualPageKey = "aiBook.ios.readingDualPage"
 
+    /// 历史开关保留写入，但不再启用双页并排。
     static var dualPageEnabled: Bool {
-        get {
-            guard UIDevice.current.userInterfaceIdiom == .pad else { return false }
-            if UserDefaults.standard.object(forKey: dualPageKey) == nil { return true } // 默认双页
-            return UserDefaults.standard.bool(forKey: dualPageKey)
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: dualPageKey)
-        }
+        get { false }
+        set { UserDefaults.standard.set(newValue, forKey: dualPageKey) }
     }
 
-    /// 横屏 iPad 且用户开了双页。
+    /// 始终单页，横竖屏同一套翻页。
     static func showsDualSpread(containerSize: CGSize) -> Bool {
-        guard UIDevice.current.userInterfaceIdiom == .pad else { return false }
-        guard dualPageEnabled else { return false }
-        return containerSize.width > containerSize.height
+        _ = containerSize
+        return false
     }
 
-    /// 双页时单页内容区宽度。
+    /// 单页内容区宽度即为容器宽度。
     static func singlePageWidth(in containerSize: CGSize) -> CGFloat {
-        guard showsDualSpread(containerSize: containerSize) else { return containerSize.width }
-        let gutter: CGFloat = 18
-        return max(1, (containerSize.width - gutter) / 2)
+        max(1, containerSize.width)
     }
 
-    /// 双页时左页索引收成偶数，避免半幅错位。
+    /// 双页遗留索引对齐；单页时直接返回原索引。
     static func spreadLeftIndex(_ index: Int) -> Int {
-        max(0, index - (index % 2))
+        max(0, index)
     }
 }

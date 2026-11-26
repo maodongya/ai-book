@@ -21,9 +21,10 @@ enum IOSReadingMetrics {
         )
         let pageWidth = IOSReadingPreferences.singlePageWidth(in: container)
         let pad = IOSLayout.readingTextPadding
-        let top = pad + 8 // 与 `readingBody` 顶栏隐藏时的 top 一致
+        let top = pad + 6 // 与沉浸阅读顶边距一致
+        let bottom = pad + 4 // 略留页脚呼吸，其余交给 TextKit 填满
         let width = max(1, pageWidth - 2 * pad)
-        let height = max(1, container.height - top - pad)
+        let height = max(1, container.height - top - bottom)
         return CGSize(width: width, height: height)
     }
 }

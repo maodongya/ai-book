@@ -13,29 +13,26 @@ struct IOSReadingPage: View {
     var body: some View {
         let _ = styleManager.revision // 切预设时阅读页墨色与字体一起变
         GeometryReader { geo in
-            let spread = IOSReadingPreferences.showsDualSpread(containerSize: geo.size)
             let layoutPages = paginatedPages(in: geo)
             let count = max(layoutPages.count, 1)
-            let index = resolvedIndex(in: layoutPages, spread: spread)
+            let index = resolvedIndex(in: layoutPages)
             ZStack {
                 IOSPaper.page.ignoresSafeArea()
                 if chromeVisible {
                     VStack(spacing: 0) {
-                        topBar(spread: spread) // 独占顶行，正文从其下开始
+                        topBar() // 独占顶行，正文从其下开始
                         pageLayer(
-                            spread: spread,
                             layoutPages: layoutPages,
                             index: index,
                             geo: geo,
                             pageCount: count
                         )
-                        footerLabel(index: index, count: count, spread: spread)
+                        footerLabel(index: index, count: count)
                             .padding(.bottom, 12)
                     }
                     .transition(.opacity)
                 } else {
                     pageLayer(
-                        spread: spread,
                         layoutPages: layoutPages,
                         index: index,
                         geo: geo,
@@ -45,47 +42,43 @@ struct IOSReadingPage: View {
             }
             .onAppear { scheduleChromeHide() }
             .onChange(of: styleManager.revision) { _, _ in
-                syncIndexAfterRepagination(layoutPages, spread: spread)
+                syncIndexAfterRepagination(layoutPages)
             }
             .onChange(of: geo.size) { _, _ in
-                syncIndexAfterRepagination(layoutPages, spread: spread)
+                syncIndexAfterRepagination(layoutPages)
             }
         }
     }
 
     @ViewBuilder
     private func pageLayer(
-        spread: Bool,
         layoutPages: [IOSBookPaginator.Page],
         index: Int,
         geo: GeometryProxy,
         pageCount: Int
     ) -> some View {
         readingBody(
-            spread: spread,
             pages: layoutPages,
             index: index,
-            geo: geo,
             reservesTopChrome: chromeVisible
         )
         .offset(x: drag)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
-        .gesture(dragGesture(pageWidth: geo.size.width, pageCount: pageCount, index: index, pages: layoutPages, spread: spread))
+        .gesture(dragGesture(pageWidth: geo.size.width, pageCount: pageCount, index: index, pages: layoutPages))
         .onTapGesture { location in
             handleTap(
                 location.x,
                 width: geo.size.width,
                 pageCount: pageCount,
                 index: index,
-                pages: layoutPages,
-                spread: spread
+                pages: layoutPages
             )
         }
     }
 
-    private func footerLabel(index: Int, count: Int, spread: Bool) -> some View {
-        Text(footer(index: index, count: count, spread: spread))
+    private func footerLabel(index: Int, count: Int) -> some View {
+        Text(footer(index: index, count: count))
             .font(.footnote)
             .foregroundStyle(IOSPaper.inkMuted)
             .padding(.horizontal, 16)
@@ -99,34 +92,18 @@ struct IOSReadingPage: View {
 
     @ViewBuilder
     private func readingBody(
-        spread: Bool,
         pages: [IOSBookPaginator.Page],
         index: Int,
-        geo: GeometryProxy,
         reservesTopChrome: Bool
     ) -> some View {
         let edge = IOSLayout.readingTextPadding
-        let top = reservesTopChrome ? edge : edge + 8 // 隐藏顶栏时仍留一点呼吸边
-        if spread {
-            HStack(spacing: 0) {
-                singlePageText(pages, index: index)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                Rectangle()
-                    .fill(IOSPaper.inkMuted.opacity(0.25))
-                    .frame(width: 18)
-                singlePageText(pages, index: index + 1)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+        let top = reservesTopChrome ? edge : edge + 6
+        let bottom = edge + 4
+        singlePageText(pages, index: index)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(.horizontal, edge)
             .padding(.top, top)
-            .padding(.bottom, edge)
-        } else {
-            singlePageText(pages, index: index)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.horizontal, edge)
-                .padding(.top, top)
-                .padding(.bottom, edge)
-        }
+            .padding(.bottom, bottom)
     }
 
     private func singlePageText(_ pages: [IOSBookPaginator.Page], index: Int) -> some View {
@@ -137,8 +114,8 @@ struct IOSReadingPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// 沉浸阅读顶栏：左退出，右页式与麦克风；不压在正文上。
-    private func topBar(spread: Bool) -> some View {
+    /// 沉浸阅读顶栏：左退出，右麦克风；单页全屏。
+    private func topBar() -> some View {
         HStack(alignment: .top, spacing: 10) {
             Button {
                 shell.exitReading() // 回到进入阅读前的那一页
@@ -148,21 +125,7 @@ struct IOSReadingPage: View {
             }
             .buttonStyle(.bordered)
             Spacer(minLength: 8)
-            HStack(alignment: .top, spacing: 8) {
-                if UIDevice.current.userInterfaceIdiom == .pad {
-                    Toggle(isOn: Binding(
-                        get: { IOSReadingPreferences.dualPageEnabled },
-                        set: { IOSReadingPreferences.dualPageEnabled = $0 }
-                    )) {
-                        Label(BookL10n.string("layout.spread"), systemImage: "book.pages")
-                            .font(.caption)
-                    }
-                    .toggleStyle(.button)
-                    .tint(IOSPaper.ink)
-                    .opacity(spread ? 1 : 0.45)
-                }
-                IOSMicButton(voice: voice, presentation: .readingChrome)
-            }
+            IOSMicButton(voice: voice, presentation: .readingChrome)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -180,19 +143,16 @@ struct IOSReadingPage: View {
         return pages
     }
 
-    private func resolvedIndex(in pages: [IOSBookPaginator.Page], spread: Bool) -> Int {
+    private func resolvedIndex(in pages: [IOSBookPaginator.Page]) -> Int {
         let anchor = min(document.readingCharacterAnchor, (document.source as NSString).length)
-        let raw: Int
         if let match = pages.firstIndex(where: { NSLocationInRange(anchor, $0.range) }) {
-            raw = match
-        } else {
-            raw = min(document.readingIndex, max(pages.count - 1, 0))
+            return match
         }
-        return spread ? IOSReadingPreferences.spreadLeftIndex(raw) : raw
+        return min(document.readingIndex, max(pages.count - 1, 0))
     }
 
-    private func syncIndexAfterRepagination(_ pages: [IOSBookPaginator.Page], spread: Bool) {
-        let index = resolvedIndex(in: pages, spread: spread)
+    private func syncIndexAfterRepagination(_ pages: [IOSBookPaginator.Page]) {
+        let index = resolvedIndex(in: pages)
         document.readingIndex = index
         if pages.indices.contains(index) {
             document.readingCharacterAnchor = pages[index].range.location
@@ -204,21 +164,15 @@ struct IOSReadingPage: View {
         return pages[index].text
     }
 
-    private func footer(index: Int, count: Int, spread: Bool) -> String {
-        if spread, index + 1 < count {
-            return BookL10n.format("vm.page.single", index + 1, count)
-                + " – "
-                + BookL10n.format("vm.page.single", index + 2, count)
-        }
-        return BookL10n.format("vm.page.single", index + 1, count)
+    private func footer(index: Int, count: Int) -> String {
+        BookL10n.format("vm.page.single", index + 1, count)
     }
 
     private func dragGesture(
         pageWidth: CGFloat,
         pageCount: Int,
         index: Int,
-        pages: [IOSBookPaginator.Page],
-        spread: Bool
+        pages: [IOSBookPaginator.Page]
     ) -> some Gesture {
         DragGesture()
             .onChanged { value in
@@ -226,7 +180,7 @@ struct IOSReadingPage: View {
             }
             .onEnded { value in
                 let delta = IOSReadingTurn.pageDelta(translation: value.translation.width, pageWidth: pageWidth)
-                apply(delta, pageCount: pageCount, index: index, pages: pages, spread: spread)
+                apply(delta, pageCount: pageCount, index: index, pages: pages)
                 drag = 0
             }
     }
@@ -236,8 +190,7 @@ struct IOSReadingPage: View {
         width: CGFloat,
         pageCount: Int,
         index: Int,
-        pages: [IOSBookPaginator.Page],
-        spread: Bool
+        pages: [IOSBookPaginator.Page]
     ) {
         let edge = width / 5
         if x > edge, x < width - edge {
@@ -248,7 +201,7 @@ struct IOSReadingPage: View {
             return
         }
         let delta = x < width / 2 ? -1 : 1
-        apply(delta, pageCount: pageCount, index: index, pages: pages, spread: spread)
+        apply(delta, pageCount: pageCount, index: index, pages: pages)
         withAnimation { chromeVisible = false }
     }
 
@@ -267,11 +220,9 @@ struct IOSReadingPage: View {
         _ delta: Int,
         pageCount: Int,
         index: Int,
-        pages: [IOSBookPaginator.Page],
-        spread: Bool
+        pages: [IOSBookPaginator.Page]
     ) {
-        let step = spread ? delta * 2 : delta
-        let next = min(max(index + step, 0), pageCount - 1) // 首页再向右留在首页
+        let next = min(max(index + delta, 0), pageCount - 1) // 首页再向右留在首页
         let anchor = pages.indices.contains(next) ? pages[next].range.location : document.readingCharacterAnchor
         document.rememberReading(pageIndex: next, characterAnchor: anchor)
     }
