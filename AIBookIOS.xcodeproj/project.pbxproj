@@ -25,10 +25,18 @@
 		A1B00F110000000000000010 /* BookStyleTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000010 /* BookStyleTokens.swift */; };
 		A1B00F110000000000000011 /* BookUserManual.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000011 /* BookUserManual.swift */; };
 		A1B00F110000000000000012 /* ProjectRoots.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000012 /* ProjectRoots.swift */; };
+		A1B00F110000000000000013 /* ExplanationTargetLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B00F100000000000000013 /* ExplanationTargetLanguage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		A1B00F130000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B00E010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B00E080000000000000001;
+			remoteInfo = AIBookIOS;
+		};
+		A1B00F130000000000000002 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A1B00E010000000000000001 /* Project object */;
 			proxyType = 1;
@@ -40,6 +48,7 @@
 /* Begin PBXFileReference section */
 		A1B00E090000000000000001 /* AIBookIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIBookIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B00E090000000000000002 /* AIBookIOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AIBookIOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B00E090000000000000003 /* AIBookIOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AIBookIOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B00F100000000000000001 /* BookAppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookAppLanguage.swift; path = Sources/AIBook/Core/BookAppLanguage.swift; sourceTree = SOURCE_ROOT; };
 		A1B00F100000000000000002 /* BookL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookL10n.swift; path = Sources/AIBook/Core/BookL10n.swift; sourceTree = SOURCE_ROOT; };
 		A1B00F100000000000000003 /* BookL10nCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookL10nCatalog.swift; path = Sources/AIBook/Core/BookL10nCatalog.swift; sourceTree = SOURCE_ROOT; };
@@ -58,6 +67,7 @@
 		A1B00F100000000000000010 /* BookStyleTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookStyleTokens.swift; path = Sources/AIBook/UI/Style/BookStyleTokens.swift; sourceTree = SOURCE_ROOT; };
 		A1B00F100000000000000011 /* BookUserManual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookUserManual.swift; path = Sources/AIBook/Core/BookUserManual.swift; sourceTree = SOURCE_ROOT; };
 		A1B00F100000000000000012 /* ProjectRoots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProjectRoots.swift; path = Sources/AIBook/Core/ProjectRoots.swift; sourceTree = SOURCE_ROOT; };
+		A1B00F100000000000000013 /* ExplanationTargetLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ExplanationTargetLanguage.swift; path = Sources/AIBook/Core/ExplanationTargetLanguage.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -72,6 +82,11 @@
 		A1B00E0B0000000000000002 /* AIBookIOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Tests/AIBookIOSTests;
+			sourceTree = "<group>";
+		};
+		A1B00E0B0000000000000003 /* AIBookIOSUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests/AIBookIOSUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -101,6 +116,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B00E060000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -109,6 +131,7 @@
 			children = (
 				A1B00E0B0000000000000001 /* AIBookIOS */,
 				A1B00E0B0000000000000002 /* AIBookIOSTests */,
+				A1B00E0B0000000000000003 /* AIBookIOSUITests */,
 				A1B00F140000000000000001 /* Shared */,
 				A1B00EA0000000000000001 /* Products */,
 			);
@@ -119,6 +142,7 @@
 			children = (
 				A1B00E090000000000000001 /* AIBookIOS.app */,
 				A1B00E090000000000000002 /* AIBookIOSTests.xctest */,
+				A1B00E090000000000000003 /* AIBookIOSUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -144,6 +168,7 @@
 				A1B00F100000000000000010 /* BookStyleTokens.swift */,
 				A1B00F100000000000000011 /* BookUserManual.swift */,
 				A1B00F100000000000000012 /* ProjectRoots.swift */,
+				A1B00F100000000000000013 /* ExplanationTargetLanguage.swift */,
 			);
 			name = Shared;
 			sourceTree = "<group>";
@@ -193,6 +218,27 @@
 			productReference = A1B00E090000000000000002 /* AIBookIOSTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A1B00E080000000000000003 /* AIBookIOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B00F040000000000000003 /* Build configuration list for PBXNativeTarget "AIBookIOSUITests" */;
+			buildPhases = (
+				A1B00E050000000000000003 /* Sources */,
+				A1B00E060000000000000003 /* Frameworks */,
+				A1B00E070000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B00F120000000000000002 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1B00E0B0000000000000003 /* AIBookIOSUITests */,
+			);
+			name = AIBookIOSUITests;
+			productName = AIBookIOSUITests;
+			productReference = A1B00E090000000000000003 /* AIBookIOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -207,6 +253,10 @@
 						CreatedOnToolsVersion = 26.3;
 					};
 					A1B00E080000000000000002 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A1B00E080000000000000001;
+					};
+					A1B00E080000000000000003 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = A1B00E080000000000000001;
 					};
@@ -229,6 +279,7 @@
 			targets = (
 				A1B00E080000000000000001 /* AIBookIOS */,
 				A1B00E080000000000000002 /* AIBookIOSTests */,
+				A1B00E080000000000000003 /* AIBookIOSUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -243,6 +294,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A1B00E070000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B00E070000000000000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -291,10 +349,18 @@
 				A1B00F110000000000000010 /* BookStyleTokens.swift in Sources */,
 				A1B00F110000000000000011 /* BookUserManual.swift in Sources */,
 				A1B00F110000000000000012 /* ProjectRoots.swift in Sources */,
+				A1B00F110000000000000013 /* ExplanationTargetLanguage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A1B00E050000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B00E050000000000000003 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -308,6 +374,11 @@
 			isa = PBXTargetDependency;
 			target = A1B00E080000000000000001 /* AIBookIOS */;
 			targetProxy = A1B00F130000000000000001 /* PBXContainerItemProxy */;
+		};
+		A1B00F120000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B00E080000000000000001 /* AIBookIOS */;
+			targetProxy = A1B00F130000000000000002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -457,6 +528,46 @@
 			};
 			name = Release;
 		};
+		A1B00F020000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 762PH5F88T;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aibook.reader.ios.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AIBookIOS;
+			};
+			name = Debug;
+		};
+		A1B00F030000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 762PH5F88T;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aibook.reader.ios.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AIBookIOS;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -483,6 +594,15 @@
 			buildConfigurations = (
 				A1B00F020000000000000003 /* Debug */,
 				A1B00F030000000000000003 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B00F040000000000000003 /* Build configuration list for PBXNativeTarget "AIBookIOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B00F020000000000000004 /* Debug */,
+				A1B00F030000000000000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

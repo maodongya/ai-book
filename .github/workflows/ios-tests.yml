@@ -1,0 +1,21 @@
+name: iOS Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run AIBookIOSTests
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        run: |
+          xcodebuild \
+            -project AIBookIOS.xcodeproj \
+            -scheme AIBookIOS \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            test

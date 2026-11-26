@@ -19,8 +19,14 @@ final class IOSDocument: ObservableObject {
     @Published var explanation = ""
     /// 已生成的译文。
     @Published var translation = ""
+    /// 当前语言的译文对齐。来自 `.aibook` 或日后写入。
+    @Published var translationAlignment: TranslationAlignment?
+    /// 当前语言的讲解对齐。
+    @Published var explanationAlignment: TranslationAlignment?
     /// 阅读页停在第几页。旋转后由页面夹回合法范围。
     @Published var readingIndex = 0
+    /// 重分页时用来回到相近位置（UTF-16 偏移）。
+    @Published var readingCharacterAnchor = 0
     /// 各语言已经生成的译文和讲解。键是 BCP-47。
     @Published var languages: [String: IOSLanguageCopy] = [:]
     /// 当前正在看的语言。
@@ -57,8 +63,11 @@ final class IOSDocument: ObservableObject {
         translationSelection = ""
         explanation = ""
         translation = ""
+        translationAlignment = nil
+        explanationAlignment = nil
         languages = [:] // 各语言稿一起清
         readingIndex = 0
+        readingCharacterAnchor = 0
         dirty = false
     }
 
@@ -83,11 +92,14 @@ final class IOSDocument: ObservableObject {
         translationSelection = ""
         explanation = "" // 另一本书的讲解不留在这一页
         translation = ""
+        translationAlignment = nil
+        explanationAlignment = nil
         readingIndex = 0 // 新书从第一页读
+        readingCharacterAnchor = 0
         languages = [:] // 另一本书的各语言稿不留下
         activeLanguageID = AIBookBundle.contentLanguageID(appLanguage: BookL10n.currentLanguage)
         dirty = false // 刚打开的文件还没改
-        restoreReading()
+        restoreReadingAnchor()
     }
 
     /// 打开 `.aibook`：原文和各语言译文、讲解一起回来，仍停在原文。
@@ -100,15 +112,18 @@ final class IOSDocument: ObservableObject {
         languages = bundle.languages.mapValues { payload in
             IOSLanguageCopy(
                 translation: payload.translationText ?? "",
-                explanation: payload.explanationText ?? ""
+                explanation: payload.explanationText ?? "",
+                translationAlignment: payload.translationAlignment,
+                explanationAlignment: payload.explanationAlignment
             )
         }
         let preferred = AIBookBundle.contentLanguageID(appLanguage: BookL10n.currentLanguage)
         activeLanguageID = languages[preferred] == nil ? (languages.keys.sorted().first ?? preferred) : preferred
         showActiveLanguage()
         readingIndex = 0
+        readingCharacterAnchor = 0
         dirty = false
-        restoreReading()
+        restoreReadingAnchor()
     }
 
     /// 把当前译文和讲解收成可以写成 `.aibook` 的包。
@@ -123,7 +138,11 @@ final class IOSDocument: ObservableObject {
             bundle.upsert(
                 languageID: id,
                 translationText: copy.translation.isEmpty ? nil : copy.translation,
-                explanationText: copy.explanation.isEmpty ? nil : copy.explanation
+                translationAlignment: copy.translationAlignment,
+                replaceTranslationAlignment: copy.translationAlignment != nil,
+                explanationText: copy.explanation.isEmpty ? nil : copy.explanation,
+                explanationAlignment: copy.explanationAlignment,
+                replaceExplanationAlignment: copy.explanationAlignment != nil
             )
         }
         return bundle
@@ -136,12 +155,55 @@ final class IOSDocument: ObservableObject {
         showActiveLanguage()
     }
 
+    /// 追问结果接到讲解末尾，不覆盖上一段。
+    func appendExplanation(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if explanation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            storeExplanation(trimmed)
+        } else {
+            storeExplanation(explanation + "\n\n" + trimmed)
+        }
+    }
+
     /// 讲解写回当前语言。
     func storeExplanation(_ text: String) {
         explanation = text
         var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
         copy.explanation = text
+        if var alignment = copy.explanationAlignment {
+            alignment.isStale = true
+            copy.explanationAlignment = alignment
+        }
+        explanationAlignment = copy.explanationAlignment
         languages[activeLanguageID] = copy
+    }
+
+    /// 按对照行拼回译文或讲解全文。
+    func storeCompanionLines(_ lines: [String], explanation: Bool) {
+        let joined = lines.joined(separator: "\n")
+        if explanation {
+            storeExplanation(joined)
+        } else {
+            storeTranslation(joined)
+        }
+    }
+
+    func updateCompanionPair(at index: Int, pairs: [(source: String, other: String)], newOther: String, explanation: Bool) {
+        guard pairs.indices.contains(index) else { return }
+        var updated = pairs
+        var pair = updated[index]
+        pair.other = newOther
+        updated[index] = pair
+        storeCompanionLines(updated.map(\.other), explanation: explanation)
+    }
+
+    /// 点对照段回原文时写入选区。
+    func selectSourcePair(at index: Int, in pairs: [(source: String, other: String)]) {
+        guard pairs.indices.contains(index) else { return }
+        let text = pairs[index].source
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        selection = text
     }
 
     /// 译文写回当前语言。
@@ -149,6 +211,11 @@ final class IOSDocument: ObservableObject {
         translation = text
         var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
         copy.translation = text
+        if var alignment = copy.translationAlignment {
+            alignment.isStale = true
+            copy.translationAlignment = alignment
+        }
+        translationAlignment = copy.translationAlignment
         languages[activeLanguageID] = copy
     }
 
@@ -165,9 +232,12 @@ final class IOSDocument: ObservableObject {
     }
 
     /// 记住这本书读到第几页。
-    func rememberReading() {
+    func rememberReading(pageIndex: Int? = nil, characterAnchor: Int? = nil) {
         guard !title.isEmpty else { return }
+        if let pageIndex { readingIndex = pageIndex }
+        if let characterAnchor { readingCharacterAnchor = characterAnchor }
         UserDefaults.standard.set(readingIndex, forKey: readingKey)
+        UserDefaults.standard.set(readingCharacterAnchor, forKey: readingAnchorKey)
     }
 
     /// 用户改了原文。内容和上次一样时不刷新，避免编辑器失焦。
@@ -175,6 +245,67 @@ final class IOSDocument: ObservableObject {
         guard text != source else { return } // 选区变化也会走到这里时不要重绘
         source = text // 编辑器回写
         dirty = true // 标题旁显示未保存
+        markAlignmentsStaleAfterSourceEdit()
+    }
+
+    func setTranslationAlignmentLocked(_ locked: Bool) {
+        guard var alignment = translationAlignment else { return }
+        alignment.isLocked = locked
+        translationAlignment = alignment
+        var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
+        copy.translationAlignment = alignment
+        languages[activeLanguageID] = copy
+    }
+
+    func setExplanationAlignmentLocked(_ locked: Bool) {
+        guard var alignment = explanationAlignment else { return }
+        alignment.isLocked = locked
+        explanationAlignment = alignment
+        var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
+        copy.explanationAlignment = alignment
+        languages[activeLanguageID] = copy
+    }
+
+    /// 按当前原文与译文重新分段对齐。锁定或缺正文时不改。
+    func alignTranslationToSource() {
+        guard !(translationAlignment?.isLocked ?? false) else { return }
+        guard let alignment = IOSAlignmentSync.alignParagraphs(source: source, companion: translation) else { return }
+        translationAlignment = alignment
+        var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
+        copy.translationAlignment = alignment
+        languages[activeLanguageID] = copy
+    }
+
+    func alignExplanationToSource() {
+        guard !(explanationAlignment?.isLocked ?? false) else { return }
+        guard let alignment = IOSAlignmentSync.alignParagraphs(source: source, companion: explanation) else { return }
+        explanationAlignment = alignment
+        var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
+        copy.explanationAlignment = alignment
+        languages[activeLanguageID] = copy
+    }
+
+    private func markAlignmentsStaleAfterSourceEdit() {
+        if var alignment = translationAlignment, !alignment.isLocked {
+            alignment.isStale = true
+            translationAlignment = alignment
+        }
+        if var alignment = explanationAlignment, !alignment.isLocked {
+            alignment.isStale = true
+            explanationAlignment = alignment
+        }
+        for id in languages.keys {
+            var copy = languages[id] ?? IOSLanguageCopy()
+            if var alignment = copy.translationAlignment, !alignment.isLocked {
+                alignment.isStale = true
+                copy.translationAlignment = alignment
+            }
+            if var alignment = copy.explanationAlignment, !alignment.isLocked {
+                alignment.isStale = true
+                copy.explanationAlignment = alignment
+            }
+            languages[id] = copy
+        }
     }
 
     /// 名著补充写回。有选区只换那一段，否则换整页。
@@ -227,10 +358,12 @@ final class IOSDocument: ObservableObject {
 
     /// 每本书单独记阅读页。
     private var readingKey: String { "aiBook.ios.page." + title }
+    private var readingAnchorKey: String { "aiBook.ios.anchor." + title }
 
-    /// 打开时回到上次的页。
-    private func restoreReading() {
+    /// 打开时回到上次的阅读位置。
+    private func restoreReadingAnchor() {
         readingIndex = UserDefaults.standard.integer(forKey: readingKey)
+        readingCharacterAnchor = UserDefaults.standard.integer(forKey: readingAnchorKey)
     }
 
     /// 切语言前先把屏幕上的稿收进表。
@@ -238,7 +371,10 @@ final class IOSDocument: ObservableObject {
         var copy = languages[activeLanguageID] ?? IOSLanguageCopy()
         copy.translation = translation
         copy.explanation = explanation
-        if !copy.translation.isEmpty || !copy.explanation.isEmpty {
+        copy.translationAlignment = translationAlignment
+        copy.explanationAlignment = explanationAlignment
+        if !copy.translation.isEmpty || !copy.explanation.isEmpty
+            || copy.translationAlignment != nil || copy.explanationAlignment != nil {
             languages[activeLanguageID] = copy
         }
     }
@@ -248,6 +384,8 @@ final class IOSDocument: ObservableObject {
         let copy = languages[activeLanguageID] ?? IOSLanguageCopy()
         translation = copy.translation
         explanation = copy.explanation
+        translationAlignment = copy.translationAlignment
+        explanationAlignment = copy.explanationAlignment
     }
 }
 
@@ -255,6 +393,8 @@ final class IOSDocument: ObservableObject {
 struct IOSLanguageCopy: Equatable {
     var translation = ""
     var explanation = ""
+    var translationAlignment: TranslationAlignment?
+    var explanationAlignment: TranslationAlignment?
 }
 
 /// 要交给系统导出的种类。讲解和译文不把原文标成已保存。

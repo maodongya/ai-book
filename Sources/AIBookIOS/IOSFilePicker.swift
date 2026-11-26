@@ -57,8 +57,12 @@ struct IOSFilePicker: UIViewControllerRepresentable {
             )
             picker.delegate = self // 选中和取消都走代理
             picker.allowsMultipleSelection = false
-            if kind != .directory {
-                picker.directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first // 直接看到本应用里的文本
+            if kind == .directory {
+                if let bookmark = IOSDirectoryBookmark.resolve() {
+                    picker.directoryURL = bookmark
+                }
+            } else {
+                picker.directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             }
             var host = controller.view.window?.rootViewController ?? controller
             while let next = host.presentedViewController {

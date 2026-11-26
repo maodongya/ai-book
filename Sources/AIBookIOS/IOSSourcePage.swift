@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 /// 原文页：打开、编辑、选区上的讲解翻译朗读。文档菜单在标题旁。
@@ -9,7 +10,7 @@ struct IOSSourcePage: View {
     @ObservedObject var service: IOSReadingService
     @ObservedObject var speaker: IOSSpeaker
     @ObservedObject private var styleManager = BookStyleManager.shared // 正文字号跟 Mac 偏好
-    var showsPageMenu = true
+    var showsPageMenu = false
 
     var body: some View {
         let _ = styleManager.revision // 切预设时编辑器墨色与字号一起变
@@ -27,12 +28,42 @@ struct IOSSourcePage: View {
                     .padding(.top, 8)
             }
             editor // 空白页也能输入
-            if !document.selection.isEmpty {
-                selectionBar // 选区上方三条
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(IOSPaper.page)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                if !document.selection.isEmpty {
+                    selectionBar
+                }
+                if shell.showsBubble {
+                    sourceBottomBar
+                }
+            }
+        }
+    }
+
+    /// 高频原文操作。短标签适配底栏，完整名仍在右上角菜单。
+    private var sourceBottomBar: some View {
+        IOSQuickActionBar {
+            IOSQuickActionButton(titleKey: "ios.bar.saveSource", disabled: !document.hasSource) {
+                document.exportKind = .text
+            }
+            IOSQuickActionButton(titleKey: "ios.bar.saveSourceAs", disabled: !document.hasSource) {
+                document.exportKind = .saveAs
+            }
+            IOSQuickActionButton(titleKey: "ios.bar.supplement", disabled: !document.hasSource || service.running) {
+                guard document.hasSource else { return }
+                if settings.isReady {
+                    service.supplement(document: document, settings: settings)
+                } else {
+                    shell.select(.settings)
+                }
+            }
+            IOSQuickActionButton(titleKey: "ios.bar.selectAll", disabled: !document.hasSource) {
+                document.selection = document.source
+            }
+        }
     }
 
     /// 当前文件名。没文件时用原文二字。
@@ -41,18 +72,16 @@ struct IOSSourcePage: View {
             Text(document.title.isEmpty ? BookL10n.string("context.label.source") : document.title)
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(IOSPaper.ink)
+                .lineLimit(2)
             if document.dirty {
                 Circle()
                     .fill(IOSPaper.inkMuted) // 未保存只在标题旁，不另做一页
                     .frame(width: 8, height: 8)
             }
-            Spacer()
-            IOSDocumentMenu(document: document, shell: shell, settings: settings, service: service, speaker: speaker)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 28)
-        .padding(.leading, 28) // 给左缘半圆让开
-        .padding(.trailing, 36) // 给右上角麦克风让开
+        .padding(.horizontal, IOSLayout.pageTitleHorizontalPadding)
+        .padding(.top, IOSLayout.pageTitleTopPadding)
     }
     /// 还没打开书时，打开文件仍留在编辑器上方。
     private var empty: some View {
@@ -71,9 +100,6 @@ struct IOSSourcePage: View {
 
     /// 可编辑正文。选中后才出现上面的三条。
     private var editor: some View {
-        IOSSourceEditor(text: Binding(
-            get: { document.source },
-            set: { document.editSource($0) } // 改字就标未保存
         let typography = styleManager.tokens.typography
         return IOSSourceEditor(
             text: Binding(
@@ -83,28 +109,26 @@ struct IOSSourcePage: View {
             ink: UIColor(styleManager.tokens.colors.ink),
             bodyFont: typography.uiFont(size: typography.readingSize)
         ) { selected in
+            document.selection = selected // 选区浮出讲解和翻译
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity) // 空白时也占满，才能点进去打字
         .padding(.horizontal, 20)
         .padding(.top, 12)
     }
 
-    /// 选区上方：讲解、翻译、朗读。
+    /// 选区条：与底栏快捷按钮同墨色描边样式。
     private var selectionBar: some View {
-        HStack(spacing: 12) {
-            Button(BookL10n.string("action.explainSelection")) {
+        IOSQuickActionBar {
+            IOSQuickActionButton(titleKey: "action.explainSelection") {
                 shell.select(.explanation) // 切到讲解页，选区留在 document 上
             }
-            Button(BookL10n.string("target.translation")) {
+            IOSQuickActionButton(titleKey: "target.translation") {
                 shell.select(.translation) // 下一次翻译用这段选区
             }
-            Button(BookL10n.string("action.readAloud")) {
-                speaker.speak(document.selection) // 朗读停在原文页
+            IOSQuickActionButton(titleKey: "action.readAloud") {
+                speaker.speak(document.selection, contextTitleKey: "context.label.source")
             }
         }
-        .buttonStyle(.bordered)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
     }
 }
 

@@ -21,13 +21,22 @@ struct IOSPrivacyPolicyView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
+        if let url = PrivacyPolicy.publicURL {
+          Link(destination: url) {
+            Text(url.absoluteString)
+              .font(IOSPaper.readingFont)
+              .foregroundStyle(IOSPaper.ink)
+          }
+        }
         paragraph("privacy.policy.lead")
         paragraph("privacy.policy.thirdParty")
         paragraph("privacy.policy.audio")
         paragraph("privacy.mic.purpose")
         paragraph("privacy.speech.purpose")
         paragraph("privacy.policy.local")
-        paragraph("privacy.policy.urlMissing")
+        if PrivacyPolicy.publicURL == nil {
+          paragraph("privacy.policy.urlMissing")
+        }
       }
       .padding()
     }

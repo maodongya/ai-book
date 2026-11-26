@@ -38,6 +38,16 @@
                ReferencedContainer = "container:AIBookIOS.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A1B00E080000000000000003"
+               BuildableName = "AIBookIOSUITests.xctest"
+               BlueprintName = "AIBookIOSUITests"
+               ReferencedContainer = "container:AIBookIOS.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

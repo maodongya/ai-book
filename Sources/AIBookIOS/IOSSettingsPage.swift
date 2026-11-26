@@ -6,6 +6,7 @@ struct IOSSettingsPage: View {
     @ObservedObject var shell: IOSShellModel
     @ObservedObject var localization: IOSLocalizationSettings
     @ObservedObject var styleManager: BookStyleManager
+    @AppStorage("aiBook.ios.streamResponses") private var streamResponses = true
     @State private var selectedTab: Tab = .ai
 
     /// 与 Mac BookSettingsTab 对应的三栏。
@@ -54,11 +55,7 @@ struct IOSSettingsPage: View {
             .background(IOSPaper.page)
             .navigationTitle(BookL10n.string("settings.book"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    IOSBubbleMenu(shell: shell) // 设置页同样用左侧下拉换页
-                }
-            }
+            .toolbarBackground(IOSPaper.panel, for: .navigationBar)
         }
     }
 
@@ -74,14 +71,16 @@ struct IOSSettingsPage: View {
             TextField(BookL10n.string("label.provider"), text: $settings.baseURL)
             TextField(BookL10n.string("label.model"), text: $settings.model)
             SecureField(BookL10n.string("llm.optionalAPIKey"), text: $settings.apiKey)
+            IOSBookLanguageSettings(localization: localization, settings: settings)
+            Toggle(isOn: $streamResponses) {
+                Text(BookL10n.string("ios.settings.streamResponses"))
+            }
         }
     }
 
-    /// 朗读占位，与 Mac 一样先列出项，完整 TTS 仍跟 Mac 演进。
     private var voiceSection: some View {
         Section(BookL10n.string("settings.tab.voice")) {
-            Text(BookL10n.string("speech.pace"))
-            Text(BookL10n.string("speech.voice"))
+            IOSVoiceSettingsView()
         }
     }
 

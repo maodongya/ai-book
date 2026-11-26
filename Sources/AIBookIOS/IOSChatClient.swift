@@ -3,8 +3,14 @@ import Foundation
 /// 拼 iOS 上要发给模型的说明。只要可读正文，不走 Mac 的 JSON 对照合同。
 enum IOSReadingPrompt {
     /// 讲解。followUp 非空时接着上一份讲解追问。
-    static func explain(source: String, followUp: String?) -> (system: String, user: String) {
-        let system = "你是读书讲解。用读者界面语言能读的散文讲解，不要 JSON，不要重复粘贴全文。"
+    static func explain(
+        source: String,
+        target: TranslationTargetLanguage,
+        followUp: String?
+    ) -> (system: String, user: String) {
+        let system = """
+        你是读书讲解。讲解正文必须使用 \(target.promptLanguageName)（\(target.bcp47Identifier)），不要 JSON，不要重复粘贴全文。
+        """
         var user = "请讲解下面的文字：\n\n\(source)"
         let extra = followUp?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !extra.isEmpty {
@@ -14,10 +20,15 @@ enum IOSReadingPrompt {
     }
 
     /// 翻译。整段要连贯，逐字要按原文顺序拆开。
-    static func translate(source: String, paragraph: Bool) -> (system: String, user: String) {
+    static func translate(
+        source: String,
+        paragraph: Bool,
+        target: TranslationTargetLanguage
+    ) -> (system: String, user: String) {
+        let lang = "译文必须使用 \(target.promptLanguageName)（\(target.bcp47Identifier)）。"
         let system = paragraph
-            ? "你是译者。按段落给出通顺译文，不要 JSON，不要讲解。"
-            : "你是译者。按原文顺序逐词对照翻译，不要 JSON，不要扩写。"
+            ? "你是译者。按段落给出通顺译文，不要 JSON，不要讲解。\(lang)"
+            : "你是译者。按原文顺序逐词对照翻译，不要 JSON，不要扩写。\(lang)"
         let user = "请翻译下面的文字：\n\n\(source)"
         return (system, user)
     }
@@ -77,38 +88,114 @@ enum IOSChatClient {
         case http(String)
     }
 
-    /// 发一轮 system + user，返回助手正文。
+    private static let streamResponsesKey = "aiBook.ios.streamResponses"
+
+    static var prefersStreaming: Bool {
+        if UserDefaults.standard.object(forKey: streamResponsesKey) == nil { return true }
+        return UserDefaults.standard.bool(forKey: streamResponsesKey)
+    }
+
+    /// 发一轮 system + user，返回助手正文。默认走 SSE，`onPartial` 用于界面增量刷新。
     @MainActor
     static func complete(
         system: String,
         user: String,
         settings: IOSModelSettings,
-        maxTokens: Int = 8192
+        maxTokens: Int = 8192,
+        onPartial: ((String) -> Void)? = nil
     ) async throws -> String {
-        guard settings.isReady else { throw Failure.notConfigured } // 缺密钥时调用方应先去设置
+        guard settings.isReady else { throw Failure.notConfigured }
+        let request = try makeRequest(
+            system: system,
+            user: user,
+            settings: settings,
+            maxTokens: maxTokens,
+            stream: prefersStreaming && onPartial != nil
+        )
+        if prefersStreaming, let onPartial {
+            return try await completeStreaming(request: request, onPartial: onPartial)
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw Failure.badResponse }
+        guard (200 ... 299).contains(http.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw Failure.http(body.isEmpty ? "HTTP \(http.statusCode)" : body)
+        }
+        return try assistantText(from: data)
+    }
+
+    @MainActor
+    private static func makeRequest(
+        system: String,
+        user: String,
+        settings: IOSModelSettings,
+        maxTokens: Int,
+        stream: Bool
+    ) throws -> URLRequest {
         let root = settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard let url = URL(string: root + "/chat/completions") else { throw Failure.badURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(settings.apiKey.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
+        request.setValue(
+            "Bearer \(settings.apiKey.trimmingCharacters(in: .whitespacesAndNewlines))",
+            forHTTPHeaderField: "Authorization"
+        )
         let payload: [String: Any] = [
             "model": settings.model.trimmingCharacters(in: .whitespacesAndNewlines),
             "messages": [
                 ["role": "system", "content": system],
                 ["role": "user", "content": user],
             ],
-            "max_tokens": maxTokens, // 名著补充需要长回复，翻译也沿用同一上限
+            "max_tokens": maxTokens,
+            "stream": stream,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        return request
+    }
+
+    private static func completeStreaming(
+        request: URLRequest,
+        onPartial: @escaping (String) -> Void
+    ) async throws -> String {
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
         guard let http = response as? HTTPURLResponse else { throw Failure.badResponse }
-        guard (200 ... 299).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw Failure.http(body.isEmpty ? "HTTP \(http.statusCode)" : body) // 把服务端原文留给状态行
+        if !(200 ... 299).contains(http.statusCode) {
+            var errorData = Data()
+            for try await byte in bytes { errorData.append(byte) }
+            let body = String(data: errorData, encoding: .utf8) ?? ""
+            throw Failure.http(body.isEmpty ? "HTTP \(http.statusCode)" : body)
         }
-        return try assistantText(from: data)
+        var accumulated = ""
+        for try await line in bytes.lines {
+            try Task.checkCancellation() // 用户点停止时尽快结束 SSE
+            guard let piece = streamTextPiece(fromSSELine: line), !piece.isEmpty else { continue }
+            accumulated += piece // 按事件片段拼接正文
+            onPartial(accumulated) // 界面看到的是目前为止的全文
+        }
+        let trimmed = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw Failure.badResponse }
+        return trimmed
+    }
+
+    /// 解析 OpenAI 兼容 SSE 一行，供单测直接调用。
+    static func streamTextPiece(fromSSELine line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("data:") else { return nil }
+        let payload = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)
+        if payload == "[DONE]" { return nil }
+        guard let data = payload.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let delta = choices.first?["delta"] as? [String: Any]
+        else { return nil }
+        if let content = delta["content"] as? String, !content.isEmpty { return content }
+        if let reasoning = delta["reasoning_content"] as? String ?? delta["reasoning"] as? String,
+           !reasoning.isEmpty {
+            return reasoning
+        }
+        return nil
     }
 
     /// 从 choices[0].message.content 取出正文。

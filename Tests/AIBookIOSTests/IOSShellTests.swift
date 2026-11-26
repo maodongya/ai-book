@@ -3,31 +3,36 @@ import XCTest
 
 /// 气泡先向右、再向下，窄屏不并排，阅读页收起气泡。
 final class IOSShellTests: XCTestCase {
-    /// 按下气泡时菜单还没掉下来。
-    @MainActor
-    func testOpenPullsRightBeforeTheMenuDrops() {
-        let shell = IOSShellModel()
-        shell.openMenu()
-        XCTAssertTrue(shell.panelExtended)
-        XCTAssertFalse(shell.menuDropped)
-        XCTAssertFalse(IOSBubbleMotion.menuVisible(opened: true, elapsed: 0.2))
-        XCTAssertTrue(IOSBubbleMotion.menuVisible(opened: true, elapsed: IOSBubbleMotion.dropDownDelay))
-    }
-
-    /// 拉开之后才允许菜单向下出现。
-    @MainActor
-    func testRevealMenuWaitsUntilThePanelIsExtended() {
-        let shell = IOSShellModel()
-        shell.revealMenu()
-        XCTAssertFalse(shell.menuDropped)
-        shell.openMenu()
-        shell.revealMenu()
-        XCTAssertTrue(shell.menuDropped)
-    }
-
     /// 菜单顺序是原文、翻译、讲解、设置。
     func testBubbleOrderMatchesTheDesign() {
         XCTAssertEqual(IOSPage.bubbleOrder, [.source, .translation, .explanation, .settings])
+    }
+
+    /// 底栏顺序是原文、讲解、翻译、阅读。
+    func testTabBarOrderMatchesTheDesign() {
+        XCTAssertEqual(IOSPage.tabBarOrder, [.source, .explanation, .translation, .reading])
+    }
+
+    /// 有对齐块时优先按块配对。
+    func testParagraphPairsPreferAlignmentBlocks() {
+        let block = TranslationBlock(
+            sourceRange: NSRange(location: 0, length: 2),
+            sourceText: "床前明月光",
+            translationText: "Moon",
+            level: .paragraph,
+            order: 0
+        )
+        let alignment = TranslationAlignment(
+            mode: .paragraph,
+            blocks: [block],
+            sourceContentHash: "x",
+            createdAt: Date(),
+            isStale: false
+        )
+        let result = IOSParagraphPairs.pairs(source: "床前明月光", other: "Moon", alignment: alignment)
+        XCTAssertTrue(result.usesAlignment)
+        XCTAssertEqual(result.pairs.count, 1)
+        XCTAssertEqual(result.pairs[0].other, "Moon")
     }
 
     /// iPhone 横屏宽度不并排，iPad 横屏才并排。
@@ -64,8 +69,9 @@ final class IOSShellTests: XCTestCase {
 
     /// 讲解提示里必须带上要讲的原文。
     func testExplainPromptCarriesTheSource() {
-        let prompt = IOSReadingPrompt.explain(source: "床前明月光", followUp: nil)
+        let prompt = IOSReadingPrompt.explain(source: "床前明月光", target: .zhHans, followUp: nil)
         XCTAssertTrue(prompt.user.contains("床前明月光"))
+        XCTAssertTrue(prompt.system.contains("zh-Hans"))
     }
 
     /// 聊天补全能从 choices 里取出助手正文。
@@ -115,5 +121,44 @@ final class IOSShellTests: XCTestCase {
     func testSupplementBodyKeepsTheMarkedPassage() {
         let reply = "说明\n<<<名著补充>>>\n床前明月光\n<<<END>>>\n多余"
         XCTAssertEqual(IOSReadingPrompt.supplementBody(from: reply), "床前明月光")
+    }
+
+    func testAlignmentSyncPairsParagraphs() {
+        let alignment = IOSAlignmentSync.alignParagraphs(source: "甲\n\n乙", companion: "A\n\nB")
+        XCTAssertEqual(alignment?.blocks.count, 2)
+        XCTAssertEqual(alignment?.blocks[0].translationText, "A")
+    }
+
+    func testSpreadLeftIndexSnapsToEven() {
+        XCTAssertEqual(IOSReadingPreferences.spreadLeftIndex(3), 2)
+        XCTAssertEqual(IOSReadingPreferences.spreadLeftIndex(4), 4)
+    }
+
+    func testStreamSSEParsesContentDelta() {
+        let line = #"data: {"choices":[{"delta":{"content":"月"}}]}"#
+        XCTAssertEqual(IOSChatClient.streamTextPiece(fromSSELine: line), "月")
+    }
+
+    func testHighlightFollowsReadingAnchor() {
+        let source = "第一段\n\n第二段"
+        let pairs = IOSParagraphPairs.pairs(source: source, other: "A\n\nB")
+        XCTAssertEqual(
+            IOSParagraphPairs.highlightedPairIndex(
+                pairs: pairs,
+                source: source,
+                selection: "",
+                characterAnchor: 1
+            ),
+            0
+        )
+        XCTAssertEqual(
+            IOSParagraphPairs.highlightedPairIndex(
+                pairs: pairs,
+                source: source,
+                selection: "",
+                characterAnchor: 5
+            ),
+            1
+        )
     }
 }

@@ -6,6 +6,7 @@ import Foundation
 final class IOSSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published private(set) var speaking = false
     @Published private(set) var paused = false
+    @Published private(set) var contextTitleKey: String?
     private let synthesizer = AVSpeechSynthesizer()
 
     override init() {
@@ -14,12 +15,16 @@ final class IOSSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     }
 
     /// 从头读这一段。空文本不发声。
-    func speak(_ text: String) {
+    func speak(_ text: String, contextTitleKey: String? = nil) {
         let spoken = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !spoken.isEmpty else { return }
+        self.contextTitleKey = contextTitleKey
         synthesizer.stopSpeaking(at: .immediate) // 新的一段替换正在读的
         let utterance = AVSpeechUtterance(string: spoken)
         utterance.voice = AVSpeechSynthesisVoice(language: AVSpeechSynthesisVoice.currentLanguageCode())
+        let storedRate = UserDefaults.standard.object(forKey: "aiBook.ios.speechRate") as? Double
+        let modeRate = SpeechEngineMode.migrated(from: UserDefaults.standard.string(forKey: "aiBook.speechEngineMode")).rateMultiplier
+        utterance.rate = Float(storedRate ?? Double(modeRate))
         synthesizer.speak(utterance)
         speaking = true
         paused = false
@@ -41,6 +46,7 @@ final class IOSSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         synthesizer.stopSpeaking(at: .immediate)
         speaking = false
         paused = false
+        contextTitleKey = nil
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {

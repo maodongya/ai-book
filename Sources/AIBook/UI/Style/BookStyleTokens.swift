@@ -70,15 +70,9 @@ struct BookStyleTypography {
     var bodyFont: Font { swiftUIFont(size: bodySize, weight: .regular) }
     var captionFont: Font { swiftUIFont(size: captionSize, weight: .regular) }
 
+    #if canImport(AppKit)
     var readingNSFont: NSFont {
         nsFont(size: readingSize) // TextKit 左页用 NSFont
-    }
-
-    var readingFont: Font {
-        if let name = preferredFontNames.first {
-            return .custom(name, size: readingSize)
-        }
-        return .system(size: readingSize)
     }
 
     func nsFont(size: CGFloat) -> NSFont {
@@ -88,6 +82,25 @@ struct BookStyleTypography {
             }
         }
         return NSFont.systemFont(ofSize: size)
+    }
+    #endif
+
+    #if canImport(UIKit)
+    func uiFont(size: CGFloat) -> UIFont {
+        for name in preferredFontNames {
+            if let font = UIFont(name: name, size: size) {
+                return font
+            }
+        }
+        return UIFont.systemFont(ofSize: size)
+    }
+    #endif
+
+    var readingFont: Font {
+        if let name = preferredFontNames.first {
+            return .custom(name, size: readingSize)
+        }
+        return .system(size: readingSize)
     }
 
     private func swiftUIFont(size: CGFloat, weight: Font.Weight) -> Font {

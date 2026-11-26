@@ -7,15 +7,21 @@ struct IOSExplanationPage: View {
     @ObservedObject var settings: IOSModelSettings
     @ObservedObject var service: IOSReadingService
     @ObservedObject var speaker: IOSSpeaker
-    var showsPageMenu = true
+    var showsPageMenu = false
     @State private var followUp = ""
     @State private var comparing = false
 
+    private var compareData: (pairs: [(source: String, other: String)], usesAlignment: Bool) {
+        IOSParagraphPairs.pairs(
+            source: document.source,
+            other: document.explanation,
+            alignment: document.explanationAlignment
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            IOSPageHeading(titleKey: "target.explanation", shell: shell, showsPageMenu: showsPageMenu) {
-                IOSExplanationMenu(document: document, shell: shell, settings: settings, service: service, speaker: speaker)
-            }
+            IOSPageHeading(titleKey: "target.explanation")
             if !service.status.isEmpty {
                 Text(service.status) // 正在讲解或失败原因
                     .font(.footnote)
@@ -29,8 +35,38 @@ struct IOSExplanationPage: View {
             } else {
                 languageBar(document.explanationLanguageIDs)
                 compareButton("explanation.tableCompare") // 对照留在页顶，不占页底
+                if comparing, document.explanationAlignment?.isStale == true {
+                    Text(BookL10n.string("vm.align.stale"))
+                        .font(.footnote)
+                        .foregroundStyle(IOSPaper.inkMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                }
                 if comparing {
-                    IOSCompareList(pairs: IOSParagraphPairs.pairs(source: document.source, other: document.explanation))
+                    IOSCompareList(
+                        pairs: compareData.pairs,
+                        highlightedPairIndex: IOSParagraphPairs.highlightedPairIndex(
+                            pairs: compareData.pairs,
+                            source: document.source,
+                            selection: document.selection,
+                            characterAnchor: document.readingCharacterAnchor,
+                            alignment: document.explanationAlignment
+                        ),
+                        otherColumnTitleKey: "target.explanation",
+                        editableOther: true,
+                        onSelectSource: { index in
+                            document.selectSourcePair(at: index, in: compareData.pairs)
+                            shell.select(.source)
+                        },
+                        onEditOther: { index, text in
+                            document.updateCompanionPair(
+                                at: index,
+                                pairs: compareData.pairs,
+                                newOther: text,
+                                explanation: true
+                            )
+                        }
+                    )
                 } else {
                     ScrollView {
                         Text(document.explanation)
@@ -55,7 +91,7 @@ struct IOSExplanationPage: View {
                     set: { document.selectLanguage($0) } // 切换只改显示
                 )) {
                     ForEach(ids, id: \.self) { id in
-                        Text(id).tag(id)
+                        Text(IOSLanguageLabels.displayName(for: id)).tag(id)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -67,11 +103,17 @@ struct IOSExplanationPage: View {
 
     /// 对照开关。放在正文上方，页底只留追问输入。
     private func compareButton(_ key: String) -> some View {
-        Button(BookL10n.string(key)) { comparing.toggle() } // 上下叠放，不左右分栏
-            .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
+        Button {
+            comparing.toggle() // 上下叠放，不左右分栏
+        } label: {
+            Label(BookL10n.string(key), systemImage: comparing ? "rectangle.split.2x1.fill" : "rectangle.split.2x1")
+                .font(.subheadline.weight(.medium))
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(IOSPaper.ink)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
     }
 
     /// 空状态。模型没配好时按钮改去设置，不先发一次失败请求。

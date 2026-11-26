@@ -7,14 +7,20 @@ struct IOSTranslationPage: View {
     @ObservedObject var settings: IOSModelSettings
     @ObservedObject var service: IOSReadingService
     @ObservedObject var speaker: IOSSpeaker
-    var showsPageMenu = true
+    var showsPageMenu = false
     @State private var comparing = false
+
+    private var compareData: (pairs: [(source: String, other: String)], usesAlignment: Bool) {
+        IOSParagraphPairs.pairs(
+            source: document.source,
+            other: document.translation,
+            alignment: document.translationAlignment
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            IOSPageHeading(titleKey: "target.translation", shell: shell, showsPageMenu: showsPageMenu) {
-                IOSTranslationMenu(document: document, shell: shell, settings: settings, service: service, speaker: speaker)
-            }
+            IOSPageHeading(titleKey: "target.translation")
             if document.translation.isEmpty {
                 empty // 还没有译文，不显示语言分段
             } else {
@@ -23,19 +29,57 @@ struct IOSTranslationPage: View {
                         get: { document.activeLanguageID },
                         set: { document.selectLanguage($0) }
                     )) {
-                        ForEach(document.translationLanguageIDs, id: \.self) { Text($0).tag($0) }
+                        ForEach(document.translationLanguageIDs, id: \.self) { id in
+                            Text(IOSLanguageLabels.displayName(for: id)).tag(id)
+                        }
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                 }
-                Button(BookL10n.string("translation.tableCompare")) { comparing.toggle() } // 对照留在页顶
-                    .buttonStyle(.bordered)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                Button {
+                    comparing.toggle() // 对照留在页顶
+                } label: {
+                    Label(BookL10n.string("translation.tableCompare"), systemImage: comparing ? "rectangle.split.2x1.fill" : "rectangle.split.2x1")
+                        .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(IOSPaper.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                if comparing, document.translationAlignment?.isStale == true {
+                    Text(BookL10n.string("vm.align.stale"))
+                        .font(.footnote)
+                        .foregroundStyle(IOSPaper.inkMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                }
                 if comparing {
-                    IOSCompareList(pairs: IOSParagraphPairs.pairs(source: document.source, other: document.translation))
+                    IOSCompareList(
+                        pairs: compareData.pairs,
+                        highlightedPairIndex: IOSParagraphPairs.highlightedPairIndex(
+                            pairs: compareData.pairs,
+                            source: document.source,
+                            selection: document.selection,
+                            characterAnchor: document.readingCharacterAnchor,
+                            alignment: document.translationAlignment
+                        ),
+                        otherColumnTitleKey: "target.translation",
+                        editableOther: true,
+                        onSelectSource: { index in
+                            document.selectSourcePair(at: index, in: compareData.pairs)
+                            shell.select(.source)
+                        },
+                        onEditOther: { index, text in
+                            document.updateCompanionPair(
+                                at: index,
+                                pairs: compareData.pairs,
+                                newOther: text,
+                                explanation: false
+                            )
+                        }
+                    )
                 } else {
                     TextEditor(text: Binding(
                         get: { document.translation },
@@ -49,6 +93,11 @@ struct IOSTranslationPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(IOSPaper.page)
+        #if DEBUG
+        .onAppear {
+            if IOSSnapshotHints.translationCompare { comparing = true }
+        }
+        #endif
     }
 
     /// 源文本优先选区，没有选区就用全文。模型没配好则去设置。

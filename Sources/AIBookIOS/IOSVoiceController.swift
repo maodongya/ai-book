@@ -11,6 +11,7 @@ final class IOSVoiceController: ObservableObject {
     private var settings: IOSModelSettings?
     private var service: IOSReadingService?
     private var speaker: IOSSpeaker?
+    private var heardClearTask: Task<Void, Never>?
 
     /// 根界面创建完各页之后挂上。这些对象和界面是同一份。
     func bind(
@@ -44,6 +45,7 @@ final class IOSVoiceController: ObservableObject {
         holding = false
         let text = listener.stop().trimmingCharacters(in: .whitespacesAndNewlines)
         heard = text
+        scheduleHeardClear()
         guard !text.isEmpty, let plan = OperationPhraseMatch.localPlan(for: text) else { return }
         for action in plan.actions {
             perform(action) // 一句里可能有连续两步，按顺序做
@@ -67,17 +69,17 @@ final class IOSVoiceController: ObservableObject {
             shell.select(.translation)
             service.translate(document: document, settings: settings, paragraph: true)
         case .readOriginalSelection:
-            speaker.speak(document.selection)
+            speaker.speak(document.selection, contextTitleKey: "context.label.source")
         case .readOriginalFull:
-            speaker.speak(document.source)
+            speaker.speak(document.source, contextTitleKey: "context.label.source")
         case .readTranslationSelection:
-            speaker.speak(document.translationSelection)
+            speaker.speak(document.translationSelection, contextTitleKey: "target.translation")
         case .readTranslationFull:
-            speaker.speak(document.translation)
+            speaker.speak(document.translation, contextTitleKey: "target.translation")
         case .readExplanationSelection:
-            speaker.speak(document.explanationSelection)
+            speaker.speak(document.explanationSelection, contextTitleKey: "target.explanation")
         case .readExplanationFull:
-            speaker.speak(document.explanation)
+            speaker.speak(document.explanation, contextTitleKey: "target.explanation")
         case .pauseSpeech:
             speaker.pause()
         case .resumeSpeech:
@@ -103,8 +105,35 @@ final class IOSVoiceController: ObservableObject {
             document.exportKind = .text // 原文页看到后交给系统导出
         case .saveAsAIBook(_):
             document.exportKind = .aibook
+        case .alignTranslation:
+            shell.select(.translation)
+            document.alignTranslationToSource()
+        case .alignExplanation:
+            shell.select(.explanation)
+            document.alignExplanationToSource()
+        case .lockTranslation:
+            shell.select(.translation)
+            document.setTranslationAlignmentLocked(true)
+        case .unlockTranslation:
+            shell.select(.translation)
+            document.setTranslationAlignmentLocked(false)
+        case .lockExplanation:
+            shell.select(.explanation)
+            document.setExplanationAlignmentLocked(true)
+        case .unlockExplanation:
+            shell.select(.explanation)
+            document.setExplanationAlignmentLocked(false)
         default:
-            break // 目录、锁定、另存面板留给对应按钮
+            break // 目录、对照表开关等仍走按钮
+        }
+    }
+
+  private func scheduleHeardClear() {
+        heardClearTask?.cancel()
+        heardClearTask = Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            heard = ""
         }
     }
 }

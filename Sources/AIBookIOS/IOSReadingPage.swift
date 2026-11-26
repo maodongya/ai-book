@@ -7,101 +7,234 @@ struct IOSReadingPage: View {
     @ObservedObject var voice: IOSVoiceController
     @ObservedObject private var styleManager = BookStyleManager.shared // 阅读页跟 Mac 阅读字号
     @State private var drag: CGFloat = 0
+    @State private var chromeVisible = true
+    @State private var chromeHideTask: Task<Void, Never>?
 
     var body: some View {
         let _ = styleManager.revision // 切预设时阅读页墨色与字体一起变
         GeometryReader { geo in
-            let pages = pages(in: geo.size) // 按当前纸面粗分，旋转后重算
-            let index = min(document.readingIndex, max(pages.count - 1, 0)) // 字号变了也不越界
+            let spread = IOSReadingPreferences.showsDualSpread(containerSize: geo.size)
+            let layoutPages = paginatedPages(in: geo.size)
+            let count = max(layoutPages.count, 1)
+            let index = resolvedIndex(in: layoutPages, spread: spread)
             ZStack {
                 IOSPaper.page.ignoresSafeArea()
-                Text(pages[index])
-                    .font(IOSPaper.readingFont)
-                    .foregroundStyle(IOSPaper.ink)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(28)
-                    .offset(x: drag) // 跟手
-                    .gesture(dragGesture(pageWidth: geo.size.width, pageCount: pages.count, index: index))
-                    .onTapGesture { location in
-                        turnByTap(location.x, width: geo.size.width, pageCount: pages.count, index: index) // 左上一页，右下一页
+                if chromeVisible {
+                    VStack(spacing: 0) {
+                        topBar(spread: spread) // 独占顶行，正文从其下开始
+                        pageLayer(
+                            spread: spread,
+                            layoutPages: layoutPages,
+                            index: index,
+                            geo: geo,
+                            pageCount: count
+                        )
+                        footerLabel(index: index, count: count, spread: spread)
+                            .padding(.bottom, 12)
                     }
-                VStack {
-                    topBar // 轻触阅读时仍留返回和麦克风
-                    Spacer()
-                    Text(footer(index: index, count: pages.count))
-                        .font(.footnote)
-                        .foregroundStyle(IOSPaper.inkMuted)
-                        .padding(.bottom, 12)
+                    .transition(.opacity)
+                } else {
+                    pageLayer(
+                        spread: spread,
+                        layoutPages: layoutPages,
+                        index: index,
+                        geo: geo,
+                        pageCount: count
+                    )
                 }
             }
+            .onAppear { scheduleChromeHide() }
+            .onChange(of: styleManager.revision) { _, _ in
+                syncIndexAfterRepagination(layoutPages, spread: spread)
+            }
+            .onChange(of: geo.size) { _, _ in
+                syncIndexAfterRepagination(layoutPages, spread: spread)
+            }
         }
+    }
+
+  @ViewBuilder
+  private func readingBody(
+      spread: Bool,
+      pages: [IOSBookPaginator.Page],
+      index: Int,
+      geo: GeometryProxy
+  ) -> some View {
+      if spread {
+          HStack(spacing: 0) {
+              singlePageText(pages, index: index)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+              Rectangle()
+                  .fill(IOSPaper.inkMuted.opacity(0.25))
+                  .frame(width: 18)
+              singlePageText(pages, index: index + 1)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+          }
+          .padding(28)
+      } else {
+          singlePageText(pages, index: index)
+              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+              .padding(28)
+      }
+  }
+
+    private func singlePageText(_ pages: [IOSBookPaginator.Page], index: Int) -> some View {
+        Text(pageText(pages, index: index))
+            .font(IOSPaper.readingFont)
+            .foregroundStyle(IOSPaper.ink)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     /// 返回、页式说明、麦克风。不提供讲解。
-    private var topBar: some View {
+    private func topBar(spread: Bool) -> some View {
         HStack {
             Button(BookL10n.string("action.close")) {
-                shell.exitReading() // 回到进入阅读前的那一页
+            .background(IOSPaper.panel, in: Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(IOSPaper.panelBorder, lineWidth: 1)
+            )
             }
             Spacer()
-            IOSMicButton(voice: voice)
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                Toggle(BookL10n.string("layout.spread"), isOn: Binding(
+                    get: { IOSReadingPreferences.dualPageEnabled },
+                    set: { IOSReadingPreferences.dualPageEnabled = $0 }
+                ))
+      geo: GeometryProxy,
+      reservesTopChrome: Bool
+  ) -> some View {
+      let edge = IOSLayout.readingTextPadding
+      let top = reservesTopChrome ? edge : edge + 8 // 隐藏顶栏时仍留一点呼吸边
+      if spread {
+          HStack(spacing: 0) {
+              singlePageText(pages, index: index)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+              Rectangle()
+                  .fill(IOSPaper.inkMuted.opacity(0.25))
+                  .frame(width: 18)
+              singlePageText(pages, index: index + 1)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+          }
+          .padding(.horizontal, edge)
+          .padding(.top, top)
+          .padding(.bottom, edge)
+      } else {
+          singlePageText(pages, index: index)
+              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+              .padding(.horizontal, edge)
+              .padding(.top, top)
+              .padding(.bottom, edge)
+        }
+        return pages
+    }
+
+    private func resolvedIndex(in pages: [IOSBookPaginator.Page], spread: Bool) -> Int {
+        let anchor = min(document.readingCharacterAnchor, (document.source as NSString).length)
+        let raw: Int
+        if let match = pages.firstIndex(where: { NSLocationInRange(anchor, $0.range) }) {
+            raw = match
+        } else {
+            raw = min(document.readingIndex, max(pages.count - 1, 0))
+    /// 沉浸阅读顶栏：左退出，右页式与麦克风；不压在正文上。
+    private func topBar(spread: Bool) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                shell.exitReading() // 回到进入阅读前的那一页
+            } label: {
+                Label(BookL10n.string("action.close"), systemImage: "xmark")
+                    .font(.subheadline.weight(.medium))
+            }
+            .buttonStyle(.bordered)
+            Spacer(minLength: 8)
+            HStack(alignment: .top, spacing: 8) {
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    Toggle(isOn: Binding(
+                        get: { IOSReadingPreferences.dualPageEnabled },
+                        set: { IOSReadingPreferences.dualPageEnabled = $0 }
+                    )) {
+                        Label(BookL10n.string("layout.spread"), systemImage: "book.pages")
+                            .font(.caption)
+                    }
+                    .toggleStyle(.button)
+                    .tint(IOSPaper.ink)
+                    .opacity(spread ? 1 : 0.45)
+                }
+                IOSMicButton(voice: voice)
+            }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .iosPanelChrome(edge: .bottom)
+                + " – "
+                + BookL10n.format("vm.page.single", index + 2, count)
+        }
+        return BookL10n.format("vm.page.single", index + 1, count)
     }
 
-    /// 按纸面大约能放下的字数切开。不是 Mac 的分页器。
-    private func pages(in size: CGSize) -> [String] {
-        let pageSize = max(Int(size.width * size.height / 480), 200) // 粗略按面积，保证短文也有一页
-        return IOSReadingPages.slices(of: document.source, pageSize: pageSize)
-    }
-
-    /// 页脚只留第几页。
-    private func footer(index: Int, count: Int) -> String {
-        "\(index + 1) / \(count)" // 目录里没有这条短格式，页码用数字即可
-    }
-
-    /// 跟手滑动。松手超过三分之一才翻完。
-    private func dragGesture(pageWidth: CGFloat, pageCount: Int, index: Int) -> some Gesture {
+    private func dragGesture(
+        pageWidth: CGFloat,
+        pageCount: Int,
+        index: Int,
+        pages: [IOSBookPaginator.Page],
+        spread: Bool
+    ) -> some Gesture {
         DragGesture()
             .onChanged { value in
                 drag = value.translation.width // 跟手
             }
             .onEnded { value in
                 let delta = IOSReadingTurn.pageDelta(translation: value.translation.width, pageWidth: pageWidth)
-                apply(delta, pageCount: pageCount, index: index) // 不够就弹回
+                apply(delta, pageCount: pageCount, index: index, pages: pages, spread: spread)
                 drag = 0
             }
     }
 
-    /// 点左半上一页，点右半下一页。
-    private func turnByTap(_ x: CGFloat, width: CGFloat, pageCount: Int, index: Int) {
-        let delta = x < width / 2 ? -1 : 1 // 左退右进
-        apply(delta, pageCount: pageCount, index: index)
-    }
-
-    /// 夹在第一页和最后一页之间。
-    private func apply(_ delta: Int, pageCount: Int, index: Int) {
-        let next = min(max(index + delta, 0), pageCount - 1) // 首页再向右留在首页
-        document.readingIndex = next
-        document.rememberReading() // 每本书记住读到哪里
-    }
-}
-
-/// 把正文切成阅读页。页大小由纸面传入。
-enum IOSReadingPages {
-    /// 空文本也有一页，避免阅读页空白崩溃。
-    static func slices(of text: String, pageSize: Int) -> [String] {
-        guard pageSize > 0 else { return [text] } // 非法页长就整篇一页
-        if text.isEmpty { return [""] } // 阅读页仍能显示页码
-        var pages: [String] = []
-        var index = text.startIndex
-        while index < text.endIndex {
-            let end = text.index(index, offsetBy: pageSize, limitedBy: text.endIndex) ?? text.endIndex // 最后一页不足一页也收下
-            pages.append(String(text[index..<end]))
-            index = end
+    private func handleTap(
+        _ x: CGFloat,
+        width: CGFloat,
+        pageCount: Int,
+        index: Int,
+        pages: [IOSBookPaginator.Page],
+        spread: Bool
+    ) {
+        let edge = width / 5
+        if x > edge, x < width - edge {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                chromeVisible.toggle()
+            }
+            if chromeVisible { scheduleChromeHide() }
+            return
         }
-        return pages
+        let delta = x < width / 2 ? -1 : 1
+        apply(delta, pageCount: pageCount, index: index, pages: pages, spread: spread)
+        withAnimation { chromeVisible = false }
+    }
+
+    private func scheduleChromeHide() {
+        chromeHideTask?.cancel()
+        chromeHideTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled, chromeVisible else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.25)) { chromeVisible = false }
+            }
+        }
+    }
+
+    private func apply(
+        _ delta: Int,
+        pageCount: Int,
+        index: Int,
+        pages: [IOSBookPaginator.Page],
+        spread: Bool
+    ) {
+        let step = spread ? delta * 2 : delta
+        let next = min(max(index + step, 0), pageCount - 1) // 首页再向右留在首页
+        let anchor = pages.indices.contains(next) ? pages[next].range.location : document.readingCharacterAnchor
+        document.rememberReading(pageIndex: next, characterAnchor: anchor)
     }
 }
 

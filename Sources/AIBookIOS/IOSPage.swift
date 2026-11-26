@@ -13,6 +13,20 @@ enum IOSPage: String, Equatable, CaseIterable, Identifiable {
     /// 气泡里的四项。阅读从原文进入，不占这四个入口。
     static let bubbleOrder: [IOSPage] = [.source, .translation, .explanation, .settings]
 
+    /// 底栏顺序，跟界面设计 §2。
+    static let tabBarOrder: [IOSPage] = [.source, .explanation, .translation, .reading]
+
+    /// 底栏符号。
+    var tabSymbol: String {
+        switch self {
+        case .source: return "doc.text"
+        case .translation: return "globe"
+        case .explanation: return "text.book.closed"
+        case .settings: return "gearshape"
+        case .reading: return "book"
+        }
+    }
+
     /// 目录里已有的短标题，避免 iOS 再写一套按钮名。
     var titleKey: String {
         switch self {

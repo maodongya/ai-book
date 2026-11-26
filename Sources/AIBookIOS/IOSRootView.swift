@@ -17,23 +17,19 @@ struct IOSRootView: View {
     @State private var keptFolder: URL?
     @State private var libraryFiles: [URL] = []
     @State private var browseAfterLibrary = false
+    @State private var showManual = false
+    @State private var showPrivacy = false
 
     var body: some View {
         GeometryReader { geo in
             let split = IOSLayout.usesSideBySide(width: geo.size.width) && shell.page.sitsBesideSource
-            ZStack(alignment: .topTrailing) {
+            VStack(spacing: 0) {
                 ZStack(alignment: .topLeading) {
                     IOSPaper.page.ignoresSafeArea()
-                    content(split: split) // 正文铺满
+                    content(split: split) // 正文铺满，顶栏用 safeAreaInset 让位
                 }
-                if shell.page != .reading {
-                    IOSMicButton(voice: voice) // 按钮本身的大小，不铺满屏幕
-                        .padding(.top, 12)
-                        .padding(.trailing, 12)
-                }
-                if speaker.speaking {
-                    speechBar
-                        .padding(.top, shell.page == .reading ? 52 : 8)
+                if shell.showsBubble {
+                    IOSBottomTabBar(shell: shell, document: document)
                 }
             }
         }
@@ -42,15 +38,46 @@ struct IOSRootView: View {
                 openImported(url, kind: kind) // 选中后写回对应的页
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                if speaker.speaking {
+                    speechBar // 朗读播控在最上
+                }
+                if shell.page != .reading {
+                    IOSTopCommandBar(
+                        shell: shell,
+                        document: document,
+                        settings: settings,
+                        service: service,
+                        speaker: speaker,
+                        voice: voice,
+                        showManual: $showManual,
+                        showPrivacy: $showPrivacy
+                    )
+                }
+            }
+        }
         .iosBookAppearance(localization: localization, styleManager: styleManager) // 语言与纸色跟 Mac 令牌
         .onAppear {
+            service.speaker = speaker
             voice.bind(shell: shell, document: document, settings: settings, service: service, speaker: speaker)
             document.modelReady = settings.isReady // 已保存的密钥打开时就能讲解
             openBundledBooksIfNeeded() // 安装包里的书拷进文稿，并打开默认的一本
+            #if DEBUG
+            applySnapshotTranslationFixtureIfNeeded()
+            #endif
         }
         .onChange(of: settings.apiKey) { _, _ in document.modelReady = settings.isReady }
         .onChange(of: settings.baseURL) { _, _ in document.modelReady = settings.isReady }
         .onChange(of: settings.model) { _, _ in document.modelReady = settings.isReady }
+        .onReceive(NotificationCenter.default.publisher(for: .iosShortcutEnterReading)) { _ in
+            guard document.hasSource else { return }
+            shell.enterReading()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .iosShortcutStop)) { _ in
+            service.cancel()
+            speaker.stop()
+        }
         .fileExporter(
             isPresented: $exportPresented,
             document: IOSDataFile(data: document.exportData()),
@@ -64,6 +91,14 @@ struct IOSRootView: View {
         }
         .onChange(of: document.exportKind) { _, kind in
             exportPresented = kind != nil // 菜单和口令都从这里导出
+        }
+        .onOpenURL { url in
+            openImported(url, kind: .book)
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            guard let url = urls.first else { return false }
+            openImported(url, kind: importKind(for: url))
+            return true
         }
         .sheet(isPresented: $folderPresented, onDismiss: releaseFolder) {
             NavigationStack {
@@ -85,6 +120,26 @@ struct IOSRootView: View {
         }
         .sheet(isPresented: $document.libraryPresented, onDismiss: openBrowserIfAsked) {
             librarySheet // 应用文稿里的文本，取消一定能关掉
+        }
+        .sheet(isPresented: $showManual) {
+            NavigationStack {
+                IOSUserManualView()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(BookL10n.string("action.close")) { showManual = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showPrivacy) {
+            NavigationStack {
+                IOSPrivacyPolicyView()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(BookL10n.string("action.close")) { showPrivacy = false }
+                        }
+                    }
+            }
         }
     }
 
@@ -183,11 +238,15 @@ struct IOSRootView: View {
             IOSReadingPage(document: document, shell: shell, voice: voice)
         } else if split {
             HStack(spacing: 0) {
-                sourcePage(showsPageMenu: true) // 左半原文留着，换页按钮只放这一侧
+                sourcePage(showsPageMenu: false) // 底栏负责换页
                 Rectangle()
                     .fill(IOSPaper.inkMuted.opacity(0.35))
                     .frame(width: 1) // 分隔线，不画书脊
-                assistant // 右半在讲解和翻译之间换
+                IOSSplitAssistantPane(shell: shell) {
+                    translationPage(showsPageMenu: false)
+                } explanation: {
+                    explanationPage(showsPageMenu: false)
+                }
             }
         } else {
             single // 窄于并排宽度，立刻回到单页
@@ -223,15 +282,10 @@ struct IOSRootView: View {
         IOSTranslationPage(document: document, shell: shell, settings: settings, service: service, speaker: speaker, showsPageMenu: showsPageMenu) // 翻译页同样
     }
 
-    /// 宽屏右半。设置和阅读不会走到这里。换页按钮留在左半，右边不再放一枚。
-    @ViewBuilder
-    private var assistant: some View {
-        switch shell.page {
-        case .translation:
-            translationPage(showsPageMenu: false) // 并排时右边不重复换页按钮
-        default:
-            explanationPage(showsPageMenu: false) // 并排时右边默认讲解
-        }
+    private func importKind(for url: URL) -> IOSImportKind {
+        let ext = url.pathExtension.lowercased()
+        if ext == "aibook" || ext == "txt" { return .book }
+        return .book
     }
 
     /// 打开文本、aibook、目录，或把一份文本写进讲解、译文。
@@ -240,6 +294,7 @@ struct IOSRootView: View {
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         if exists, isDirectory.boolValue, kind == .directory {
+            IOSDirectoryBookmark.save(url)
             keptFolder?.stopAccessingSecurityScopedResource()
             keptFolder = accessed ? url : nil // 列表还在时不能还掉目录权限
             let children = (try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? []
@@ -273,15 +328,37 @@ struct IOSRootView: View {
         }
     }
 
+    #if DEBUG
+    /// 注入示例译文并切到翻译页，供模拟器对照截图。
+    private func applySnapshotTranslationFixtureIfNeeded() {
+        guard IOSSnapshotHints.translationCompare else { return }
+        document.openText(
+            name: "静夜思",
+            text: "床前明月光，\n疑是地上霜。\n\n举头望明月，\n低头思故乡。"
+        )
+        document.storeTranslation(
+            "Before my bed a pool of light,\nIs it hoar-frost on the ground?\n\nHead up, I watch the moon; head down,\nIn thought of home I am drowned."
+        )
+        shell.select(.translation)
+    }
+    #endif
+
     /// 目录列表关掉后再归还安全范围。
     private func releaseFolder() {
         keptFolder?.stopAccessingSecurityScopedResource()
         keptFolder = nil
     }
 
-    /// 正在朗读时贴在顶上的细条。
+    /// 正在朗读时独占顶栏一行：左侧来源，右侧播控。
     private var speechBar: some View {
-        HStack {
+        HStack(spacing: 10) {
+            if let key = speaker.contextTitleKey {
+                Text(BookL10n.string(key))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(IOSPaper.ink)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
             Button(speaker.paused ? BookL10n.string("action.resume") : BookL10n.string("action.pause")) {
                 if speaker.paused {
                     speaker.resume() // 从暂停处继续
@@ -289,10 +366,14 @@ struct IOSRootView: View {
                     speaker.pause() // 先停住，不丢掉进度
                 }
             }
+            .buttonStyle(.borderedProminent)
+            .tint(IOSPaper.ink)
             Button(BookL10n.string("action.stop")) { speaker.stop() } // 结束这一次朗读
+                .buttonStyle(.bordered)
         }
-        .buttonStyle(.bordered)
-        .padding(8)
-        .background(.thinMaterial, in: Capsule())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .iosPanelChrome(edge: .bottom)
     }
 }
